@@ -61,7 +61,8 @@ async function runDemo() {
     modelViewer.style.display = 'none';
     
     // Add the link after the status element
-    statusElement.parentElement?.insertBefore(downloadLink, modelViewer);
+    const appContainer = document.getElementById('app');
+    appContainer?.appendChild(downloadLink);
     
     // Step 8: Show success message with initialization count
     const initCount = manifoldContext.getInitCount();

@@ -100,16 +100,31 @@ export async function exportToOBJ(model: any): Promise<Blob> {
   const mesh = model.getMesh();
   console.log('Got mesh:', mesh);
   
+  // Log detailed mesh properties
+  console.log('Mesh properties:', {
+    numProp: mesh.numProp,
+    triVertsLength: mesh.triVerts.length,
+    vertPropertiesLength: mesh.vertProperties.length,
+    numVertices: mesh.vertProperties.length / mesh.numProp,
+    // Log first few vertices and triangles
+    sampleVertices: Array.from(mesh.vertProperties.slice(0, 15)),
+    sampleTriangles: Array.from(mesh.triVerts.slice(0, 15))
+  });
+  
   // Extract vertices and triangles
-  const positions = mesh.vertProperties.get('position');
+  const positions = mesh.vertProperties;
   const triangles = mesh.triVerts;
   
   // Build OBJ format string
   let objContent = "# Exported from Manifold\n";
   
-  // Add vertices
-  for (let i = 0; i < positions.length; i += 3) {
-    objContent += `v ${positions[i]} ${positions[i+1]} ${positions[i+2]}\n`;
+  // Add vertices - each vertex has 3 components (x, y, z)
+  const numComponents = mesh.numProp;
+  const numVertices = positions.length / numComponents;
+  
+  for (let i = 0; i < numVertices; i++) {
+    const baseIdx = i * numComponents;
+    objContent += `v ${positions[baseIdx]} ${positions[baseIdx+1]} ${positions[baseIdx+2]}\n`;
   }
   
   // Add faces (triangles)
@@ -149,15 +164,25 @@ export async function createManifoldFactory() {
       const mesh = model.getMesh();
       
       // Extract vertices and triangles
-      const positions = mesh.vertProperties.get('position');
+      const positions = mesh.vertProperties;
       const triangles = mesh.triVerts;
+      
+      // Log properties for debugging
+      console.log('Factory export - Mesh properties:', {
+        numProp: mesh.numProp,
+        vertPropertiesLength: mesh.vertProperties.length
+      });
       
       // Build OBJ format string
       let objContent = "# Exported from Manifold\n";
       
-      // Add vertices
-      for (let i = 0; i < positions.length; i += 3) {
-        objContent += `v ${positions[i]} ${positions[i+1]} ${positions[i+2]}\n`;
+      // Add vertices - each vertex has 3 components (x, y, z)
+      const numComponents = mesh.numProp;
+      const numVertices = positions.length / numComponents;
+      
+      for (let i = 0; i < numVertices; i++) {
+        const baseIdx = i * numComponents;
+        objContent += `v ${positions[baseIdx]} ${positions[baseIdx+1]} ${positions[baseIdx+2]}\n`;
       }
       
       // Add faces (triangles)
