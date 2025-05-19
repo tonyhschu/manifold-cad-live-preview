@@ -1,29 +1,31 @@
 // src/lib/manifold-context.ts
-import Manifold from 'manifold-3d';
+import ManifoldModule from 'manifold-3d';
 
 // Type for the initialized Manifold module
-export type ManifoldType = Awaited<ReturnType<typeof Manifold>>;
+export type ManifoldType = Awaited<ReturnType<typeof ManifoldModule>>;
 
 // Create a class to manage the Manifold context
 class ManifoldContext {
-  private manifold: ManifoldType | null = null;
+  private manifoldModule: ManifoldType | null = null;
   private initPromise: Promise<ManifoldType> | null = null;
   private initCount = 0;
   
   // Initialize Manifold once and cache the result
   async initialize(): Promise<ManifoldType> {
-    if (this.manifold) {
+    if (this.manifoldModule) {
       console.log('Returning already initialized Manifold instance');
-      return this.manifold;
+      return this.manifoldModule;
     }
     
     if (!this.initPromise) {
       console.log('Starting Manifold initialization (first time)');
       this.initCount++;
-      this.initPromise = Manifold().then(module => {
+      this.initPromise = ManifoldModule().then(wasmModule => {
+        console.log('Manifold WASM module loaded, setting up...');
+        wasmModule.setup();
+        this.manifoldModule = wasmModule;
         console.log('Manifold initialized successfully');
-        this.manifold = module;
-        return module;
+        return wasmModule;
       });
     } else {
       console.log('Returning pending initialization promise');
@@ -33,14 +35,14 @@ class ManifoldContext {
     return this.initPromise;
   }
   
-  // Get the initialized manifold instance, initializing if needed
-  async getManifold(): Promise<ManifoldType> {
+  // Get the module with all manifold functionality
+  async getModule(): Promise<ManifoldType> {
     return this.initialize();
   }
   
   // Check if manifold is already initialized
   isInitialized(): boolean {
-    return this.manifold !== null;
+    return this.manifoldModule !== null;
   }
   
   // Get initialization count for testing
@@ -52,8 +54,8 @@ class ManifoldContext {
 // Create and export a singleton instance
 export const manifoldContext = new ManifoldContext();
 
-// Helper function to wait for manifold and execute with it
-export async function withManifold<T>(fn: (manifold: ManifoldType) => T): Promise<T> {
-  const manifold = await manifoldContext.getManifold();
-  return fn(manifold);
+// Helper function to execute a function with the manifold module
+export async function withModule<T>(fn: (module: ManifoldType) => T): Promise<T> {
+  const module = await manifoldContext.getModule();
+  return fn(module);
 }

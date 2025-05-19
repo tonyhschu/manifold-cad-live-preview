@@ -1,8 +1,6 @@
 import './style.css';
-import { manifoldContext } from './lib/manifold-context';
-import { createCube, createCylinder, createPrimitiveFactory } from './lib/primitives';
-import { union, difference, createOperationsFactory } from './lib/operations';
-import { exportToGLB, createModelUrl } from './lib/export-utils';
+import { manifoldContext, withModule } from './lib/manifold-context';
+import { cube, cylinder, sphere, union, difference, createManifoldFactory, exportToGLB, createModelUrl } from './lib/utilities';
 
 // Get DOM elements
 const statusElement = document.getElementById('status') as HTMLDivElement;
@@ -16,25 +14,37 @@ async function runDemo() {
   try {
     console.log('Starting Manifold context pattern demo');
     
-    // Step 1: Create shapes using the function-based approach
+    // First, let's test the direct access to Manifold to verify our module loads correctly
+    await withModule(module => {
+      console.log('Manifold module loaded successfully', module);
+      const testCube = module.Manifold.cube([5, 5, 5]);
+      console.log('Test cube created directly', testCube);
+    });
+    
+    // Step 1: Create shapes using our wrapped utility functions
     statusElement.textContent = 'Creating primitive shapes...';
-    const cube = await createCube([10, 10, 10]);
-    const cylinder = await createCylinder(5, 15, 32);
+    const shape1 = await cube([10, 10, 10]);
+    const shape2 = await cylinder(5, 15, 32);
     
-    // Step 2: Use a boolean operation with the function-based approach
+    console.log('Created cube', shape1);
+    console.log('Created cylinder', shape2);
+    
+    // Step 2: Use a boolean operation 
     statusElement.textContent = 'Performing boolean operations...';
-    const union1 = await union([cube, cylinder]);
+    const combined = await union([shape1, shape2]);
+    console.log('Union result', combined);
     
-    // Step 3: Now, create a factory and use it (showing object-oriented approach)
-    statusElement.textContent = 'Creating and using factories...';
-    const primitiveFactory = await createPrimitiveFactory();
-    const operationsFactory = await createOperationsFactory();
+    // Step 3: Create and use a factory (object-oriented approach)
+    statusElement.textContent = 'Creating and using factory...';
+    const factory = await createManifoldFactory();
     
-    // Step 4: Create more shapes using the factory
-    const sphere = primitiveFactory.sphere(7);
+    // Step 4: Create another shape using the factory
+    const ball = factory.sphere(7);
+    console.log('Created sphere using factory', ball);
     
     // Step 5: Perform another boolean operation using the factory
-    const finalModel = operationsFactory.difference(union1, sphere);
+    const finalModel = factory.difference(combined, ball);
+    console.log('Final model after boolean operations', finalModel);
     
     // Step 6: Export the model to GLB
     statusElement.textContent = 'Exporting model to GLB...';
