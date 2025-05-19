@@ -50,7 +50,7 @@ export class ManifoldPrimitive extends ExtensionProperty<IManifoldPrimitive> {
     this.parentTypes = [PropertyType.MESH];
   }
 
-  getDefaults(): Record<string, unknown> {
+  getDefaults(): any {
     return Object.assign(
       super.getDefaults(),
       { manifoldPrimitive: null, mergeIndices: null, mergeValues: null }
@@ -111,7 +111,7 @@ export class EXTManifold extends Extension {
 
       const mesh = context.meshes[meshIndex];
       const manifoldPrimitive = this.createManifoldPrimitive();
-      mesh.setExtension(NAME, manifoldPrimitive);
+      mesh.setExtension(NAME, manifoldPrimitive as any);
 
       const manifoldDef = meshDef.extensions[NAME] as ManifoldDef;
 
@@ -147,7 +147,7 @@ export class EXTManifold extends Extension {
 
   prewrite(context: WriterContext): this {
     this.document.getRoot().listMeshes().forEach((mesh) => {
-      const manifoldPrimitive = mesh.getExtension(NAME) as ManifoldPrimitive;
+      const manifoldPrimitive = mesh.getExtension(NAME) as unknown as ManifoldPrimitive;
       if (!manifoldPrimitive) return;
 
       const indices = manifoldPrimitive.getIndices();
@@ -169,7 +169,7 @@ export class EXTManifold extends Extension {
     const { json } = context.jsonDoc;
 
     this.document.getRoot().listMeshes().forEach((mesh) => {
-      const manifoldPrimitive = mesh.getExtension(NAME) as ManifoldPrimitive;
+      const manifoldPrimitive = mesh.getExtension(NAME) as unknown as ManifoldPrimitive;
       if (!manifoldPrimitive) return;
 
       const meshIndex = context.meshIndexMap.get(mesh)!;

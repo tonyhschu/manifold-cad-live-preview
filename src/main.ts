@@ -3,9 +3,7 @@ import { manifoldContext, withModule } from "./lib/manifold-context";
 import {
   cube,
   cylinder,
-  sphere,
   union,
-  difference,
   createManifoldFactory,
   exportToOBJ,
   createModelUrl,
