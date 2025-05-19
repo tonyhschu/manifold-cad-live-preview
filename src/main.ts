@@ -6,8 +6,14 @@ import { cube, cylinder, sphere, union, difference, createManifoldFactory, expor
 const statusElement = document.getElementById('status') as HTMLDivElement;
 const modelViewer = document.querySelector('model-viewer') as any;
 
+// Hide the model viewer for now
+if (modelViewer) {
+  modelViewer.style.display = 'none';
+}
+
 // Update status
 statusElement.textContent = 'Initializing Manifold...';
+
 
 // Main async function to test the Manifold context pattern
 async function runDemo() {
@@ -51,17 +57,24 @@ async function runDemo() {
     const objBlob = await exportToOBJ(finalModel);
     const modelUrl = createModelUrl(objBlob);
     
-    // Step 7: Since model-viewer doesn't support OBJ, we'll just show a success message
-    // and offer the file for download
+    // Add a message explaining the results
+    const resultMessage = document.createElement('div');
+    resultMessage.innerHTML = `<h3>Demo Results</h3>
+    <p>Successfully created and performed operations on a 3D model using the Manifold context pattern.</p>
+    <p>The model is a cube joined with a cylinder, with a sphere subtracted from it.</p>
+    <p>You can download the OBJ file below to view the model in any 3D viewer that supports OBJ format.</p>`;
+    
+    // Get the app container and add the message
+    const appContainer = document.getElementById('app');
+    appContainer?.appendChild(resultMessage);
+    
+    // Add the download link
     const downloadLink = document.createElement('a');
     downloadLink.href = modelUrl;
     downloadLink.download = 'manifold-model.obj';
     downloadLink.textContent = 'Download OBJ Model';
     downloadLink.className = 'download-btn';
-    modelViewer.style.display = 'none';
     
-    // Add the link after the status element
-    const appContainer = document.getElementById('app');
     appContainer?.appendChild(downloadLink);
     
     // Step 8: Show success message with initialization count
