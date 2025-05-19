@@ -49,6 +49,15 @@ class ManifoldContext {
   getInitCount(): number {
     return this.initCount;
   }
+  
+  /**
+   * Get the mesh data from a manifold object
+   * @param manifold The manifold object to get mesh data from
+   * @returns The mesh data
+   */
+  async getMeshFromManifold(manifold: any): Promise<any> {
+    return manifold.getMesh();
+  }
 }
 
 // Create and export a singleton instance
