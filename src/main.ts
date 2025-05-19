@@ -3,7 +3,7 @@ import { createPreview } from "./core/preview";
 
 // Get DOM elements
 const statusElement = document.getElementById("status") as HTMLDivElement;
-const modelViewer = document.querySelector("model-viewer") as any;
+const modelViewer = document.getElementById("viewer") as any; // Use the correct ID
 const appContainer = document.getElementById("app") as HTMLDivElement;
 
 // Create the preview handler

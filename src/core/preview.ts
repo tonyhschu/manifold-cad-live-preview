@@ -17,11 +17,27 @@ export class ManifoldPreview {
   private modelViewer: any;
   private appContainer: HTMLElement;
   private modelSelectContainer: HTMLElement | null = null;
+  private resultContainer: HTMLElement | null = null;
   
   constructor(options: PreviewOptions) {
     this.statusElement = options.statusElement;
     this.modelViewer = options.modelViewer;
     this.appContainer = options.appContainer;
+    
+    // Create a container for results that won't be cleared
+    this.resultContainer = document.createElement("div");
+    this.resultContainer.id = "preview-results";
+    
+    // Find the viewer container element
+    const viewerContainer = document.getElementById("viewer-container");
+    
+    // Insert the result container after the viewer container
+    if (viewerContainer && viewerContainer.parentNode) {
+      viewerContainer.parentNode.insertBefore(this.resultContainer, viewerContainer.nextSibling);
+    } else {
+      // Fallback: append to app container
+      this.appContainer.appendChild(this.resultContainer);
+    }
     
     // Initialize the preview
     this.initializeViewer();
@@ -31,7 +47,7 @@ export class ManifoldPreview {
   private initializeViewer() {
     // Set up the model viewer
     if (this.modelViewer) {
-      this.modelViewer.style.display = "none";
+      this.modelViewer.style.display = "block"; // Always visible
       this.modelViewer.shadowIntensity = 1;
       this.modelViewer.cameraControls = true;
       this.modelViewer.autoRotate = false;
@@ -78,11 +94,9 @@ export class ManifoldPreview {
     
     container.appendChild(select);
     
-    // Insert at the top of the app container
-    if (this.appContainer.firstChild) {
-      this.appContainer.insertBefore(container, this.appContainer.firstChild);
-    } else {
-      this.appContainer.appendChild(container);
+    // Add to results container
+    if (this.resultContainer) {
+      this.resultContainer.appendChild(container);
     }
     
     this.modelSelectContainer = container;
@@ -137,19 +151,24 @@ export class ManifoldPreview {
         this.modelViewer.style.display = "block";
       }
       
+      // Clear previous content in the result container
+      if (this.resultContainer) {
+        // Remove all children except the model selector
+        const childrenToRemove = Array.from(this.resultContainer.children).filter(
+          child => child !== this.modelSelectContainer
+        );
+        childrenToRemove.forEach(child => this.resultContainer.removeChild(child));
+      }
+      
       // Add a message explaining the results
       const resultMessage = document.createElement("div");
       resultMessage.innerHTML = `<h3>${modelMetadata?.name || "Model Preview"}</h3>
       <p>${modelMetadata?.description || "Successfully created a 3D model using ManifoldCAD."}</p>`;
       
-      // Clear previous content (except the model selector)
-      const childrenToRemove = Array.from(this.appContainer.children).filter(
-        child => child !== this.modelSelectContainer
-      );
-      childrenToRemove.forEach(child => this.appContainer.removeChild(child));
-      
-      // Add the new content
-      this.appContainer.appendChild(resultMessage);
+      // Add the new content to the result container
+      if (this.resultContainer) {
+        this.resultContainer.appendChild(resultMessage);
+      }
       
       // Add the download links
       const downloadContainer = document.createElement("div");
@@ -170,7 +189,9 @@ export class ManifoldPreview {
       downloadContainer.appendChild(objDownloadLink);
       downloadContainer.appendChild(glbDownloadLink);
       
-      this.appContainer.appendChild(downloadContainer);
+      if (this.resultContainer) {
+        this.resultContainer.appendChild(downloadContainer);
+      }
       
       // Show success message with initialization count
       const initCount = manifoldContext.getInitCount();
