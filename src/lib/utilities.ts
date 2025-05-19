@@ -92,17 +92,34 @@ export async function intersection(a: any, b: any) {
   return intersection(a, b);
 }
 
-export async function exportToGLB(model: any): Promise<Blob> {
-  const { meshToGlb } = await getManifoldTools();
+// Export a manifold to a simple OBJ format blob
+export async function exportToOBJ(model: any): Promise<Blob> {
+  console.log('Exporting model to OBJ');
   
   // Get the mesh from the model
   const mesh = model.getMesh();
+  console.log('Got mesh:', mesh);
   
-  // Use meshToGlb to convert the mesh to a GLB buffer
-  const glb = meshToGlb(mesh);
+  // Extract vertices and triangles
+  const positions = mesh.vertProperties.get('position');
+  const triangles = mesh.triVerts;
+  
+  // Build OBJ format string
+  let objContent = "# Exported from Manifold\n";
+  
+  // Add vertices
+  for (let i = 0; i < positions.length; i += 3) {
+    objContent += `v ${positions[i]} ${positions[i+1]} ${positions[i+2]}\n`;
+  }
+  
+  // Add faces (triangles)
+  for (let i = 0; i < triangles.length; i += 3) {
+    // OBJ uses 1-based indexing
+    objContent += `f ${triangles[i]+1} ${triangles[i+1]+1} ${triangles[i+2]+1}\n`;
+  }
   
   // Return as a blob
-  return new Blob([glb], { type: 'application/octet-stream' });
+  return new Blob([objContent], { type: 'text/plain' });
 }
 
 // Create a URL for a GLB blob
@@ -128,10 +145,29 @@ export async function createManifoldFactory() {
     intersection: tools.intersection,
     
     // Export utilities
-    exportToGLB: async (model: any): Promise<Blob> => {
+    exportToOBJ: async (model: any): Promise<Blob> => {
       const mesh = model.getMesh();
-      const glb = tools.meshToGlb(mesh);
-      return new Blob([glb], { type: 'application/octet-stream' });
+      
+      // Extract vertices and triangles
+      const positions = mesh.vertProperties.get('position');
+      const triangles = mesh.triVerts;
+      
+      // Build OBJ format string
+      let objContent = "# Exported from Manifold\n";
+      
+      // Add vertices
+      for (let i = 0; i < positions.length; i += 3) {
+        objContent += `v ${positions[i]} ${positions[i+1]} ${positions[i+2]}\n`;
+      }
+      
+      // Add faces (triangles)
+      for (let i = 0; i < triangles.length; i += 3) {
+        // OBJ uses 1-based indexing
+        objContent += `f ${triangles[i]+1} ${triangles[i+1]+1} ${triangles[i+2]+1}\n`;
+      }
+      
+      // Return as a blob
+      return new Blob([objContent], { type: 'text/plain' });
     },
     
     // Utility functions

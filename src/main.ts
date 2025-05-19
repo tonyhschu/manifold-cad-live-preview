@@ -1,6 +1,6 @@
 import './style.css';
 import { manifoldContext, withModule } from './lib/manifold-context';
-import { cube, cylinder, sphere, union, difference, createManifoldFactory, exportToGLB, createModelUrl } from './lib/utilities';
+import { cube, cylinder, sphere, union, difference, createManifoldFactory, exportToOBJ, createModelUrl } from './lib/utilities';
 
 // Get DOM elements
 const statusElement = document.getElementById('status') as HTMLDivElement;
@@ -46,13 +46,22 @@ async function runDemo() {
     const finalModel = factory.difference(combined, ball);
     console.log('Final model after boolean operations', finalModel);
     
-    // Step 6: Export the model to GLB
-    statusElement.textContent = 'Exporting model to GLB...';
-    const glbBlob = await exportToGLB(finalModel);
-    const modelUrl = createModelUrl(glbBlob);
+    // Step 6: Export the model to OBJ
+    statusElement.textContent = 'Exporting model to OBJ...';
+    const objBlob = await exportToOBJ(finalModel);
+    const modelUrl = createModelUrl(objBlob);
     
-    // Step 7: Display the model in the model-viewer
-    modelViewer.src = modelUrl;
+    // Step 7: Since model-viewer doesn't support OBJ, we'll just show a success message
+    // and offer the file for download
+    const downloadLink = document.createElement('a');
+    downloadLink.href = modelUrl;
+    downloadLink.download = 'manifold-model.obj';
+    downloadLink.textContent = 'Download OBJ Model';
+    downloadLink.className = 'download-btn';
+    modelViewer.style.display = 'none';
+    
+    // Add the link after the status element
+    statusElement.parentElement?.insertBefore(downloadLink, modelViewer);
     
     // Step 8: Show success message with initialization count
     const initCount = manifoldContext.getInitCount();
