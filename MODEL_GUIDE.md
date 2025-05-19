@@ -2,21 +2,69 @@
 
 This guide explains how to create 3D models using our ManifoldCAD preview framework.
 
-## Model Structure
+## Two Ways to Create Models
 
-Each model file follows a simple structure:
+Our framework now supports two different approaches to creating models:
 
-1. A default export function that returns a Manifold object
+1. **Synchronous API (Recommended)** - Clean, straightforward code with no async/await needed
+2. **Asynchronous API (Legacy)** - Older approach with async/await throughout
+
+## Synchronous Model Structure
+
+Each synchronous model file follows this simple structure:
+
+1. A default export function that returns a Manifold object directly
 2. Optional metadata about your model
 
-### Basic Example
+### Synchronous Example
 
 ```typescript
 // src/models/my-model.ts
+import { cube, sphere, difference } from "../lib/manifold-sync";
+
+/**
+ * Create a simple cube with a spherical hole
+ * Notice: No async/await needed!
+ */
+export default function createModel() {
+  // Create a cube
+  const box = cube([20, 20, 20], true);
+  
+  // Create a sphere
+  const ball = sphere(12);
+  
+  // Subtract the sphere from the cube
+  const result = difference(box, ball);
+  
+  // Return the final model
+  return result;
+}
+
+// Optional metadata
+export const modelMetadata = {
+  name: "Cube with Sphere Cutout",
+  description: "A demonstration of boolean operations with basic shapes",
+  author: "Your Name",
+  version: "1.0.0"
+};
+```
+
+## Asynchronous Model Structure (Legacy)
+
+Each asynchronous model file follows this structure:
+
+1. A default export async function that returns a Promise<Manifold>
+2. Optional metadata about your model
+
+### Asynchronous Example
+
+```typescript
+// src/models/my-async-model.ts
 import { cube, sphere, difference } from "../lib/utilities";
 
 /**
  * Create a simple cube with a spherical hole
+ * Note: Requires async/await throughout
  */
 export default async function createModel() {
   // Create a cube
@@ -34,7 +82,7 @@ export default async function createModel() {
 
 // Optional metadata
 export const modelMetadata = {
-  name: "Cube with Sphere Cutout",
+  name: "Async Cube with Sphere Cutout",
   description: "A demonstration of boolean operations with basic shapes",
   author: "Your Name",
   version: "1.0.0"
@@ -43,7 +91,7 @@ export const modelMetadata = {
 
 ## Core CSG Operations
 
-The framework provides these basic operations:
+The framework provides these basic operations in both synchronous and asynchronous forms:
 
 ### Primitives
 
@@ -61,16 +109,18 @@ The framework provides these basic operations:
 
 You can create reusable components by defining functions that return Manifold objects:
 
+### Synchronous Components (Recommended)
+
 ```typescript
 // src/models/components/my-components.ts
-import { cube, cylinder, difference } from "../../lib/utilities";
+import { cube, cylinder, difference } from "../../lib/manifold-sync";
 
 /**
  * Create a box with a cylindrical hole
  */
-export async function boxWithHole(size: number, holeRadius: number) {
-  const box = await cube([size, size, size], true);
-  const hole = await cylinder(holeRadius, size * 2, 32);
+export function boxWithHole(size: number, holeRadius: number) {
+  const box = cube([size, size, size], true);
+  const hole = cylinder(holeRadius, size * 2, 32);
   return difference(box, hole);
 }
 ```
@@ -81,7 +131,7 @@ Then use them in your models:
 // src/models/using-components.ts
 import { boxWithHole } from "./components/my-components";
 
-export default async function createModel() {
+export default function createModel() {
   return boxWithHole(20, 5);
 }
 ```
@@ -109,10 +159,10 @@ Your model will now appear in the dropdown menu in the preview.
 For advanced operations not covered by the utilities, you can access the Manifold module directly:
 
 ```typescript
-import { manifoldContext } from "../lib/manifold-context";
+import { getModule } from "../lib/manifold-sync";
 
-export default async function createModel() {
-  const module = await manifoldContext.getModule();
+export default function createModel() {
+  const module = getModule();
   
   // Use the module directly
   const shape = module.Manifold.cube([10, 10, 10]);
@@ -140,14 +190,22 @@ src/
 
 ## Best Practices
 
-1. **Keep models modular** - Break complex models into components
-2. **Use async/await** - All shape creation and operations should use await
+1. **Use the synchronous API** - For cleaner, more readable code
+2. **Keep models modular** - Break complex models into components
 3. **Add descriptive metadata** - Helps others understand your model
 4. **Comment your code** - Especially for complex operations
 5. **Use parameterization** - Make shapes configurable where possible
 
+## How it Works
+
+The synchronous API uses top-level await to initialize the Manifold WASM module once when the application starts. This means:
+
+1. The initialization happens only once, at application startup
+2. After initialization, all operations are synchronous
+3. Your model code can be clean and straightforward
+
 ## Troubleshooting
 
 - If your model doesn't appear in the preview, check for errors in the browser console
-- Ensure all async operations are properly awaited
 - Verify that your model function returns a valid Manifold object
+- If using the async API, ensure all async operations are properly awaited

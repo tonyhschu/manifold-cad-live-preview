@@ -13,17 +13,23 @@ export interface ModelMetadata {
 
 /**
  * Type definition for model creation functions
+ * Notice we allow both synchronous and asynchronous model creation functions
  */
-export type ModelCreator = () => Promise<any>;
+export type ModelCreator = () => Promise<any> | any;
 
 /**
  * Available models in the system
  */
 export const availableModels = [
-  { id: 'default', path: '../models/index', name: 'Demo Model' },
-  { id: 'cube', path: '../models/simple-cube', name: 'Simple Cube' },
-  { id: 'compound', path: '../models/compound-model', name: 'Compound Model' },
-  // Add more models here as they are created
+  // Original async models
+  { id: 'default', path: '../models/index', name: 'Demo Model (Async)' },
+  { id: 'cube', path: '../models/simple-cube', name: 'Simple Cube (Async)' },
+  { id: 'compound', path: '../models/compound-model', name: 'Compound Model (Async)' },
+  
+  // New synchronous models
+  { id: 'sync-cube', path: '../models/sync-cube', name: 'Cube (Sync)' },
+  { id: 'sync-demo', path: '../models/sync-demo', name: 'Demo Model (Sync)' },
+  { id: 'sync-compound', path: '../models/sync-compound', name: 'Compound Model (Sync)' },
 ];
 
 /**
@@ -31,7 +37,7 @@ export const availableModels = [
  * @returns Promise that resolves to the created model and its metadata
  */
 export async function loadDefaultModel(): Promise<{ model: any; metadata?: ModelMetadata }> {
-  return loadModelById('default');
+  return loadModelById('sync-demo'); // Default to a sync model
 }
 
 /**
@@ -56,8 +62,9 @@ export async function loadModelById(modelId: string): Promise<{ model: any; meta
     // Get metadata if available
     const metadata = modelModule.modelMetadata as ModelMetadata | undefined;
     
-    // Create the model
-    const model = await createModel();
+    // Create the model - handle both sync and async functions
+    const modelResult = createModel();
+    const model = modelResult instanceof Promise ? await modelResult : modelResult;
     
     return { model, metadata };
   } catch (error) {

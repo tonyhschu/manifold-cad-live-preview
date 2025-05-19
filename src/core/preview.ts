@@ -1,9 +1,9 @@
 // src/core/preview.ts
 // Handles the preview UI functionality
 
-import { exportToOBJ, createModelUrl } from "../lib/utilities";
-import { manifoldToGLB, createGLBUrl } from "../lib/gltf-export";
-import { manifoldContext } from "../lib/manifold-context";
+import { exportToOBJ, createModelUrl } from "../lib/sync-export";
+import { manifoldToGLB, createGLBUrl } from "../lib/sync-gltf-export";
+import { getInitCount } from "../lib/manifold-sync";
 import { getAvailableModels, loadModelById, ModelMetadata } from "./model-loader";
 
 interface PreviewOptions {
@@ -136,10 +136,12 @@ export class ManifoldPreview {
     try {
       // Step 1: Export the model to OBJ and GLB
       this.updateStatus("Exporting model to OBJ and GLB...");
-      const objBlob = await exportToOBJ(model);
+      
+      // Export model to OBJ (synchronous now!)
+      const objBlob = exportToOBJ(model);
       const objUrl = createModelUrl(objBlob);
       
-      // Export to GLB for model-viewer
+      // Export to GLB for model-viewer (still has async components due to glTF-transform)
       this.updateStatus("Generating GLB for model-viewer...");
       const glbBlob = await manifoldToGLB(model);
       const glbUrl = createGLBUrl(glbBlob);
@@ -194,8 +196,8 @@ export class ManifoldPreview {
       }
       
       // Show success message with initialization count
-      const initCount = manifoldContext.getInitCount();
-      this.statusElement.innerHTML = `Success! Manifold was initialized <strong>${initCount} time(s)</strong> even though we used it in multiple modules.`;
+      const initCount = getInitCount();
+      this.statusElement.innerHTML = `Success! Manifold was initialized <strong>${initCount} time(s)</strong> using the top-level await pattern.`;
       this.statusElement.className = "success";
       
       console.log("Preview completed successfully");
