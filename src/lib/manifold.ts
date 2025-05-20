@@ -1,7 +1,7 @@
-// src/lib/manifold-sync.ts
+// src/lib/manifold.ts
 // Provides synchronous access to Manifold after initial async loading
 
-import ManifoldModule, { Manifold, Mesh, Vec3 } from "manifold-3d";
+import ManifoldModule, { Manifold, Vec3 } from "manifold-3d";
 
 // Type for the initialized Manifold module
 export type ManifoldType = Awaited<ReturnType<typeof ManifoldModule>>;
@@ -55,7 +55,6 @@ export function difference(a: Manifold, b: Manifold): Manifold {
 }
 
 export function intersection(a: Manifold, b: Manifold): Manifold {
-  if (!a || !b) return null;
   return manifoldModule.Manifold.intersection(a, b);
 }
 

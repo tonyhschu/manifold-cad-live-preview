@@ -1,7 +1,5 @@
-// src/lib/sync-export.ts
-// Export utilities for the synchronous Manifold API
-
-import { getModule } from "./manifold-sync";
+// src/lib/export.ts
+// Export utilities for the Manifold API
 
 /**
  * Export a manifold to a simple OBJ format blob

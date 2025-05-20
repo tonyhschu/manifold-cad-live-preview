@@ -159,7 +159,11 @@ export class ManifoldPreview {
         const childrenToRemove = Array.from(this.resultContainer.children).filter(
           child => child !== this.modelSelectContainer
         );
-        childrenToRemove.forEach(child => this.resultContainer.removeChild(child));
+        childrenToRemove.forEach(child => {
+          if (this.resultContainer) {
+            this.resultContainer.removeChild(child);
+          }
+        });
       }
       
       // Add a message explaining the results

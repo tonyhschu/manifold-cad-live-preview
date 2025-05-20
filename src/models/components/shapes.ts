@@ -5,10 +5,7 @@ import {
   cube, 
   cylinder, 
   sphere, 
-  difference, 
-  intersection,
-  union,
-  getModule
+  difference
 } from "../../lib/manifold";
 
 /**
@@ -50,8 +47,6 @@ export function sphericalCap(radius: number, height: number) {
   const cutBox = cube([radius * 2, radius * 2, radius * 2 - height], true);
   
   // Translate the box to cut the bottom of the sphere
-  // Access the raw module for transformations
-  const module = getModule();
   const translatedBox = cutBox.translate([0, 0, -radius + (height / 2)]);
   
   return difference(wholeSphere, translatedBox);
