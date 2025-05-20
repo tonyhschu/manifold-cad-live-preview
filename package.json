@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "tsc && node tests/api/index.js"
+    "compile": "node scripts/compile-manifold.js",
+    "test": "npm run compile && node --test tests/manifold-integration.test.js",
+    "test:skip-compile": "node --test tests/manifold-integration.test.js"
   },
   "devDependencies": {
     "typescript": "^5.0.2",

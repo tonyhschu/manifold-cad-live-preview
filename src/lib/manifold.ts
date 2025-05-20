@@ -100,7 +100,8 @@ function validateUtilityExports() {
 }
 
 // Run validation in development but not in production
-if (process.env.NODE_ENV !== 'production') {
+// @ts-ignore - Node.js process check
+if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
   validateUtilityExports();
 }
 
