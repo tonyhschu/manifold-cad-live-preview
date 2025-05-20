@@ -1,82 +1,62 @@
-# ManifoldCAD Preview Environment
+# ManifoldCAD Test Project
 
-This project demonstrates a preview environment for code-based 3D modeling using ManifoldCAD's WASM library. It includes a pattern for managing the Manifold module, creating 3D shapes, and exporting them in both OBJ and GLB formats.
+A test project for working with 3D CAD models using ManifoldCAD and Vite.
 
-## Features
+## Hot Module Replacement (HMR) Integration
 
-- Synchronous API for 3D modeling with clean, await-free code
-- Top-level await pattern for WASM module initialization
-- Basic 3D operations (cube, cylinder, sphere, union, difference)
-- Component-based modeling system
-- Export to OBJ and GLB formats
-- 3D model visualization using Google's `<model-viewer>` component
+This project demonstrates how to integrate Vite's Hot Module Replacement (HMR) API with a 3D CAD visualization environment. The implementation allows for real-time updates to models, UI components, and rendering code without losing application state.
 
-## Installation
+### HMR Features
 
-1. Clone this repository
-2. Install dependencies:
+- Automatic detection of file changes in model definitions
+- Targeted updates based on file type (models, UI components, rendering code)
+- State preservation during updates
+- Clean error handling with fallback to full reload
 
-```bash
-npm install
-```
+### How it Works
 
-## Running the Project
+The HMR integration is structured in three main parts:
 
-Start the development server:
+1. **HMR Handler Module** (`src/hmr-handler.ts`):
+
+   - Central hub for all HMR logic
+   - Provides utility functions for HMR setup
+   - Registers file-specific update handlers
+   - Manages module disposition
+
+2. **Preview Component HMR** (`src/core/preview.ts`):
+
+   - Tracks the current model ID for reloading
+   - Provides a `refreshView()` method that can be called on HMR updates
+   - Preserves UI state during updates
+
+3. **Application Entry Point** (`src/main.ts`):
+   - Creates and maintains a shared context for HMR
+   - Sets up HMR handlers through the HMR module
+   - Accepts HMR updates for itself
+
+### Example: Updating a Model Definition
+
+When you modify a model definition file:
+
+1. Vite detects the change and sends an HMR update
+2. The HMR handler identifies it as a model update
+3. The current model is reloaded with the new definition
+4. The view refreshes with the updated model while preserving camera position and UI state
+
+## Development
+
+To start the development server with HMR enabled:
 
 ```bash
 npm run dev
 ```
 
-Visit `http://localhost:5173` to see the preview environment in action.
+````
 
-## Project Structure
+## Why?
 
-```
-src/
-├── core/               # Framework core
-│   ├── preview.ts      # Preview system 
-│   └── model-loader.ts # Model loading functionality
-│
-├── lib/                # Core libraries
-│   ├── manifold.ts     # Synchronous ManifoldCAD API
-│   ├── export.ts       # Export utilities
-│   ├── gltf-export.ts  # GLB/glTF export functionality
-│   └── manifold-gltf.ts # GLB extension for ManifoldCAD
-│
-├── models/             # Where users write their code
-│   ├── demo.ts         # Example model
-│   ├── cube.ts         # Simple model example
-│   ├── compound.ts     # Example using components
-│   └── components/     # Reusable model components
-│
-└── main.ts             # Bootstrap file for the preview
-```
-
-## Implementation Details
-
-This project demonstrates several key concepts:
-
-1. **Synchronous Modeling API** - Clean, await-free code for better DX
-2. **Component System** - Reusable modeling components for composition
-3. **GLB Export** - Implementation of the EXT_mesh_manifold extension for glTF
-4. **Model Viewer Integration** - Using Google's `<model-viewer>` web component
-
-## Creating Your Own Models
-
-See the [MODEL_GUIDE.md](MODEL_GUIDE.md) file for detailed instructions on creating your own models using this framework.
-
-## Technical Explanation: How Top-Level Await Works
-
-The key to our approach is the top-level await in the `manifold.ts` file:
-
-```typescript
-// Use top-level await to initialize the module
-console.log("Initializing Manifold module (top-level await)...");
-const manifoldModule = await ManifoldModule();
-manifoldModule.setup();
-console.log("Manifold module initialized successfully");
-```
+This all started with my frustration in trying to use ManifoldCAD as a library. The ManifoldCAD.org web editor works great, but I couldn't import other libraries like clipperjs or d3js. I needed ManifoldCAD to play well with the rest of the NPM ecosystem. The main problem is that Manifold is a WASM module which requires async loading. So this project is a way to work around that by providing a synchronous modeling API and using top level away. At a high level...
 
 When the JavaScript module system loads `manifold.ts`, it:
 
@@ -93,13 +73,14 @@ Then, we export synchronous functions that use the already-initialized WASM modu
 export function cube(size: Readonly<Vec3> | number, center = false): Manifold {
   return manifoldModule.Manifold.cube(size, center);
 }
-```
+````
 
 These functions don't need to be async because we know the module is already initialized.
 
 The critical path works like this:
 
-1. **Application startup**: 
+1. **Application startup**:
+
    - The browser loads `main.ts`
    - It imports from `core/preview.ts`
    - That imports from `lib/manifold.ts`
@@ -115,14 +96,8 @@ The critical path works like this:
    - The model function (e.g., `createModel`) uses the already-initialized manifold module
 
 The only places where we still need async/await are:
+
 1. Dynamic importing of model files (with `import()`)
 2. GLB generation (because the glTF library has some async operations)
 
 This approach concentrates all the async complexity at the application boundaries while keeping the core modeling code pure and synchronous.
-
-## Learning Resources
-
-- [ManifoldCAD Documentation](https://github.com/elalish/manifold)
-- [model-viewer Documentation](https://modelviewer.dev/)
-- [glTF Documentation](https://github.com/KhronosGroup/glTF)
-- [Top-level await (MDN)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/await#top_level_await)
