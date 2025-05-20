@@ -1,24 +1,51 @@
 // src/core/preview.ts
-// Handles the preview UI functionality
+/**
+ * ManifoldCAD Preview System
+ * 
+ * This module provides the UI and rendering functionality for displaying 3D models.
+ * It handles model loading, viewer configuration, and UI interactions.
+ */
 
 import { exportToOBJ, createModelUrl } from "../lib/export";
 import { manifoldToGLB, createGLBUrl } from "../lib/gltf-export";
 import { getInitCount } from "../lib/manifold";
 import { getAvailableModels, loadModelById, ModelMetadata } from "./model-loader";
 
+/** Function type for model change callbacks */
+type ModelChangeCallback = (modelId: string) => void;
+
+/** Configuration options for the preview system */
 interface PreviewOptions {
+  /** Status element to display messages */
   statusElement: HTMLElement;
+  /** Model viewer element for 3D visualization */
   modelViewer: any; // model-viewer element
+  /** Container for app UI */
   appContainer: HTMLElement;
 }
 
+/**
+ * ManifoldCAD Preview Class
+ * 
+ * This class manages the 3D model preview experience, handling:
+ * - UI components and interactions
+ * - Model selection and loading
+ * - 3D rendering and visualization
+ * - Export functionality
+ */
 export class ManifoldPreview {
   private statusElement: HTMLElement;
   private modelViewer: any;
   private appContainer: HTMLElement;
   private modelSelectContainer: HTMLElement | null = null;
   private resultContainer: HTMLElement | null = null;
+  private currentModelId: string = 'demo';
+  private modelChangeListeners: ModelChangeCallback[] = [];
   
+  /**
+   * Create a new ManifoldCAD preview
+   * @param options Configuration options for the preview
+   */
   constructor(options: PreviewOptions) {
     this.statusElement = options.statusElement;
     this.modelViewer = options.modelViewer;
@@ -44,6 +71,9 @@ export class ManifoldPreview {
     this.createModelSelector();
   }
   
+  /**
+   * Initialize the 3D model viewer with default settings
+   */
   private initializeViewer() {
     // Set up the model viewer
     if (this.modelViewer) {
@@ -59,7 +89,7 @@ export class ManifoldPreview {
   }
   
   /**
-   * Create a model selector dropdown
+   * Create the model selector dropdown UI
    */
   private createModelSelector() {
     // Create container
@@ -103,10 +133,27 @@ export class ManifoldPreview {
   }
   
   /**
+   * Register a callback to be notified when the current model changes
+   * Used by HMR to track the current model
+   * 
+   * @param callback Function to call when the model changes
+   */
+  public onModelChange(callback: ModelChangeCallback): void {
+    this.modelChangeListeners.push(callback);
+  }
+  
+  /**
    * Load and render a model by ID
+   * @param modelId The ID of the model to load
    */
   public async loadAndRenderModel(modelId: string) {
     try {
+      // Update current model ID
+      this.currentModelId = modelId;
+      
+      // Notify listeners
+      this.modelChangeListeners.forEach(listener => listener(modelId));
+      
       this.updateStatus(`Loading model: ${modelId}...`);
       
       // Load the model
@@ -122,7 +169,9 @@ export class ManifoldPreview {
   }
   
   /**
-   * Update the status message
+   * Update the status message display
+   * @param message The message to display
+   * @param isError Whether this is an error message
    */
   public updateStatus(message: string, isError = false) {
     this.statusElement.textContent = message;
@@ -130,7 +179,38 @@ export class ManifoldPreview {
   }
   
   /**
+   * Get the ID of the currently displayed model
+   * @returns The current model ID
+   */
+  public getCurrentModelId(): string {
+    return this.currentModelId;
+  }
+  
+  /**
+   * Refresh the view without reloading the model
+   * Used by HMR to refresh styling or viewer options
+   */
+  public refreshView(): void {
+    if (this.modelViewer) {
+      // Force a refresh of the model-viewer
+      const currentSrc = this.modelViewer.src;
+      if (currentSrc) {
+        // Add a cache-busting parameter
+        const cacheBust = `?t=${Date.now()}`;
+        const srcWithoutQuery = currentSrc.split('?')[0];
+        this.modelViewer.src = `${srcWithoutQuery}${cacheBust}`;
+        
+        // Update status
+        this.updateStatus('View refreshed');
+        console.log('ManifoldCAD: View refreshed');
+      }
+    }
+  }
+  
+  /**
    * Render a manifold model in the preview
+   * @param model The manifold model to render
+   * @param modelMetadata Optional metadata about the model
    */
   public async renderModel(model: any, modelMetadata?: ModelMetadata) {
     try {
@@ -214,6 +294,8 @@ export class ManifoldPreview {
 
 /**
  * Create a new preview instance
+ * @param options Configuration options for the preview
+ * @returns A new ManifoldPreview instance
  */
 export function createPreview(options: PreviewOptions): ManifoldPreview {
   return new ManifoldPreview(options);
