@@ -115,6 +115,17 @@ export function intersection(a: Manifold, b: Manifold): Manifold {
 }
 
 /**
+ * Computes the convex hull of all points contained within a set of manifolds
+ * @param manifolds Array of Manifold shapes or Vec3 points
+ * @returns A new Manifold representing the convex hull of all shapes
+ * @throws Error if the array is empty
+ */
+export function hull(manifolds: (Manifold | Vec3)[]): Manifold {
+  if (manifolds.length === 0) throw new Error("Cannot create hull from empty array");
+  return manifoldModule.Manifold.hull(manifolds);
+}
+
+/**
  * Creates a factory object with all manifold operations
  * This provides an object-oriented API alternative to the functional approach
  * 
@@ -141,6 +152,7 @@ export function createManifoldFactory() {
     union: manifoldModule.Manifold.union,
     difference: manifoldModule.Manifold.difference,
     intersection: manifoldModule.Manifold.intersection,
+    hull: manifoldModule.Manifold.hull,
 
     // Utility functions
     setMinCircularAngle: manifoldModule.setMinCircularAngle,
