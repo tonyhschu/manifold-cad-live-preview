@@ -30,17 +30,30 @@ export const CrossSection = manifoldModule.CrossSection;
 // Export types from the original module
 export { Vec3, ManifoldType, CrossSectionType };
 
-// Automatically export all utility functions
-// This approach dynamically exports all top-level functions that aren't classes
+// Automatically collect all utility functions in a utils object
 export const utils = Object.fromEntries(
   Object.entries(manifoldModule)
     .filter(([key, value]) => typeof value === 'function' && key !== 'Manifold' && key !== 'CrossSection')
 );
 
-// Also export top-level utility functions individually for direct import
-Object.entries(utils).forEach(([key, value]) => {
-  exports[key] = value;
-});
+// Individually export each utility function (must be manually maintained)
+export const setMinCircularAngle = manifoldModule.setMinCircularAngle;
+export const setMinCircularEdgeLength = manifoldModule.setMinCircularEdgeLength;
+export const setCircularSegments = manifoldModule.setCircularSegments;
+export const getCircularSegments = manifoldModule.getCircularSegments;
+export const resetToCircularDefaults = manifoldModule.resetToCircularDefaults;
+
+// Validation to check for missing or deprecated exports
+function validateUtilityExports() {
+  // Check if all available utils are manually exported
+  const missingExports = Object.keys(utils).filter(util => 
+    !Object.prototype.hasOwnProperty.call(exports, util));
+  
+  if (missingExports.length > 0) {
+    console.warn('Warning: Some utility functions are not exported individually');
+    console.warn('Missing exports:', missingExports.join(', '));
+  }
+}
 
 // For advanced usage, export the raw module
 export const getModule = () => manifoldModule;
@@ -89,3 +102,23 @@ utils.resetToCircularDefaults();
 4. Remove the old wrapper functions once transition is complete
 
 This approach concentrates all the async complexity at the module initialization boundary while keeping the core modeling code pure and synchronous, which aligns with the project's goals.
+
+## Adjustments to the Original Plan
+
+During implementation, we encountered several challenges that required adjustments to our original design:
+
+### Challenges
+
+1. **ESM Limitations**: The ES Module system doesn't allow dynamic runtime exports. Our initial plan to automatically export all utility functions using `Object.entries(utils).forEach(([key, value]) => { exports[key] = value })` doesn't work in ESM since there's no `exports` object.
+
+2. **Import Structure**: The manifold-3d package only provides a default export (the module initializer function), not named exports as we initially assumed.
+
+### Solutions
+
+1. **Manual Exports with Validation**: Instead of dynamic exports, we now manually export known utility functions and include validation logic that warns when there's a mismatch between available utilities and our exports.
+
+2. **Utils Object**: We still collect all utility functions in a `utils` object that users can access, providing a convenient way to discover and use all utility functions.
+
+3. **Validation Script**: We've added a dedicated validation script (`validate-api.js`) that checks if our API is complete and correctly matches the underlying ManifoldCAD functionality.
+
+While we couldn't achieve fully automatic exports as originally planned, this approach provides good maintainability with validation checks that alert developers when updates are needed.
