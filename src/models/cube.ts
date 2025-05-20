@@ -1,15 +1,15 @@
-// src/models/simple-cube.ts
+// src/models/cube.ts
 // A simple example model that creates just a cube
 
-import { cube } from "../lib/utilities";
+import { cube } from "../lib/manifold";
 
 /**
  * Creates a simple cube model
- * @returns Promise that resolves to a Manifold object
+ * @returns A Manifold object
  */
-export default async function createModel() {
+export default function createModel() {
   // Create a simple cube
-  const shape = await cube([15, 15, 15], true);
+  const shape = cube([15, 15, 15], true);
   console.log("Created simple cube model", shape);
   
   // Return the model

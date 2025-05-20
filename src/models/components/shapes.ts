@@ -1,5 +1,5 @@
-// src/models/components/sync-shapes.ts
-// Reusable component library for shapes using the synchronous API
+// src/models/components/shapes.ts
+// Reusable component library for shapes
 
 import { 
   cube, 
@@ -9,7 +9,7 @@ import {
   intersection,
   union,
   getModule
-} from "../../lib/manifold-sync";
+} from "../../lib/manifold";
 
 /**
  * Creates a simple hollowed cube

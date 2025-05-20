@@ -2,21 +2,14 @@
 
 This guide explains how to create 3D models using our ManifoldCAD preview framework.
 
-## Two Ways to Create Models
+## Model Structure
 
-Our framework now supports two different approaches to creating models:
-
-1. **Synchronous API (Recommended)** - Clean, straightforward code with no async/await needed
-2. **Asynchronous API (Legacy)** - Older approach with async/await throughout
-
-## Synchronous Model Structure
-
-Each synchronous model file follows this simple structure:
+Each model file follows this simple structure:
 
 1. A default export function that returns a Manifold object directly
 2. Optional metadata about your model
 
-### Synchronous Example
+### Example
 
 ```typescript
 // src/models/my-model.ts
@@ -24,7 +17,6 @@ import { cube, sphere, difference } from "../lib/manifold-sync";
 
 /**
  * Create a simple cube with a spherical hole
- * Notice: No async/await needed!
  */
 export default function createModel() {
   // Create a cube
@@ -49,49 +41,9 @@ export const modelMetadata = {
 };
 ```
 
-## Asynchronous Model Structure (Legacy)
-
-Each asynchronous model file follows this structure:
-
-1. A default export async function that returns a Promise<Manifold>
-2. Optional metadata about your model
-
-### Asynchronous Example
-
-```typescript
-// src/models/my-async-model.ts
-import { cube, sphere, difference } from "../lib/utilities";
-
-/**
- * Create a simple cube with a spherical hole
- * Note: Requires async/await throughout
- */
-export default async function createModel() {
-  // Create a cube
-  const box = await cube([20, 20, 20], true);
-  
-  // Create a sphere
-  const ball = await sphere(12);
-  
-  // Subtract the sphere from the cube
-  const result = await difference(box, ball);
-  
-  // Return the final model
-  return result;
-}
-
-// Optional metadata
-export const modelMetadata = {
-  name: "Async Cube with Sphere Cutout",
-  description: "A demonstration of boolean operations with basic shapes",
-  author: "Your Name",
-  version: "1.0.0"
-};
-```
-
 ## Core CSG Operations
 
-The framework provides these basic operations in both synchronous and asynchronous forms:
+The framework provides these basic operations:
 
 ### Primitives
 
@@ -108,8 +60,6 @@ The framework provides these basic operations in both synchronous and asynchrono
 ## Using Components
 
 You can create reusable components by defining functions that return Manifold objects:
-
-### Synchronous Components (Recommended)
 
 ```typescript
 // src/models/components/my-components.ts
@@ -190,15 +140,14 @@ src/
 
 ## Best Practices
 
-1. **Use the synchronous API** - For cleaner, more readable code
-2. **Keep models modular** - Break complex models into components
-3. **Add descriptive metadata** - Helps others understand your model
-4. **Comment your code** - Especially for complex operations
-5. **Use parameterization** - Make shapes configurable where possible
+1. **Keep models modular** - Break complex models into components
+2. **Add descriptive metadata** - Helps others understand your model
+3. **Comment your code** - Especially for complex operations
+4. **Use parameterization** - Make shapes configurable where possible
 
 ## How it Works
 
-The synchronous API uses top-level await to initialize the Manifold WASM module once when the application starts. This means:
+The framework uses top-level await to initialize the Manifold WASM module once when the application starts. This means:
 
 1. The initialization happens only once, at application startup
 2. After initialization, all operations are synchronous
@@ -208,4 +157,3 @@ The synchronous API uses top-level await to initialize the Manifold WASM module 
 
 - If your model doesn't appear in the preview, check for errors in the browser console
 - Verify that your model function returns a valid Manifold object
-- If using the async API, ensure all async operations are properly awaited

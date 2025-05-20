@@ -1,116 +1,100 @@
 # ManifoldCAD Developer Experience Improvement Plan
 
-## Current State
+## Current Architecture
 
-The current implementation mixes two distinct concerns:
-1. Core CSG modeling logic (defining what to build)
+The ManifoldCAD preview environment separates concerns between:
+
+1. Core modeling logic (what to build)
 2. UI preview scaffolding (how to display it)
 
-This makes it harder for developers to focus on the modeling aspects.
+This allows developers to focus solely on their modeling code.
 
-## Proposed Architecture
+## Key Components
 
-We can greatly improve the developer experience by separating these concerns:
-
-### Goals
-- Allow developers to focus only on their CSG modeling code
-- Provide automatic hot-reloading preview
-- Support modular imports and composition
-- Handle UI/preview concerns automatically
-
-## Implementation Plan
-
-### 1. Create a Preview Framework
-
-Build a framework that:
-- Automatically imports user's modeling code
-- Handles preview rendering
-- Manages the hot-reload lifecycle
-
-### 2. Define Clear Module Contract
-
-User modules should:
-- Export a default async function that returns a Manifold object
-- Have access to all utilities via imports
-- Be able to import other modeling modules
-- Not need to worry about UI concerns
-
-### 3. Structure
+### Core Structure
 
 ```
 src/
 ├── core/               # Framework core (not modified by users)
 │   ├── preview.ts      # Preview system 
-│   ├── renderer.ts     # Handles model-viewer setup
-│   ├── hot-reload.ts   # Hot reload manager
-│   └── export.ts       # Export utilities (OBJ, GLB)
+│   └── model-loader.ts # Model loading functionality
 │
-├── lib/                # Same utilities as now
-│   ├── manifold-context.ts
-│   ├── utilities.ts
-│   ├── gltf-export.ts
-│   └── manifold-gltf.ts
+├── lib/                # Core libraries
+│   ├── manifold.ts     # Synchronous ManifoldCAD API
+│   ├── export.ts       # Export utilities
+│   ├── gltf-export.ts  # GLB/glTF export functionality
+│   └── manifold-gltf.ts # GLB extension for ManifoldCAD
 │
 ├── models/             # Where users write their code
-│   ├── index.ts        # Main entry point for models
-│   ├── basic-shapes.ts # Example model module
-│   └── custom/         # Users can organize as needed
+│   ├── demo.ts         # Example model
+│   ├── cube.ts         # Simple model example
+│   ├── compound.ts     # Example using components
+│   └── components/     # Reusable model components
 │
-└── main.ts             # Simplified to just bootstrap the preview
+└── main.ts             # Bootstrap file for the preview
 ```
 
-### 4. Integration with Vite
+### Key Features
 
-Vite's hot module replacement (HMR) can be leveraged to:
-- Detect changes in the model files
-- Trigger re-rendering of the preview
-- Maintain UI state during development
+1. **Synchronous Modeling API**
+   - Uses top-level await to initialize the WASM module once
+   - Provides a clean API with no async/await needed in model code
+   - Makes model code more readable and natural
 
-### 5. Example Usage
+2. **Model System**
+   - Clear module contract for defining models
+   - Simple export pattern: default export function
+   - Metadata support for documentation
 
-A user would write model code like:
+3. **Component Reuse**
+   - Library of reusable modeling components
+   - Easy composition of complex models
+
+4. **Development Experience**
+   - Model selector in the UI
+   - Live preview of models
+   - Download options (OBJ/GLB)
+
+## Implementation Notes
+
+### Synchronous API
+
+The system uses top-level await to initialize the ManifoldCAD WASM module once during application startup. After initialization, all modeling operations are synchronous. This means:
+
+1. Clean, readable model code without async/await
+2. Natural composition of operations
+3. Single initialization point for the WASM module
+
+### Model Contract
+
+Each model file follows a simple structure:
 
 ```typescript
-// models/my-model.ts
-import { cube, cylinder, union } from "../lib/utilities";
-
-export default async function createModel() {
-  // Create shapes
-  const shape1 = await cube([10, 10, 10]);
-  const shape2 = await cylinder(5, 15, 32);
-  
-  // Combine and return
-  return union([shape1, shape2]);
+// Default export function that returns a Manifold object
+export default function createModel() {
+  // Create and return a 3D model
+  return someModel;
 }
+
+// Optional metadata about the model
+export const modelMetadata = {
+  name: "Model Name",
+  description: "Description of the model",
+  author: "Author name",
+  version: "1.0.0"
+};
 ```
 
-The preview environment would:
-1. Import this module
-2. Execute the function
-3. Render the result
-4. Handle exports/downloads
-5. Update on any code changes
+This consistent contract makes it easy to add new models to the system.
 
-## Implementation Steps
+### Future Enhancements
 
-1. **Create Core Preview System**
-   - Implement the preview manager that loads models
-   - Set up model-viewer configuration
+1. **Hot Reload Integration**
+   - Integrate with Vite's HMR for live model reloading
+   - Preserve camera position on reload
+   - Add status indicators for reload events
 
-2. **Set Up Hot Reload Integration**
-   - Configure Vite HMR for model files
-   - Implement reload handlers
-
-3. **Create Module Contract**
-   - Define and document the expected module format
-   - Create helper utilities for common patterns
-
-4. **Build Example Models**
-   - Port current demo to the new format
-   - Create additional examples
-
-5. **Documentation**
-   - Create documentation for users
-   - Document extension points
-
-This approach allows developers to think purely in terms of their CSG modeling, while the framework handles all the preview functionality automatically.
+2. **Expanded Component Library**
+   - Add more reusable components
+   - Create specialized component collections
+   - Support parameterized models

@@ -1,9 +1,9 @@
 // src/core/preview.ts
 // Handles the preview UI functionality
 
-import { exportToOBJ, createModelUrl } from "../lib/sync-export";
-import { manifoldToGLB, createGLBUrl } from "../lib/sync-gltf-export";
-import { getInitCount } from "../lib/manifold-sync";
+import { exportToOBJ, createModelUrl } from "../lib/export";
+import { manifoldToGLB, createGLBUrl } from "../lib/gltf-export";
+import { getInitCount } from "../lib/manifold";
 import { getAvailableModels, loadModelById, ModelMetadata } from "./model-loader";
 
 interface PreviewOptions {
@@ -137,7 +137,7 @@ export class ManifoldPreview {
       // Step 1: Export the model to OBJ and GLB
       this.updateStatus("Exporting model to OBJ and GLB...");
       
-      // Export model to OBJ (synchronous now!)
+      // Export model to OBJ (synchronous)
       const objBlob = exportToOBJ(model);
       const objUrl = createModelUrl(objBlob);
       

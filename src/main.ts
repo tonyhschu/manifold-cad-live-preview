@@ -10,17 +10,16 @@ const appContainer = document.getElementById("app") as HTMLDivElement;
 const preview = createPreview({
   statusElement,
   modelViewer,
-  appContainer
+  appContainer,
 });
 
 // Main async function to run the preview
 async function runPreview() {
   try {
     console.log("Starting ManifoldCAD preview");
-    
+
     // Load the default model (will be handled by the preview system)
-    await preview.loadAndRenderModel('default');
-    
+    await preview.loadAndRenderModel("demo");
   } catch (error: any) {
     console.error("Error in preview:", error);
     preview.updateStatus(`Error: ${error.message}`, true);

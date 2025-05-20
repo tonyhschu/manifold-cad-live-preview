@@ -1,12 +1,11 @@
-// src/models/sync-compound.ts
-// A model that uses components from the sync component library
+// src/models/compound.ts
+// A model that uses components from the component library
 
-import { union } from "../lib/manifold-sync";
-import { hollowCube, cylinderWithHole, sphericalCap } from "./components/sync-shapes";
+import { union } from "../lib/manifold";
+import { hollowCube, cylinderWithHole, sphericalCap } from "./components/shapes";
 
 /**
  * Creates a compound model using multiple components
- * Notice the lack of async/await - everything is synchronous!
  */
 export default function createModel() {
   // Create a hollow cube
@@ -25,14 +24,14 @@ export default function createModel() {
   console.log("Combining shapes...");
   const finalModel = union([box, tube, cap]);
   
-  console.log("Sync compound model created successfully");
+  console.log("Compound model created successfully");
   return finalModel;
 }
 
 // Model metadata
 export const modelMetadata = {
-  name: "Sync Compound Model",
-  description: "A hollow cube, cylinder with hole, and spherical cap combined (using synchronous API)",
+  name: "Compound Model",
+  description: "A hollow cube, cylinder with hole, and spherical cap combined",
   author: "ManifoldCAD Team",
   version: "1.0.0",
 };

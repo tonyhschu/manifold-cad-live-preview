@@ -1,5 +1,5 @@
-// src/lib/gltf-export.ts
-// Utilities for converting manifold meshes to glTF format
+// src/lib/sync-gltf-export.ts
+// GLB/glTF export utilities for the synchronous Manifold API
 
 import {
   Document,
@@ -8,7 +8,6 @@ import {
   Accessor
 } from "@gltf-transform/core";
 import { EXTManifold } from "./manifold-gltf";
-import { withModule } from "./manifold-context";
 
 /**
  * Attribute definitions for mapping manifold vertex properties to glTF attributes
@@ -47,103 +46,99 @@ export function setupIO(io: WebIO): WebIO {
 
 /**
  * Convert a Manifold mesh to a glTF document
- * @param manifoldMesh The manifold mesh to convert
+ * @param manifoldObject The manifold object to convert
  * @returns A Promise that resolves to an GLB blob
  */
 export async function manifoldToGLB(manifoldObject: any): Promise<Blob> {
-  return withModule(async () => {
-    // Create a new document and IO instance
-    const document = new Document();
-    const io = new WebIO();
-    setupIO(io);
+  // Create a new document and IO instance
+  const document = new Document();
+  const io = new WebIO();
+  setupIO(io);
 
-    // Add a buffer to the document
-    document.createBuffer();
+  // Add a buffer to the document
+  document.createBuffer();
 
-    // Create a default material
-    const material = document
-      .createMaterial()
-      .setName("Default Material")
-      .setBaseColorFactor([0.8, 0.8, 0.8, 1.0])
-      .setMetallicFactor(0.1)
-      .setRoughnessFactor(0.9);
+  // Create a default material
+  const material = document
+    .createMaterial()
+    .setName("Default Material")
+    .setBaseColorFactor([0.8, 0.8, 0.8, 1.0])
+    .setMetallicFactor(0.1)
+    .setRoughnessFactor(0.9);
 
-    // Get mesh data from the manifold object
-    const mesh = manifoldObject.getMesh();
+  // Get mesh data from the manifold object
+  const mesh = manifoldObject.getMesh();
 
-    // Create the manifold extension
-    const manifoldExtension = document.createExtension(EXTManifold);
-    const gltfMesh = document.createMesh().setName("ManifoldMesh");
-    const manifoldPrimitive = manifoldExtension.createManifoldPrimitive();
-    gltfMesh.setExtension("EXT_mesh_manifold", manifoldPrimitive as any);
+  // Create the manifold extension
+  const manifoldExtension = document.createExtension(EXTManifold);
+  const gltfMesh = document.createMesh().setName("ManifoldMesh");
+  const manifoldPrimitive = manifoldExtension.createManifoldPrimitive();
+  gltfMesh.setExtension("EXT_mesh_manifold", manifoldPrimitive as any);
 
-    // Get the buffer
-    const buffer = document.getRoot().listBuffers()[0];
+  // Get the buffer
+  const buffer = document.getRoot().listBuffers()[0];
 
-    // Create primitive indices
-    const indicesArray = new Uint32Array(mesh.triVerts);
-    const indices = document
-      .createAccessor("primitive indices")
-      .setBuffer(buffer)
-      .setType(Accessor.Type.SCALAR)
-      .setArray(indicesArray);
+  // Create primitive indices
+  const indicesArray = new Uint32Array(mesh.triVerts);
+  const indices = document
+    .createAccessor("primitive indices")
+    .setBuffer(buffer)
+    .setType(Accessor.Type.SCALAR)
+    .setArray(indicesArray);
 
-    // Create position attribute
-    const positionsArray = extractPositions(mesh);
-    const positions = document
-      .createAccessor("POSITION")
-      .setBuffer(buffer)
-      .setType(Accessor.Type.VEC3)
-      .setArray(positionsArray);
+  // Create position attribute
+  const positionsArray = extractPositions(mesh);
+  const positions = document
+    .createAccessor("POSITION")
+    .setBuffer(buffer)
+    .setType(Accessor.Type.VEC3)
+    .setArray(positionsArray);
 
-    // Create normals
-    const normalsArray = calculateNormals(positionsArray, indicesArray);
-    const normals = document
-      .createAccessor("NORMAL")
-      .setBuffer(buffer)
-      .setType(Accessor.Type.VEC3)
-      .setArray(normalsArray);
+  // Create normals
+  const normalsArray = calculateNormals(positionsArray, indicesArray);
+  const normals = document
+    .createAccessor("NORMAL")
+    .setBuffer(buffer)
+    .setType(Accessor.Type.VEC3)
+    .setArray(normalsArray);
 
-    // Create the primitive
-    const primitive = document
-      .createPrimitive()
-      .setIndices(indices)
-      .setAttribute("POSITION", positions)
-      .setAttribute("NORMAL", normals)
-      .setMaterial(material);
+  // Create the primitive
+  const primitive = document
+    .createPrimitive()
+    .setIndices(indices)
+    .setAttribute("POSITION", positions)
+    .setAttribute("NORMAL", normals)
+    .setMaterial(material);
 
-    // Add the primitive to the mesh
-    gltfMesh.addPrimitive(primitive);
+  // Add the primitive to the mesh
+  gltfMesh.addPrimitive(primitive);
 
-    // Set up the manifold primitive
-    manifoldPrimitive.setIndices(indices);
-    manifoldPrimitive.setRunIndex([0, indicesArray.length]);
+  // Set up the manifold primitive
+  manifoldPrimitive.setIndices(indices);
+  manifoldPrimitive.setRunIndex([0, indicesArray.length]);
 
-    // Create a node for the mesh
-    const node = document
-      .createNode()
-      .setName("ManifoldNode")
-      .setMesh(gltfMesh);
+  // Create a node for the mesh
+  const node = document
+    .createNode()
+    .setName("ManifoldNode")
+    .setMesh(gltfMesh);
 
-    // Create a scene and add the node
-    const scene = document
-      .createScene()
-      .setName("ManifoldScene")
-      .addChild(node);
+  // Create a scene and add the node
+  const scene = document
+    .createScene()
+    .setName("ManifoldScene")
+    .addChild(node);
 
-    // Set as the default scene
-    document.getRoot().setDefaultScene(scene);
+  // Set as the default scene
+  document.getRoot().setDefaultScene(scene);
 
-    // Export to GLB
-    const glbData = await io.writeBinary(document);
-    return new Blob([glbData], { type: "model/gltf-binary" });
-  });
+  // Export to GLB
+  const glbData = await io.writeBinary(document);
+  return new Blob([glbData], { type: "model/gltf-binary" });
 }
 
 /**
  * Creates a URL for a GLB blob
- * @param glbBlob The GLB blob
- * @returns A URL for the GLB blob
  */
 export function createGLBUrl(glbBlob: Blob): string {
   return URL.createObjectURL(glbBlob);
@@ -151,8 +146,6 @@ export function createGLBUrl(glbBlob: Blob): string {
 
 /**
  * Extract positions from a manifold mesh
- * @param mesh The manifold mesh
- * @returns Float32Array of positions
  */
 function extractPositions(mesh: any): Float32Array {
   const numVerts = mesh.vertProperties.length / mesh.numProp;
@@ -170,10 +163,6 @@ function extractPositions(mesh: any): Float32Array {
 
 /**
  * Calculate normals for a mesh
- * Can be used if the mesh doesn't have normals
- * @param positions The positions array
- * @param indices The indices array
- * @returns Float32Array of normals
  */
 function calculateNormals(
   positions: Float32Array,
