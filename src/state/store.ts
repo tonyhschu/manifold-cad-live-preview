@@ -125,6 +125,11 @@ export async function loadModel(modelId: string) {
       modelViewer.alt = metadata?.description || "A 3D model";
     }
     
+    // Also update model metadata in the state
+    if (metadata) {
+      modelMetadata.value = metadata;
+    }
+    
     // Update final status
     status.value = { 
       message: 'Model loaded successfully', 

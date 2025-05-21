@@ -7,21 +7,26 @@
 import "./style.css";
 import "./components"; // Register all web components
 import { currentModelId, loadModel, updateStatus } from "./state/store";
+import { createModelViewer } from "./core/preview";
 import { setupHMR } from "./hmr-handler";
 
 // Get DOM elements
-const modelViewer = document.getElementById("viewer") as any;
-const appContainer = document.getElementById("app") as HTMLDivElement;
+const modelViewerElement = document.getElementById("viewer") as any;
+
+// Create the model viewer controller
+const modelViewer = createModelViewer({
+  modelViewer: modelViewerElement
+});
 
 // Set up model viewer event handlers
-if (modelViewer) {
+if (modelViewerElement) {
   // Model loaded event
-  modelViewer.addEventListener('load', () => {
+  modelViewerElement.addEventListener('load', () => {
     console.log('Model viewer: Model loaded');
   });
   
   // Error handling
-  modelViewer.addEventListener('error', (error: any) => {
+  modelViewerElement.addEventListener('error', (error: any) => {
     console.error('Model viewer error:', error);
     updateStatus(`Model viewer error: ${error.detail.sourceError.message || 'Unknown error'}`, true);
   });

@@ -77,6 +77,11 @@ export const setupHMR = (context: any): void => {
         // Reload the current model
         loadModel(modelId).then(() => {
           console.log(`ManifoldCAD HMR: Successfully reloaded model ${modelId}`);
+          
+          // Refresh the view if there is a model viewer in context
+          if (context.modelViewer && typeof context.modelViewer.refreshView === 'function') {
+            context.modelViewer.refreshView();
+          }
         }).catch(error => {
           console.error(`ManifoldCAD HMR: Error reloading model ${modelId}`, error);
           updateStatus(`HMR Error: ${error.message}. Retry in progress...`, true);
@@ -99,6 +104,11 @@ export const setupHMR = (context: any): void => {
   import.meta.hot.on('vite:error', (error) => {
     console.error('ManifoldCAD HMR: Vite error', error);
     updateStatus(`HMR Error: ${error.message || 'Unknown error'}`, true);
+    
+    // Refresh the view if there is a model viewer in context
+    if (context.modelViewer && typeof context.modelViewer.refreshView === 'function') {
+      context.modelViewer.refreshView();
+    }
   });
   
   // Status update when HMR is about to update
