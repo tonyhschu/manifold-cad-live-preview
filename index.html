@@ -16,13 +16,19 @@
             <p>Module Description</p>
           </div>
         </section>
+        
+        <!-- Model Selector Component -->
+        <model-selector></model-selector>
+        
+        <!-- Download Panel Component -->
+        <download-panel></download-panel>
+        
         <section id="layers">
           Array of layers and/or model structure goes here.
         </section>
       </section>
 
       <section id="canvas">
-        <div id="status">Loading...</div>
         <div id="viewer-container">
           <model-viewer id="viewer"
             shadow-intensity="1" 
@@ -37,6 +43,11 @@
             style="width: 100%; height: 100%; background-color: #f5f5f5;"
           ></model-viewer>
         </div>
+        
+        <!-- Status Bar Component -->
+        <status-bar>
+          <div id="status">Loading...</div>
+        </status-bar>
       </section>
 
       <section id="config">

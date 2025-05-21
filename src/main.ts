@@ -5,30 +5,32 @@
  * setting up HMR, and loading the default model.
  */
 import "./style.css";
-import { createPreview } from "./core/preview";
+import "./components"; // Register all web components
+import { currentModelId, loadModel, updateStatus } from "./state/store";
 import { setupHMR } from "./hmr-handler";
 
-// Default model to load on startup
-const DEFAULT_MODEL_ID = "demo";
-
 // Get DOM elements
-const statusElement = document.getElementById("status") as HTMLDivElement;
 const modelViewer = document.getElementById("viewer") as any;
 const appContainer = document.getElementById("app") as HTMLDivElement;
 
-// Create the preview handler
-const preview = createPreview({
-  statusElement,
-  modelViewer,
-  appContainer,
-});
+// Set up model viewer event handlers
+if (modelViewer) {
+  // Model loaded event
+  modelViewer.addEventListener('load', () => {
+    console.log('Model viewer: Model loaded');
+  });
+  
+  // Error handling
+  modelViewer.addEventListener('error', (error: any) => {
+    console.error('Model viewer error:', error);
+    updateStatus(`Model viewer error: ${error.detail.sourceError.message || 'Unknown error'}`, true);
+  });
+}
 
 // Application context for HMR
 const appContext = {
-  preview,
-  currentModelId: DEFAULT_MODEL_ID,
-  statusElement,
-  modelViewer,
+  currentModelId: currentModelId.value,
+  modelViewer
 };
 
 // Initialize HMR for development
@@ -43,12 +45,19 @@ if (import.meta.hot) {
 async function runPreview() {
   try {
     console.log("Starting ManifoldCAD preview");
-
-    // Load the default model
-    await preview.loadAndRenderModel(DEFAULT_MODEL_ID);
+    
+    // Update initial status
+    updateStatus("Starting ManifoldCAD preview...");
+    
+    // Load the default model using our state management
+    const model = await loadModel(currentModelId.value);
+    
+    // Any additional setup after model is loaded
+    console.log("Model loaded successfully");
+    
   } catch (error: any) {
     console.error("Error in preview:", error);
-    preview.updateStatus(`Error: ${error.message}`, true);
+    updateStatus(`Error: ${error.message}`, true);
   }
 }
 
