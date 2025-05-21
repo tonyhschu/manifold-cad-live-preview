@@ -1,6 +1,6 @@
 /**
  * ManifoldCAD Preview Environment - Main Module
- * 
+ *
  * This is the entry point for the application, handling initialization of the preview system,
  * setting up HMR, and loading the default model.
  */
@@ -20,7 +20,7 @@ const appContainer = document.getElementById("app") as HTMLDivElement;
 const preview = createPreview({
   statusElement,
   modelViewer,
-  appContainer
+  appContainer,
 });
 
 // Application context for HMR
@@ -28,7 +28,7 @@ const appContext = {
   preview,
   currentModelId: DEFAULT_MODEL_ID,
   statusElement,
-  modelViewer
+  modelViewer,
 };
 
 // Initialize HMR for development
@@ -43,10 +43,9 @@ if (import.meta.hot) {
 async function runPreview() {
   try {
     console.log("Starting ManifoldCAD preview");
-    
+
     // Load the default model
     await preview.loadAndRenderModel(DEFAULT_MODEL_ID);
-    
   } catch (error: any) {
     console.error("Error in preview:", error);
     preview.updateStatus(`Error: ${error.message}`, true);

@@ -9,17 +9,39 @@
   </head>
   <body>
     <div id="app">
-      <h1>Manifold Context Test</h1>
-      <div id="status">Loading...</div>
-      <div id="viewer-container">
-        <model-viewer id="viewer"
-          shadow-intensity="1" 
-          camera-controls 
-          touch-action="pan-y" 
-          alt="3D model"
-          style="width: 100%; height: 400px; background-color: #f5f5f5;"
-        ></model-viewer>
-      </div>
+      <section id="context">
+        <section aria-label="metadata">
+          <h1>Module Name</h1>
+          <div>
+            <p>Module Description</p>
+          </div>
+        </section>
+        <section id="layers">
+          Array of layers and/or model structure goes here.
+        </section>
+      </section>
+
+      <section id="canvas">
+        <div id="status">Loading...</div>
+        <div id="viewer-container">
+          <model-viewer id="viewer"
+            shadow-intensity="1" 
+            camera-controls
+            camera-orbit="0deg 75deg auto"
+            field-of-view="30deg"
+            min-camera-orbit="auto 0deg auto"
+            max-camera-orbit="auto 180deg auto"
+            auto-rotate
+            touch-action="pan-y" 
+            alt="3D model"
+            style="width: 100%; height: 100%; background-color: #f5f5f5;"
+          ></model-viewer>
+        </div>
+      </section>
+
+      <section id="config">
+        Array of configuration options goes here.
+      </section>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
