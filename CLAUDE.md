@@ -55,7 +55,11 @@ src/
 
 - `npm run dev`: Start development server
 - `npm run build`: Build for production
-- `npm run test`: Run tests
+- `npm run test`: Run all tests
+- `npm run test:lib`: Test pure library functions (for NPM extraction)
+- `npm run test:services`: Test service layer with mocks
+- `npm run test:ui`: Test UI components with service mocks
+- `npm run test:watch`: Run tests in watch mode
 
 ## Important Files
 

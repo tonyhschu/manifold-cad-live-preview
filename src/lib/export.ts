@@ -61,14 +61,10 @@ export function exportToOBJ(model: any): Blob {
     }
 
     // Return as a blob
-    return new Blob([objContent], { type: "text/plain" });
+    return new Blob([objContent], { type: "model/obj" });
   } catch (error) {
     console.error("Error exporting to OBJ:", error);
-    // Return a minimal valid OBJ in case of error
-    return new Blob(
-      ["# Error exporting model\nv 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n"],
-      { type: "text/plain" }
-    );
+    throw error;
   }
 }
 
