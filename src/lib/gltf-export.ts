@@ -1,5 +1,7 @@
-// src/lib/sync-gltf-export.ts
+// src/lib/gltf-export.ts
 // GLB/glTF export utilities for the synchronous Manifold API
+
+import type { Manifold } from './manifold';
 
 import {
   Document,
@@ -48,8 +50,9 @@ export function setupIO(io: WebIO): WebIO {
  * Convert a Manifold mesh to a glTF document
  * @param manifoldObject The manifold object to convert
  * @returns A Promise that resolves to an GLB blob
+ * @throws Error if the conversion fails
  */
-export async function manifoldToGLB(manifoldObject: any): Promise<Blob> {
+export async function manifoldToGLB(manifoldObject: Manifold): Promise<Blob> {
   // Create a new document and IO instance
   const document = new Document();
   const io = new WebIO();
@@ -137,17 +140,13 @@ export async function manifoldToGLB(manifoldObject: any): Promise<Blob> {
   return new Blob([glbData], { type: "model/gltf-binary" });
 }
 
-/**
- * Creates a URL for a GLB blob
- */
-export function createGLBUrl(glbBlob: Blob): string {
-  return URL.createObjectURL(glbBlob);
-}
 
 /**
  * Extract positions from a manifold mesh
+ * @param mesh The mesh data from a manifold instance
+ * @returns Float32Array containing position data
  */
-function extractPositions(mesh: any): Float32Array {
+function extractPositions(mesh: { vertProperties: Float32Array; numProp: number }): Float32Array {
   const numVerts = mesh.vertProperties.length / mesh.numProp;
   const positions = new Float32Array(numVerts * 3);
 

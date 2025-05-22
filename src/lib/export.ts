@@ -1,10 +1,33 @@
 // src/lib/export.ts
 // Export utilities for the Manifold API
 
+import type { Manifold } from './manifold';
+
+/**
+ * Export result containing the blob and metadata
+ */
+export interface ExportResult {
+  blob: Blob;
+  filename: string;
+  mimeType: string;
+}
+
+/**
+ * Export options for different formats
+ */
+export interface ExportOptions {
+  filename?: string;
+  quality?: number;
+}
+
 /**
  * Export a manifold to a simple OBJ format blob
+ * @param model The manifold instance to export
+ * @param options Export options (optional)
+ * @returns A Blob containing the OBJ data
+ * @throws Error if the model data is invalid
  */
-export function exportToOBJ(model: any): Blob {
+export function exportToOBJ(model: Manifold, _options?: ExportOptions): Blob {
   try {
     // Get the mesh from the model
     const mesh = model.getMesh();
@@ -63,14 +86,7 @@ export function exportToOBJ(model: any): Blob {
     // Return as a blob
     return new Blob([objContent], { type: "model/obj" });
   } catch (error) {
-    console.error("Error exporting to OBJ:", error);
     throw error;
   }
 }
 
-/**
- * Create a URL for a blob
- */
-export function createModelUrl(blob: Blob): string {
-  return URL.createObjectURL(blob);
-}

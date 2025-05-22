@@ -82,3 +82,7 @@ We are working toward extracting the core ManifoldCAD library code into a separa
 - Library code should be environment-agnostic (Node.js compatible)
 - UI services handle browser-specific functionality (blob URLs, progress callbacks)
 - Clean separation enables easier testing and future extraction
+
+## Project Repository
+
+Github repo URL: https://github.com/tonyhschu/manifold-cad-live-preview/

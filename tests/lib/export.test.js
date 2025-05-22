@@ -68,30 +68,3 @@ test('OBJ Export Functions', async (t) => {
   });
 });
 
-test('URL Creation Functions', async (t) => {
-  if (skipTests) {
-    return t.skip('Compiled files not found');
-  }
-
-  const exportModule = await import('../../dist/lib/export.js');
-
-  await t.test('createModelUrl creates valid blob URL', async () => {
-    const testBlob = new Blob(['test content'], { type: 'text/plain' });
-    
-    // This test will only work in browser environment
-    // In Node.js, we'll check that the function exists and handles gracefully
-    try {
-      const url = exportModule.createModelUrl(testBlob);
-      // If we're in a browser-like environment, check URL format
-      if (typeof URL !== 'undefined') {
-        assert.ok(url.startsWith('blob:'), 'Creates blob URL');
-      } else {
-        // In Node.js, might return a different format or throw
-        console.log('URL creation test skipped in Node.js environment');
-      }
-    } catch (error) {
-      // Expected in Node.js environment
-      console.log('URL creation requires browser environment:', error.message);
-    }
-  });
-});

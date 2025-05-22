@@ -18,6 +18,7 @@ const MERGE = 'MERGE';
 
 /**
  * Interface for the properties needed by the manifold extension
+ * Defines the core data structure for manifold primitives in glTF
  */
 interface IManifoldPrimitive extends IProperty {
   mergeIndices: Accessor;
@@ -28,6 +29,7 @@ interface IManifoldPrimitive extends IProperty {
 
 /**
  * Definition of the manifold extension in a glTF file
+ * Represents the JSON structure for the EXT_mesh_manifold extension
  */
 interface ManifoldDef {
   manifoldPrimitive: GLTF.IMeshPrimitive;
@@ -37,6 +39,7 @@ interface ManifoldDef {
 
 /**
  * Property class that represents the manifold extension for a mesh
+ * Provides methods to manage manifold-specific data in glTF documents
  */
 export class ManifoldPrimitive extends ExtensionProperty<IManifoldPrimitive> {
   static EXTENSION_NAME = NAME;
@@ -92,6 +95,10 @@ export class ManifoldPrimitive extends ExtensionProperty<IManifoldPrimitive> {
 
 /**
  * Main extension class for the EXT_mesh_manifold extension
+ * Handles reading and writing of manifold data in glTF files
+ * 
+ * This extension preserves the topological information from ManifoldCAD
+ * meshes when exporting to glTF format, allowing for lossless round-trips.
  */
 export class EXTManifold extends Extension {
   extensionName = NAME;

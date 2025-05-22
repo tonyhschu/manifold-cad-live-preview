@@ -23,19 +23,58 @@
 // Import the module constructor - it's a default export only, no named exports
 import ManifoldModule from "manifold-3d";
 
-// Define Vec3 type
+// Define core types
 export type Vec3 = [number, number, number];
+export type Vec2 = [number, number];
+export type Vec4 = [number, number, number, number];
+
+/**
+ * Result from mesh operations
+ */
+export interface MeshData {
+  vertProperties: Float32Array;
+  triVerts: Uint32Array;
+  numProp: number;
+}
+
+
+/**
+ * Parameters for primitive creation
+ */
+export interface CubeParams {
+  size: Vec3 | number;
+  center?: boolean;
+}
+
+export interface CylinderParams {
+  radius: number;
+  height: number;
+  sides?: number;
+}
+
+export interface SphereParams {
+  radius: number;
+  resolution?: number;
+}
 
 /**
  * Type for the initialized Manifold module
  */
-export type ManifoldType = Awaited<ReturnType<typeof ManifoldModule>>;
+export type ManifoldModuleType = Awaited<ReturnType<typeof ManifoldModule>>;
 
 // Use top-level await to initialize the module
-console.log("Initializing Manifold module (top-level await)...");
 const manifoldModule = await ManifoldModule();
 manifoldModule.setup();
-console.log("Manifold module initialized successfully");
+
+/**
+ * Manifold class from the WASM module
+ */
+export type Manifold = InstanceType<typeof manifoldModule.Manifold>;
+
+/**
+ * CrossSection class from the WASM module  
+ */
+export type CrossSection = InstanceType<typeof manifoldModule.CrossSection>;
 
 // Keeps track of the init count for informational purposes
 let initCount = 1;
@@ -43,6 +82,7 @@ let initCount = 1;
 /**
  * Gets the current initialization count
  * @returns Number of times the module has been initialized (should always be 1)
+ * @internal This is primarily for debugging and should not be relied upon in production
  */
 export function getInitCount(): number {
   return initCount;
@@ -71,46 +111,14 @@ export const setCircularSegments = manifoldModule.setCircularSegments;
 export const getCircularSegments = manifoldModule.getCircularSegments;
 export const resetToCircularDefaults = manifoldModule.resetToCircularDefaults;
 
-// VALIDATION: Check if our manual exports match all available utility functions
-// This won't affect runtime but will log warnings during development
-function validateUtilityExports() {
-  const manualExports = [
-    'setMinCircularAngle',
-    'setMinCircularEdgeLength',
-    'setCircularSegments',
-    'getCircularSegments',
-    'resetToCircularDefaults'
-  ];
-  
-  const availableUtils = Object.keys(utils);
-  
-  // Check for missing exports
-  const missingExports = availableUtils.filter(util => !manualExports.includes(util));
-  if (missingExports.length > 0) {
-    console.warn('⚠️ [manifold.ts] Some utility functions are not exported individually:');
-    missingExports.forEach(name => console.warn(`  - Missing export: ${name}`));
-  }
-  
-  // Check for exports that don't exist
-  const nonexistentExports = manualExports.filter(name => !availableUtils.includes(name));
-  if (nonexistentExports.length > 0) {
-    console.warn('⚠️ [manifold.ts] Some exported utilities no longer exist in ManifoldModule:');
-    nonexistentExports.forEach(name => console.warn(`  - Deprecated export: ${name}`));
-  }
-}
-
-// Run validation in development but not in production
-// @ts-ignore - Node.js process check
-if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
-  validateUtilityExports();
-}
 
 /**
  * Access to the raw ManifoldCAD module
  * Use this for advanced operations not covered by the basic API
  * @returns The initialized ManifoldCAD module
+ * @advanced This provides direct access to the WASM module - use with caution
  */
-export function getModule(): ManifoldType {
+export function getModule(): ManifoldModuleType {
   return manifoldModule;
 }
 
@@ -124,7 +132,7 @@ export function getModule(): ManifoldType {
  * @param center Whether to center the cube at the origin (default: false)
  * @returns A new Manifold representing the cube
  */
-export function cube(size: Readonly<Vec3> | number, center = false): any {
+export function cube(size: Readonly<Vec3> | number, center = false): Manifold {
   return manifoldModule.Manifold.cube(size, center);
 }
 
@@ -135,7 +143,7 @@ export function cube(size: Readonly<Vec3> | number, center = false): any {
  * @param sides Number of sides for the cylinder (default: determined by circular defaults)
  * @returns A new Manifold representing the cylinder
  */
-export function cylinder(radius: number, height: number, sides?: number): any {
+export function cylinder(radius: number, height: number, sides?: number): Manifold {
   return manifoldModule.Manifold.cylinder(radius, height, sides);
 }
 
@@ -145,7 +153,7 @@ export function cylinder(radius: number, height: number, sides?: number): any {
  * @param resolution The resolution of the sphere (default: determined by circular defaults)
  * @returns A new Manifold representing the sphere
  */
-export function sphere(radius: number, resolution?: number): any {
+export function sphere(radius: number, resolution?: number): Manifold {
   return manifoldModule.Manifold.sphere(radius, resolution);
 }
 
@@ -155,7 +163,7 @@ export function sphere(radius: number, resolution?: number): any {
  * @returns A new Manifold representing the union of all shapes
  * @throws Error if the shapes array is empty
  */
-export function union(shapes: any[]): any {
+export function union(shapes: Manifold[]): Manifold {
   if (shapes.length === 0) throw new Error("Cannot union empty array");
   if (shapes.length === 1) return shapes[0];
   return manifoldModule.Manifold.union(shapes);
@@ -167,7 +175,7 @@ export function union(shapes: any[]): any {
  * @param b The shape to subtract
  * @returns A new Manifold representing the difference (a - b)
  */
-export function difference(a: any, b: any): any {
+export function difference(a: Manifold, b: Manifold): Manifold {
   if (!a || !b) return a;
   return manifoldModule.Manifold.difference(a, b);
 }
@@ -178,7 +186,7 @@ export function difference(a: any, b: any): any {
  * @param b Second shape
  * @returns A new Manifold representing the intersection of the shapes
  */
-export function intersection(a: any, b: any): any {
+export function intersection(a: Manifold, b: Manifold): Manifold {
   return manifoldModule.Manifold.intersection(a, b);
 }
 
@@ -188,7 +196,7 @@ export function intersection(a: any, b: any): any {
  * @returns A new Manifold representing the convex hull of all shapes
  * @throws Error if the array is empty
  */
-export function hull(manifolds: any[]): any {
+export function hull(manifolds: (Manifold | Vec3)[]): Manifold {
   if (manifolds.length === 0) throw new Error("Cannot create hull from empty array");
   return manifoldModule.Manifold.hull(manifolds);
 }
@@ -198,6 +206,7 @@ export function hull(manifolds: any[]): any {
  * This provides an object-oriented API alternative to the functional approach
  * 
  * @returns An object with methods for all ManifoldCAD operations
+ * @deprecated Consider using the individual exported functions instead
  * 
  * @example
  * ```
@@ -206,10 +215,6 @@ export function hull(manifolds: any[]): any {
  * const sphere = factory.sphere(7);
  * const result = factory.difference(box, sphere);
  * ```
- */
-/**
- * Create a factory object with all manifold operations
- * This provides an object-oriented API alternative to the functional approach
  */
 export function createManifoldFactory() {
   return {
