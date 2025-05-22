@@ -7,6 +7,7 @@
 
 // Import components
 import './canvas/StatusBar';
+import './canvas/ModelViewer';
 import './context/DownloadPanel';
 import './context/ModelSelector';
 

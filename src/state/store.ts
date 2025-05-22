@@ -94,7 +94,7 @@ export async function loadModel(modelId: string) {
     const { model, metadata } = await loadModelById(modelId);
     
     // Update model and metadata
-    modelMetadata.value = metadata;
+    modelMetadata.value = metadata || null;
     currentModel.value = model;
     
     // Export model to OBJ
@@ -118,17 +118,7 @@ export async function loadModel(modelId: string) {
     // Update URLs
     modelUrls.value = { objUrl, glbUrl };
     
-    // Update the model-viewer element
-    const modelViewer = document.getElementById('viewer') as any;
-    if (modelViewer) {
-      modelViewer.src = glbUrl;
-      modelViewer.alt = metadata?.description || "A 3D model";
-    }
-    
-    // Also update model metadata in the state
-    if (metadata) {
-      modelMetadata.value = metadata;
-    }
+    // We already set the metadata above, so no need to update it again
     
     // Update final status
     status.value = { 

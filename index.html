@@ -30,18 +30,17 @@
 
       <section id="canvas">
         <div id="viewer-container">
-          <model-viewer id="viewer"
-            shadow-intensity="1" 
-            camera-controls
-            camera-orbit="0deg 75deg auto"
-            field-of-view="30deg"
-            min-camera-orbit="auto 0deg auto"
-            max-camera-orbit="auto 180deg auto"
-            auto-rotate
-            touch-action="pan-y" 
-            alt="3D model"
-            style="width: 100%; height: 100%; background-color: #f5f5f5;"
-          ></model-viewer>
+          <model-viewer-wrapper>
+            <model-viewer id="viewer"
+              camera-controls
+              interaction-prompt="none"
+              rotations-per-second="0rad"
+              auto-rotate-delay="Infinity"
+              auto-rotate="false"
+              alt="3D model"
+              style="width: 100%; height: 100%; background-color: #f5f5f5;"
+            ></model-viewer>
+          </model-viewer-wrapper>
         </div>
         
         <!-- Status Bar Component -->
