@@ -98,19 +98,7 @@ test('manifold.ts correctly exports all WASM module features', async (t) => {
     
     console.log('Raw utility functions:', rawUtilFunctions);
     
-    // Check utils object exists
-    assert.ok(manifoldModule.utils, 'utils object is exported');
-    
-    // Check that essential utility functions are in the utils object
-    for (const funcName of essentialUtils) {
-      assert.strictEqual(
-        typeof manifoldModule.utils[funcName], 
-        'function', 
-        `${funcName} is available in utils object`
-      );
-    }
-    
-    // Check that essential utility functions are also directly exported
+    // Check that essential utility functions are directly exported (transparent access)
     for (const funcName of essentialUtils) {
       assert.strictEqual(
         typeof manifoldModule[funcName], 
@@ -118,91 +106,73 @@ test('manifold.ts correctly exports all WASM module features', async (t) => {
         `${funcName} is directly exported`
       );
     }
-    
-    // Check that utils object contains more than just our essential utilities
-    // This verifies that we're dynamically including all util functions
-    assert.ok(
-      Object.keys(manifoldModule.utils).length >= essentialUtils.length,
-      'utils object contains all utility functions'
-    );
   });
   
-  await t.test('directly exports primitive creation functions', async () => {
-    const primitiveFunctions = ['cube', 'cylinder', 'sphere'];
+  await t.test('exports Manifold and CrossSection classes transparently', async () => {
+    // Test that classes are exported
+    assert.strictEqual(typeof manifoldModule.Manifold, 'function', 'Manifold class is exported');
+    assert.strictEqual(typeof manifoldModule.CrossSection, 'function', 'CrossSection class is exported');
     
+    // Test that primitive functions are accessible on Manifold class
+    const primitiveFunctions = ['cube', 'cylinder', 'sphere'];
     for (const func of primitiveFunctions) {
       assert.strictEqual(
-        typeof manifoldModule[func], 
+        typeof manifoldModule.Manifold[func], 
         'function', 
-        `${func} function is directly exported`
+        `Manifold.${func} method exists`
       );
-      
-      // Just check that the functions exist, not the parameter count
-      // The wrapper may add default parameters
     }
+    
+    // Test that they actually work by creating simple shapes
+    const testCube = manifoldModule.Manifold.cube([5, 5, 5]);
+    assert.ok(testCube, 'Manifold.cube creates an object');
+    assert.strictEqual(typeof testCube.getMesh, 'function', 'cube result has getMesh method');
+    
+    const testSphere = manifoldModule.Manifold.sphere(3);
+    assert.ok(testSphere, 'Manifold.sphere creates an object');
+    assert.strictEqual(typeof testSphere.getMesh, 'function', 'sphere result has getMesh method');
   });
   
-  await t.test('directly exports boolean operation functions', async () => {
-    const booleanOps = ['union', 'difference', 'intersection'];
+  await t.test('Manifold class has boolean operation methods', async () => {
+    const booleanOps = ['union', 'difference', 'intersection', 'hull'];
     
-    // Add hull if it exists
-    if (typeof manifoldModule.Manifold.hull === 'function') {
-      booleanOps.push('hull');
-    }
-    
+    // Test boolean operation methods on Manifold class
     for (const func of booleanOps) {
       assert.strictEqual(
-        typeof manifoldModule[func], 
+        typeof manifoldModule.Manifold[func], 
         'function', 
-        `${func} function is directly exported`
+        `Manifold.${func} method exists`
       );
     }
+    
+    // Test that they work
+    const cube1 = manifoldModule.Manifold.cube([5, 5, 5]);
+    const cube2 = manifoldModule.Manifold.cube([3, 3, 3]);
+    const unionResult = manifoldModule.Manifold.union([cube1, cube2]);
+    assert.ok(unionResult, 'Manifold.union operation works');
+    assert.strictEqual(typeof unionResult.getMesh, 'function', 'union result has getMesh method');
   });
   
-  await t.test('factory has all Manifold methods and utility functions', async () => {
-    assert.strictEqual(
-      typeof manifoldModule.createManifoldFactory, 
-      'function', 
-      'createManifoldFactory function is exported'
-    );
+  await t.test('provides transparent access to original API', async () => {
+    // Test that we can access the raw module for advanced operations
+    assert.strictEqual(typeof manifoldModule.getModule, 'function', 'getModule function is exported');
     
-    try {
-      const factory = manifoldModule.createManifoldFactory();
-      
-      // Get all methods from Manifold
-      const manifoldMethods = Object.getOwnPropertyNames(manifoldModule.Manifold)
-        .filter(name => typeof manifoldModule.Manifold[name] === 'function');
-      
-      // Check factory has all Manifold methods
-      for (const method of manifoldMethods) {
-        assert.strictEqual(
-          typeof factory[method], 
-          'function', 
-          `Factory has ${method} method`
-        );
-      }
-      
-      // Check factory has essential utility functions
-      const essentialUtils = [
-        'setMinCircularAngle',
-        'setMinCircularEdgeLength', 
-        'setCircularSegments', 
-        'getCircularSegments',
-        'resetToCircularDefaults'
-      ];
-      
-      for (const util of essentialUtils) {
-        assert.strictEqual(
-          typeof factory[util], 
-          'function', 
-          `Factory has ${util} utility function`
-        );
-      }
-    } catch (error) {
-      console.log('Factory creation failed:', error.message);
-      // Don't fail the test if we're in a Node.js environment where 
-      // the WASM module might not fully initialize
-      console.log('Skipping factory tests due to environment limitations');
+    const rawModule = manifoldModule.getModule();
+    assert.ok(rawModule, 'Raw module is accessible');
+    assert.strictEqual(typeof rawModule.Manifold, 'function', 'Raw module has Manifold class');
+    
+    // Test that the exported Manifold is the same as the raw module's Manifold (transparent!)
+    assert.strictEqual(manifoldModule.Manifold, rawModule.Manifold, 'Exported Manifold is same as raw module Manifold');
+    assert.strictEqual(manifoldModule.CrossSection, rawModule.CrossSection, 'Exported CrossSection is same as raw module CrossSection');
+    
+    // Test that all expected Manifold static methods exist
+    const expectedMethods = ['cube', 'sphere', 'cylinder', 'union', 'difference', 'intersection', 'hull'];
+    for (const method of expectedMethods) {
+      assert.strictEqual(
+        typeof manifoldModule.Manifold[method], 
+        'function', 
+        `Manifold.${method} method exists`
+      );
     }
   });
 });

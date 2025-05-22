@@ -1,7 +1,7 @@
 // src/models/compound.ts
 // A model that uses components from the component library
 
-import { union } from "../lib/manifold";
+import { Manifold } from "../lib/manifold";
 import { hollowCube, cylinderWithHole, sphericalCap } from "./shapes";
 
 /**
@@ -22,7 +22,7 @@ export default function createModel() {
 
   // Combine all shapes
   console.log("Combining shapes...");
-  const finalModel = union([box, tube, cap]);
+  const finalModel = Manifold.union([box, tube, cap]);
 
   console.log("Compound model created successfully");
   return finalModel;

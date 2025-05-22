@@ -2,7 +2,7 @@
 // Demo model using the Manifold API
 
 import { Vec2 } from "manifold-3d";
-import { hull, union, cylinder } from "../lib/manifold";
+import { Manifold } from "../lib/manifold";
 
 const range = (start: number, end: number) => {
   const length = end - start;
@@ -61,7 +61,7 @@ export default function createModel(
   );
 
   const disks = midline.map((p) => {
-    return cylinder(width, thickness / 2, thickness / 2).translate([
+    return Manifold.cylinder(width, thickness / 2, thickness / 2).translate([
       p[0],
       p[1],
       0,
@@ -72,20 +72,20 @@ export default function createModel(
     const d0 = disks[index];
     const d1 = disks[index + 1];
 
-    return hull([d0, d1]);
+    return Manifold.hull([d0, d1]);
   });
 
-  const roundedEnd = cylinder(thickness, width / 2, width / 2)
+  const roundedEnd = Manifold.cylinder(thickness, width / 2, width / 2)
     // .translate([-THICKNESS / 2, 0, -THICKNESS / 2])
     .rotate([0, 90, 0]);
 
-  const extension = hull([
+  const extension = Manifold.hull([
     roundedEnd.translate([0, 0, 0]),
     roundedEnd.translate([0, hookExtensionLength, 0]),
   ]);
 
-  const result = union([
-    union(hulls),
+  const result = Manifold.union([
+    Manifold.union(hulls),
     extension
       .translate([-thickness / 2, width / 2, width / 2])
       .rotate([0, 0, ((hookExtensionAngle - Math.PI / 2) / Math.PI) * 180])

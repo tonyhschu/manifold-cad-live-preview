@@ -1,7 +1,7 @@
 // src/models/cube.ts
 // A simple example model that creates just a cube
 
-import { cube } from "../lib/manifold";
+import { Manifold } from "../lib/manifold";
 
 /**
  * Creates a simple cube model
@@ -9,7 +9,7 @@ import { cube } from "../lib/manifold";
  */
 export default function createModel() {
   // Create a simple cube
-  const shape = cube([15, 15, 15], true);
+  const shape = Manifold.cube([15, 15, 15], true);
   console.log("Created simple cube model", shape);
   
   // Return the model

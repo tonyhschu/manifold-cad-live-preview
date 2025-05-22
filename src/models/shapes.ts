@@ -7,7 +7,7 @@
  * to allow for customization.
  */
 
-import { cube, cylinder, sphere, difference } from "../lib/manifold";
+import { Manifold } from "../lib/manifold";
 
 /**
  * Creates a hollowed cube with customizable size and wall thickness
@@ -29,7 +29,7 @@ export function hollowCube(size: number, wallThickness: number) {
   }
 
   // Create outer cube
-  const outerCube = cube([size, size, size], true);
+  const outerCube = Manifold.cube([size, size, size], true);
 
   // Calculate inner dimensions
   const innerSize = size - wallThickness * 2;
@@ -40,8 +40,8 @@ export function hollowCube(size: number, wallThickness: number) {
   }
 
   // Create inner cube and subtract from outer cube
-  const innerCube = cube([innerSize, innerSize, innerSize], true);
-  return difference(outerCube, innerCube);
+  const innerCube = Manifold.cube([innerSize, innerSize, innerSize], true);
+  return Manifold.difference(outerCube, innerCube);
 }
 
 /**
@@ -72,7 +72,7 @@ export function cylinderWithHole(
   }
 
   // Create outer cylinder
-  const outerCylinder = cylinder(radius, height, 32);
+  const outerCylinder = Manifold.cylinder(radius, height, 32);
 
   // If hole radius is 0 or larger than outer radius, return solid cylinder
   if (holeRadius <= 0 || holeRadius >= radius) {
@@ -80,10 +80,10 @@ export function cylinderWithHole(
   }
 
   // Create hole (slightly taller to ensure complete hole)
-  const hole = cylinder(holeRadius, height + 1, 32);
+  const hole = Manifold.cylinder(holeRadius, height + 1, 32);
 
   // Subtract hole from cylinder
-  return difference(outerCylinder, hole);
+  return Manifold.difference(outerCylinder, hole);
 }
 
 /**
@@ -108,14 +108,14 @@ export function sphericalCap(radius: number, height: number) {
   }
 
   // Create sphere
-  const wholeSphere = sphere(radius, 32);
+  const wholeSphere = Manifold.sphere(radius, 32);
 
   // Create cutting box
-  const cutBox = cube([radius * 2, radius * 2, radius * 2 - height], true);
+  const cutBox = Manifold.cube([radius * 2, radius * 2, radius * 2 - height], true);
 
   // Translate the box to cut the bottom of the sphere
   const translatedBox = cutBox.translate([0, 0, -radius + height / 2]);
 
   // Subtract box from sphere to create cap
-  return difference(wholeSphere, translatedBox);
+  return Manifold.difference(wholeSphere, translatedBox);
 }
