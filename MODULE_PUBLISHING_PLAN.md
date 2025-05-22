@@ -13,7 +13,6 @@ This separation of concerns will allow users to:
 
 - Use just the core modeling functionality without the UI components
 - Quickly set up new projects with the full preview UI
-- Extend and customize both components independently
 
 ## 1. NPM Module (`manifold-wrapper`)
 
