@@ -6,9 +6,10 @@
  */
 import "./style.css";
 import "./components"; // Register all web components
-import { currentModelId, loadModel, updateStatus } from "./state/store";
+import { currentModelId, loadModel, updateStatus, initializeStore } from "./state/store";
 import { createModelViewer } from "./core/preview";
 import { setupHMR } from "./hmr-handler";
+import { initializeServices } from "./services";
 
 // Get DOM elements
 const modelViewerElement = document.getElementById("viewer") as any;
@@ -50,6 +51,14 @@ if (import.meta.hot !== undefined) {
 async function runPreview() {
   try {
     console.log("Starting ManifoldCAD preview");
+    
+    // Initialize services first
+    updateStatus("Initializing services...");
+    initializeServices();
+    
+    // Initialize store (loads available models)
+    updateStatus("Loading available models...");
+    initializeStore();
     
     // Update initial status
     updateStatus("Starting ManifoldCAD preview...");

@@ -2,13 +2,12 @@
  * Application State Store
  * 
  * Central state management using Preact Signals.
- * This store handles all application state and provides actions for state changes.
+ * This store handles ONLY state management - business logic is delegated to services.
  */
 
 import { signal, computed } from '@preact/signals';
-import { getAvailableModels, loadModelById, ModelMetadata } from '../core/model-loader';
-import { exportToOBJ, createModelUrl } from '../lib/export';
-import { manifoldToGLB, createGLBUrl } from '../lib/gltf-export';
+import { ModelMetadata, getAvailableModels as getAvailableModelsFromLoader } from '../core/model-loader';
+import { getModelService } from '../services';
 import { StatusState, ModelUrlsState } from './types';
 
 // ===== Application State Signals =====
@@ -47,7 +46,7 @@ export const currentModel = signal<any | null>(null);
 /**
  * Available models that can be loaded
  */
-export const availableModels = signal(getAvailableModels());
+export const availableModels = signal(getAvailableModelsFromLoader());
 
 // ===== Computed Values =====
 
@@ -71,67 +70,47 @@ export const isModelLoaded = computed(() =>
 // ===== Actions =====
 
 /**
- * Load a model by ID
+ * Load a model by ID using the ModelService
  * 
- * This action handles the complete model loading process:
- * 1. Load the model from the model loader
- * 2. Export to OBJ and GLB formats
- * 3. Update all relevant state signals
- * 4. Update the model-viewer element
+ * This action delegates to the ModelService and updates state based on results.
  */
 export async function loadModel(modelId: string) {
   try {
-    // Update current model ID
+    // Update current model ID immediately
     currentModelId.value = modelId;
     
-    // Update status
-    status.value = { 
-      message: `Loading model: ${modelId}...`, 
-      isError: false 
+    // Get the model service
+    const modelService = getModelService();
+    
+    // Load model with progress tracking
+    const result = await modelService.loadModel(modelId, (progress, message) => {
+      status.value = {
+        message: message || `Loading model: ${modelId}... (${Math.round(progress)}%)`,
+        isError: false
+      };
+    });
+    
+    // Update all state from service result
+    currentModel.value = result.model;
+    modelMetadata.value = result.metadata || null;
+    modelUrls.value = {
+      objUrl: result.exports.objUrl,
+      glbUrl: result.exports.glbUrl
     };
-    
-    // Load the model
-    const { model, metadata } = await loadModelById(modelId);
-    
-    // Update model and metadata
-    modelMetadata.value = metadata || null;
-    currentModel.value = model;
-    
-    // Export model to OBJ
-    status.value = { 
-      message: 'Exporting model to OBJ and GLB...', 
-      isError: false 
-    };
-    
-    const objBlob = exportToOBJ(model);
-    const objUrl = createModelUrl(objBlob);
-    
-    // Export to GLB
-    status.value = { 
-      message: 'Generating GLB for model-viewer...', 
-      isError: false 
-    };
-    
-    const glbBlob = await manifoldToGLB(model);
-    const glbUrl = createGLBUrl(glbBlob);
-    
-    // Update URLs
-    modelUrls.value = { objUrl, glbUrl };
-    
-    // We already set the metadata above, so no need to update it again
     
     // Update final status
-    status.value = { 
-      message: 'Model loaded successfully', 
-      isError: false 
+    status.value = {
+      message: 'Model loaded successfully',
+      isError: false
     };
     
-    return model;
+    return result.model;
+    
   } catch (error: any) {
     // Handle errors
-    status.value = { 
-      message: `Error: ${error.message}`, 
-      isError: true 
+    status.value = {
+      message: `Error: ${error.message}`,
+      isError: true
     };
     
     throw error;
@@ -149,5 +128,14 @@ export function updateStatus(message: string, isError = false) {
  * Refresh the available models list
  */
 export function refreshAvailableModels() {
-  availableModels.value = getAvailableModels();
+  // Use the model loader directly since it doesn't need services
+  availableModels.value = getAvailableModelsFromLoader();
+}
+
+/**
+ * Initialize the store with available models
+ */
+export function initializeStore() {
+  // No-op now since availableModels is initialized directly
+  // This function is kept for potential future initialization needs
 }

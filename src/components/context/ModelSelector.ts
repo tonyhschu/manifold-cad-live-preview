@@ -10,7 +10,8 @@ import { currentModelId, availableModels, loadModel } from '../../state/store';
 export class ModelSelector extends HTMLElement {
   private containerElement: HTMLElement | null = null;
   private selectElement: HTMLSelectElement | null = null;
-  private unsubscribe: (() => void) | null = null;
+  private unsubscribeModelId: (() => void) | null = null;
+  private unsubscribeAvailableModels: (() => void) | null = null;
   
   constructor() {
     super();
@@ -25,10 +26,15 @@ export class ModelSelector extends HTMLElement {
                            this.createContainerElement();
     
     // Subscribe to currentModelId signal to update selection
-    this.unsubscribe = currentModelId.subscribe(modelId => {
+    this.unsubscribeModelId = currentModelId.subscribe(modelId => {
       if (this.selectElement && this.selectElement.value !== modelId) {
         this.selectElement.value = modelId;
       }
+    });
+    
+    // Subscribe to availableModels signal to re-render when models change
+    this.unsubscribeAvailableModels = availableModels.subscribe(() => {
+      this.renderModelSelector();
     });
     
     // Initial render
@@ -38,10 +44,15 @@ export class ModelSelector extends HTMLElement {
   disconnectedCallback() {
     console.log('ModelSelector: Disconnected');
     
-    // Clean up subscription when element is removed
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
+    // Clean up subscriptions when element is removed
+    if (this.unsubscribeModelId) {
+      this.unsubscribeModelId();
+      this.unsubscribeModelId = null;
+    }
+    
+    if (this.unsubscribeAvailableModels) {
+      this.unsubscribeAvailableModels();
+      this.unsubscribeAvailableModels = null;
     }
   }
   

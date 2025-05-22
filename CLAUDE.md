@@ -62,3 +62,19 @@ src/
 - `src/state/store.ts`: Central state store
 - `src/components/index.ts`: Component registration
 - `src/main.ts`: Application entry point
+
+## Architecture Goals & Future Plans
+
+### Library Extraction (Issue #8)
+We are working toward extracting the core ManifoldCAD library code into a separate NPM package. This drives current architectural decisions:
+
+**Current Strategy:**
+- Keep `src/lib/` pure and extractable (no UI dependencies, browser APIs, or console logs)
+- Create service layer (`src/services/`) to bridge library and UI concerns
+- Separate library functionality from UI integration
+- Design export systems to support multiple formats (OBJ, GLB, future 3MF)
+
+**Key Principles:**
+- Library code should be environment-agnostic (Node.js compatible)
+- UI services handle browser-specific functionality (blob URLs, progress callbacks)
+- Clean separation enables easier testing and future extraction
