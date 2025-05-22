@@ -6,7 +6,14 @@
  * with Vite, allowing for a smooth development experience with live updates.
  */
 
-import { ManifoldPreview } from './preview';
+import { ModelViewer } from './preview';
+
+// Extended interface for the ModelViewer with HMR-specific methods
+interface HMRModelViewer extends ModelViewer {
+  onModelChange: (callback: (modelId: string) => void) => void;
+  loadAndRenderModel: (modelId: string) => Promise<any>;
+  updateStatus: (message: string, isError?: boolean) => void;
+}
 
 // Current model ID store for HMR
 interface HMRState {
@@ -21,7 +28,7 @@ interface HMRState {
  * @param preview The preview instance to refresh on changes
  * @param initialModelId The initially loaded model ID
  */
-export function initializeHMR(preview: ManifoldPreview, initialModelId: string): void {
+export function initializeHMR(preview: HMRModelViewer, initialModelId: string): void {
   // Only run in development mode when HMR is available
   if (import.meta.hot) {
     console.log('ManifoldCAD HMR: Initializing...');
@@ -79,7 +86,7 @@ export function initializeHMR(preview: ManifoldPreview, initialModelId: string):
           // Reload the current model
           preview.loadAndRenderModel(state.currentModelId).then(() => {
             console.log(`ManifoldCAD HMR: Successfully reloaded model ${state.currentModelId}`);
-          }).catch(error => {
+          }).catch((error: Error) => {
             console.error(`ManifoldCAD HMR: Error reloading model ${state.currentModelId}`, error);
             preview.updateStatus(`HMR Error: ${error.message}. Retry in progress...`, true);
             
@@ -141,7 +148,7 @@ export function initializeHMR(preview: ManifoldPreview, initialModelId: string):
         console.log(`ManifoldCAD HMR: Core library "${libraryName}" changed, reloading current model ${state.currentModelId}`);
         preview.loadAndRenderModel(state.currentModelId).then(() => {
           console.log(`ManifoldCAD HMR: Successfully reloaded model with updated core library "${libraryName}"`);
-        }).catch(error => {
+        }).catch((error: Error) => {
           console.error(`ManifoldCAD HMR: Error reloading model with updated core library "${libraryName}"`, error);
           preview.updateStatus(`HMR Error in core library "${libraryName}": ${error.message}`, true);
           
@@ -154,9 +161,12 @@ export function initializeHMR(preview: ManifoldPreview, initialModelId: string):
     }
     
     // Listen for HMR errors
-    import.meta.hot.on('vite:error', (error) => {
+    import.meta.hot.on('vite:error', (error: any) => {
       console.error('ManifoldCAD HMR: Vite error', error);
-      preview.updateStatus(`HMR Error: ${error.message || 'Unknown error'}`, true);
+      const errorMessage = typeof error === 'object' && error ? 
+        (error.message || (error.err && error.err.message) || 'Unknown error') : 
+        'Unknown error';
+      preview.updateStatus(`HMR Error: ${errorMessage}`, true);
     });
     
     // Status update when HMR is about to update

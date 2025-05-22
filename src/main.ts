@@ -39,7 +39,7 @@ const appContext = {
 };
 
 // Initialize HMR for development
-if (import.meta.hot) {
+if (import.meta.hot !== undefined) {
   console.log("HMR is available - setting up handlers");
   setupHMR(appContext);
 }
@@ -55,7 +55,7 @@ async function runPreview() {
     updateStatus("Starting ManifoldCAD preview...");
     
     // Load the default model using our state management
-    const model = await loadModel(currentModelId.value);
+    await loadModel(currentModelId.value);
     
     // Any additional setup after model is loaded
     console.log("Model loaded successfully");

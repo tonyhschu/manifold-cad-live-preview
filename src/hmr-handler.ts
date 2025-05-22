@@ -29,8 +29,10 @@ export const setupHMR = (context: any): void => {
 
   console.log('ManifoldCAD HMR: Initializing...');
   
+  if (!import.meta.hot) return;
+  
   // Store state for HMR preservation
-  let state: HMRState = import.meta.hot.data.state || { 
+  let state: HMRState = (import.meta.hot.data?.state as HMRState) || { 
     currentModelId: currentModelId.value,
     modelReloadAttempts: {},
     lastModifiedModelFile: null
@@ -43,20 +45,22 @@ export const setupHMR = (context: any): void => {
   });
   
   // Handle updates to model files
-  import.meta.hot.accept('./models/demo.ts', (module) => {
-    console.log('ManifoldCAD HMR: Demo model updated');
-    handleModelUpdate('demo', module);
-  });
-  
-  import.meta.hot.accept('./models/cube.ts', (module) => {
-    console.log('ManifoldCAD HMR: Cube model updated');
-    handleModelUpdate('cube', module);
-  });
-  
-  import.meta.hot.accept('./models/compound.ts', (module) => {
-    console.log('ManifoldCAD HMR: Compound model updated');
-    handleModelUpdate('compound', module);
-  });
+  if (import.meta.hot) {
+    import.meta.hot.accept('./models/demo.ts', (module) => {
+      console.log('ManifoldCAD HMR: Demo model updated');
+      handleModelUpdate('demo', module);
+    });
+    
+    import.meta.hot.accept('./models/cube.ts', (module) => {
+      console.log('ManifoldCAD HMR: Cube model updated');
+      handleModelUpdate('cube', module);
+    });
+    
+    import.meta.hot.accept('./models/compound.ts', (module) => {
+      console.log('ManifoldCAD HMR: Compound model updated');
+      handleModelUpdate('compound', module);
+    });
+  }
   
   // Helper function to handle model updates
   function handleModelUpdate(modelId: string, module: any) {
@@ -100,28 +104,34 @@ export const setupHMR = (context: any): void => {
     }
   }
   
-  // Listen for HMR errors
-  import.meta.hot.on('vite:error', (error) => {
-    console.error('ManifoldCAD HMR: Vite error', error);
-    updateStatus(`HMR Error: ${error.message || 'Unknown error'}`, true);
+  // Listen for HMR events
+  if (import.meta.hot) {
+    // Listen for HMR errors
+    import.meta.hot.on('vite:error', (error: any) => {
+      console.error('ManifoldCAD HMR: Vite error', error);
+      const errorMessage = typeof error === 'object' && error ? 
+        (error.message || (error.err && error.err.message) || 'Unknown error') : 
+        'Unknown error';
+      updateStatus(`HMR Error: ${errorMessage}`, true);
+      
+      // Refresh the view if there is a model viewer in context
+      if (context.modelViewer && typeof context.modelViewer.refreshView === 'function') {
+        context.modelViewer.refreshView();
+      }
+    });
     
-    // Refresh the view if there is a model viewer in context
-    if (context.modelViewer && typeof context.modelViewer.refreshView === 'function') {
-      context.modelViewer.refreshView();
-    }
-  });
-  
-  // Status update when HMR is about to update
-  import.meta.hot.on('vite:beforeUpdate', (data) => {
-    console.log('ManifoldCAD HMR: About to update', data);
-    updateStatus('HMR update in progress...');
-  });
-  
-  // Status update when HMR has completed an update
-  import.meta.hot.on('vite:afterUpdate', (data) => {
-    console.log('ManifoldCAD HMR: Update applied', data);
-    updateStatus('HMR update complete');
-  });
+    // Status update when HMR is about to update
+    import.meta.hot.on('vite:beforeUpdate', (data) => {
+      console.log('ManifoldCAD HMR: About to update', data);
+      updateStatus('HMR update in progress...');
+    });
+    
+    // Status update when HMR has completed an update
+    import.meta.hot.on('vite:afterUpdate', (data) => {
+      console.log('ManifoldCAD HMR: Update applied', data);
+      updateStatus('HMR update complete');
+    });
+  }
   
   console.log('ManifoldCAD HMR: Initialized successfully');
 };
@@ -131,7 +141,7 @@ export const setupHMR = (context: any): void => {
  * This can be used when a non-critical error occurs during the update
  */
 export const forceReload = (): void => {
-  if (isHMRAvailable()) {
-    import.meta.hot?.invalidate();
+  if (import.meta.hot) {
+    import.meta.hot.invalidate();
   }
 };

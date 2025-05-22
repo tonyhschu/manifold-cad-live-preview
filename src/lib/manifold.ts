@@ -207,12 +207,20 @@ export function hull(manifolds: any[]): any {
  * const result = factory.difference(box, sphere);
  * ```
  */
+/**
+ * Create a factory object with all manifold operations
+ * This provides an object-oriented API alternative to the functional approach
+ */
 export function createManifoldFactory() {
   return {
     // Simply return the Manifold class for backward compatibility
     ...manifoldModule.Manifold,
     
     // Add utility functions
-    ...utils
+    ...utils,
+    
+    // Add common shape functions to ensure TypeScript sees them
+    sphere: (radius: number, resolution?: number) => manifoldModule.Manifold.sphere(radius, resolution),
+    difference: (a: any, b: any) => manifoldModule.Manifold.difference(a, b)
   };
 }

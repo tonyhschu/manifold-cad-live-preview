@@ -18,7 +18,7 @@ export default function createModel() {
   ];
 
   // Log each shape
-  shapes.forEach((shape, i) => console.log(`Shape ${i} created`));
+  shapes.forEach((_, i) => console.log(`Shape ${i} created`));
 
   // Create a hull around all shapes
   console.log("Computing convex hull of all shapes...");
