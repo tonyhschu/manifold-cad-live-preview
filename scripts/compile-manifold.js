@@ -24,42 +24,69 @@ if (!fs.existsSync(distDir)) {
   console.log(`Created output directory: ${distDir}`);
 }
 
-// Source file path
-const srcFile = path.join(srcDir, 'manifold.ts');
+// Pipeline compilation output directory
+const pipelineDistDir = path.join(projectRoot, 'dist');
 
-// Ensure source file exists
-if (!fs.existsSync(srcFile)) {
-  console.error(`Error: Source file not found: ${srcFile}`);
-  process.exit(1);
+// Create output directory if it doesn't exist
+if (!fs.existsSync(pipelineDistDir)) {
+  fs.mkdirSync(pipelineDistDir, { recursive: true });
+  console.log(`Created output directory: ${pipelineDistDir}`);
 }
 
-// TypeScript compilation command
-// Using proper settings for top-level await and ES2019 features
-const tscCommand = 
-  `npx tsc ${srcFile} --outDir ${distDir} --module es2022 --target es2019 ` +
-  `--moduleResolution node --lib es2019,dom --skipLibCheck`;
-
-async function compile() {
-  console.log(`Compiling manifold.ts to JavaScript...`);
-  console.log(`Source: ${srcFile}`);
-  console.log(`Destination: ${distDir}/manifold.js`);
+async function compile(manifoldOnly = false) {
+  console.log(`Compiling TypeScript files to JavaScript...`);
+  
+  // Always compile manifold.ts for the lib
+  console.log(`Compiling manifold.ts...`);
+  const manifoldSrc = path.join(srcDir, 'manifold.ts');
+  const tscManifoldCommand = 
+    `npx tsc ${manifoldSrc} --outDir ${distDir} --module es2022 --target es2019 ` +
+    `--moduleResolution node --lib es2019,dom --skipLibCheck --declaration`;
   
   try {
-    const { stdout, stderr } = await execAsync(tscCommand);
-    if (stdout) console.log(stdout);
-    if (stderr) console.error(stderr);
-    
-    // Check if compilation was successful
-    const outputFile = path.join(distDir, 'manifold.js');
-    if (fs.existsSync(outputFile)) {
-      console.log('✅ Compilation successful');
-      return true;
-    } else {
-      console.error('❌ Compilation failed: Output file not found');
-      return false;
-    }
+    await execAsync(tscManifoldCommand);
+    console.log(`✅ manifold.ts compiled successfully`);
   } catch (error) {
-    console.error('❌ Compilation failed:', error.message);
+    console.error(`❌ manifold.ts compilation failed:`, error.message);
+    return false;
+  }
+  
+  // Skip pipeline compilation if manifold-only flag is set
+  if (manifoldOnly) {
+    console.log(`✅ Manifold-only compilation completed`);
+    return true;
+  }
+  
+  // Then compile the entire src tree for pipeline
+  console.log(`Compiling pipeline modules...`);
+  const tscPipelineCommand = 
+    `npx tsc --project ${projectRoot} --outDir ${pipelineDistDir} --module es2022 --target es2019 ` +
+    `--moduleResolution node --lib es2019,dom --skipLibCheck --declaration --noEmit false`;
+  
+  try {
+    const { stdout, stderr } = await execAsync(tscPipelineCommand);
+    if (stdout) console.log(stdout);
+    if (stderr && !stderr.includes('error')) console.log(stderr); // Only show non-error output
+    
+    // Check if key files were compiled
+    const keyFiles = [
+      path.join(pipelineDistDir, 'types/parametric-config.js'),
+      path.join(pipelineDistDir, 'models/parametric-hook.js')
+    ];
+    
+    let allExist = true;
+    for (const file of keyFiles) {
+      if (fs.existsSync(file)) {
+        console.log(`✅ ${path.basename(file)} compiled successfully`);
+      } else {
+        console.error(`❌ ${path.basename(file)} compilation failed: Output file not found`);
+        allExist = false;
+      }
+    }
+    
+    return allExist;
+  } catch (error) {
+    console.error(`❌ Pipeline compilation failed:`, error.message);
     if (error.stderr) console.error(error.stderr);
     return false;
   }
@@ -67,7 +94,8 @@ async function compile() {
 
 // Run compilation if called directly
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const success = await compile();
+  const manifoldOnly = process.argv.includes('--manifold-only');
+  const success = await compile(manifoldOnly);
   process.exit(success ? 0 : 1);
 }
 

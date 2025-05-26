@@ -16,7 +16,8 @@
     "test:ui": "npm run compile && node --test tests/ui/store.test.js",
     "test:integration": "npm run compile && node --test tests/manifold-integration.test.js",
     "test:skip-compile": "node --test tests/**/*.test.js",
-    "test:watch": "npm run compile && node --test --watch tests/**/*.test.js"
+    "test:watch": "npm run compile && node --test --watch tests/**/*.test.js",
+    "pipeline": "node scripts/compile-manifold.js --manifold-only && node scripts/pipeline.js"
   },
   "devDependencies": {
     "typescript": "^5.0.2",
