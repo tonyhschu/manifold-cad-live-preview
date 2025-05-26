@@ -3,7 +3,7 @@ import type { Manifold } from '../lib/manifold';
 // Re-export Tweakpane types for direct usage
 export type { BindingParams } from 'tweakpane';
 
-// Tweakpane parameter types
+// Tweakpane parameter types (based on BindingParams)
 export interface TweakpaneNumberParam {
   value: number;
   min?: number;
@@ -17,7 +17,7 @@ export interface TweakpaneBooleanParam {
 
 export interface TweakpaneStringParam {
   value: string;
-  options?: string[];
+  options?: Record<string, string>;
 }
 
 export interface TweakpaneColorParam {
@@ -66,7 +66,13 @@ export const P = {
   
   boolean: (value: boolean): TweakpaneBooleanParam => ({ value }),
   
-  select: (value: string, options: string[]): TweakpaneStringParam => ({ value, options }),
+  select: (value: string, options: string[] | Record<string, string>): TweakpaneStringParam => {
+    // Convert array to object format that Tweakpane expects
+    const optionsObj = Array.isArray(options) 
+      ? options.reduce((acc, opt) => ({ ...acc, [opt]: opt }), {})
+      : options;
+    return { value, options: optionsObj };
+  },
   
   string: (value: string): TweakpaneStringParam => ({ value }),
   

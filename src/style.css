@@ -153,3 +153,74 @@ model-viewer {
   display: inline-block;
   min-width: 50%;
 }
+
+/* Parametric Panel Styles */
+.parametric-panel {
+  width: 100%;
+}
+
+.parametric-panel-header h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.parametric-panel-content {
+  background-color: #fff;
+  border-radius: 4px;
+  padding: 0;
+}
+
+.parametric-model-info {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 1rem;
+}
+
+.parametric-model-info h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.model-description {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.tweakpane-container {
+  padding: 0.5rem;
+}
+
+.custom-parameter-container {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin: 0.5rem 0;
+}
+
+.error-message {
+  padding: 1rem;
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 4px;
+  color: #c33;
+}
+
+.error-message h4 {
+  margin: 0 0 0.5rem 0;
+  color: #c33;
+}
+
+.error-message details {
+  margin-top: 0.5rem;
+}
+
+.error-message pre {
+  background-color: #f9f9f9;
+  padding: 0.5rem;
+  border-radius: 2px;
+  font-size: 0.8rem;
+  overflow-x: auto;
+}

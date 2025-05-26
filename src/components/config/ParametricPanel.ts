@@ -1,5 +1,6 @@
 import { ParameterManager } from '../../core/parameter-manager';
-import { currentModel, updateModel } from '../../state/store';
+import { currentParametricConfig, isModelParametric, updateModel, modelUrls } from '../../state/store';
+import { getExportService } from '../../services';
 import type { ParametricConfig } from '../../types/parametric-config';
 
 export class ParametricPanel extends HTMLElement {
@@ -18,9 +19,9 @@ export class ParametricPanel extends HTMLElement {
       </div>
     `;
 
-    // Subscribe to model changes to detect parametric configs
-    this.unsubscribe = currentModel.subscribe(value => {
-      this.handleModelChange(value);
+    // Subscribe to parametric config changes
+    this.unsubscribe = currentParametricConfig.subscribe(config => {
+      this.handleConfigChange(config);
     });
   }
 
@@ -31,25 +32,15 @@ export class ParametricPanel extends HTMLElement {
     this.cleanup();
   }
 
-  private handleModelChange(model: any) {
-    // Check if the model has a parametric config
-    if (model && this.isParametricModel(model)) {
-      this.setupParametricUI(model);
+  private handleConfigChange(config: ParametricConfig | null) {
+    if (config) {
+      this.setupParametricUI(config);
     } else {
       this.cleanup();
       this.showNoParametersMessage();
     }
   }
 
-  private isParametricModel(model: any): model is ParametricConfig {
-    return (
-      model &&
-      typeof model === 'object' &&
-      'parameters' in model &&
-      'generateModel' in model &&
-      typeof model.generateModel === 'function'
-    );
-  }
 
   private setupParametricUI(config: ParametricConfig) {
     this.cleanup();
@@ -102,12 +93,18 @@ export class ParametricPanel extends HTMLElement {
 
   private setupModelGenerationListener() {
     // Listen for model generation from ParameterManager
-    const handleModelGenerated = (event: Event) => {
+    const handleModelGenerated = async (event: Event) => {
+      console.log('ParametricPanel received modelGenerated event');
       const customEvent = event as CustomEvent;
       const { manifold, params } = customEvent.detail;
       
+      console.log('Updating model in store:', manifold);
+      
       // Update the global model state
       updateModel(manifold);
+      
+      // Generate new exports for the updated model
+      await this.updateModelExports(manifold);
       
       // Optionally store current parameters for persistence
       this.storeCurrentParameters(params);
@@ -131,6 +128,31 @@ export class ParametricPanel extends HTMLElement {
     };
   }
 
+  private async updateModelExports(manifold: any) {
+    try {
+      console.log('Generating new exports for updated model...');
+      
+      const exportService = getExportService();
+      
+      // Generate OBJ export
+      const objResult = await exportService.exportToOBJ(manifold, 'parametric-model.obj');
+      
+      // Generate GLB export  
+      const glbResult = await exportService.exportToGLB(manifold, 'parametric-model.glb');
+      
+      // Update model URLs in store
+      modelUrls.value = {
+        objUrl: objResult.url,
+        glbUrl: glbResult.url
+      };
+      
+      console.log('Updated model URLs:', modelUrls.value);
+      
+    } catch (error) {
+      console.error('Failed to generate exports for parametric model:', error);
+    }
+  }
+
   private storeCurrentParameters(params: Record<string, any>) {
     // Store in localStorage for persistence
     if (this.currentConfig && this.currentConfig.name) {
@@ -143,18 +165,6 @@ export class ParametricPanel extends HTMLElement {
     }
   }
 
-  private loadStoredParameters(): Record<string, any> | null {
-    if (!this.currentConfig || !this.currentConfig.name) return null;
-    
-    const key = `parametric-params-${this.currentConfig.name}`;
-    try {
-      const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : null;
-    } catch (error) {
-      console.warn('Failed to load stored parameters:', error);
-      return null;
-    }
-  }
 
   private cleanup() {
     if (this.parameterManager) {
