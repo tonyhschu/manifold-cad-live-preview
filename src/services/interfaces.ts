@@ -6,6 +6,7 @@
  */
 
 import { ModelMetadata } from '../core/model-loader';
+import type { ParametricConfig } from '../types/parametric-config';
 
 // ===== CORE TYPES =====
 
@@ -41,6 +42,8 @@ export interface ExportResult {
 export interface ModelLoadResult {
   model: any; // Manifold object
   metadata?: ModelMetadata;
+  isParametric?: boolean;
+  config?: ParametricConfig;
   exports: {
     objUrl: string;
     glbUrl: string;
@@ -62,7 +65,7 @@ export interface IModelService {
   /**
    * Get available models list
    */
-  getAvailableModels(): { id: string; name: string }[];
+  getAvailableModels(): { id: string; name: string; type: 'static' | 'parametric' }[];
   
   /**
    * Refresh the available models cache

@@ -7,6 +7,7 @@
 
 import { IModelService, IExportService, ModelLoadResult, ProgressCallback } from './interfaces';
 import { getAvailableModels, loadModelById, ModelMetadata } from '../core/model-loader';
+import type { ParametricConfig } from '../types/parametric-config';
 
 /**
  * Model cache entry
@@ -14,6 +15,8 @@ import { getAvailableModels, loadModelById, ModelMetadata } from '../core/model-
 interface CacheEntry {
   model: any;
   metadata?: ModelMetadata;
+  isParametric?: boolean;
+  config?: ParametricConfig;
   loadedAt: number;
   exports?: {
     objUrl: string;
@@ -44,6 +47,8 @@ export class ModelService implements IModelService {
         return {
           model: cached.model,
           metadata: cached.metadata,
+          isParametric: cached.isParametric,
+          config: cached.config,
           exports: cached.exports!
         };
       }
@@ -51,7 +56,7 @@ export class ModelService implements IModelService {
       onProgress?.(10, 'Loading model from source...');
       
       // Load the model using the existing model loader
-      const { model, metadata } = await loadModelById(modelId);
+      const { model, metadata, isParametric, config } = await loadModelById(modelId);
       
       onProgress?.(30, 'Model loaded, generating exports...');
       
@@ -78,6 +83,8 @@ export class ModelService implements IModelService {
       const cacheEntry: CacheEntry = {
         model,
         metadata,
+        isParametric,
+        config,
         loadedAt: Date.now(),
         exports
       };
@@ -90,6 +97,8 @@ export class ModelService implements IModelService {
       return {
         model,
         metadata,
+        isParametric,
+        config,
         exports
       };
       
@@ -102,7 +111,7 @@ export class ModelService implements IModelService {
   /**
    * Get available models list
    */
-  getAvailableModels(): { id: string; name: string }[] {
+  getAvailableModels(): { id: string; name: string; type: 'static' | 'parametric' }[] {
     return getAvailableModels();
   }
   

@@ -21,6 +21,8 @@ export interface ModelMetadata {
   version?: string;
 }
 
+import type { ParametricConfig } from '../types/parametric-config';
+
 /**
  * Type definition for model creation functions
  * Each model exports a function that creates and returns a Manifold object
@@ -28,16 +30,38 @@ export interface ModelMetadata {
 export type ModelCreator = () => any;
 
 /**
+ * Type definition for parametric models
+ * These export a ParametricConfig object instead of a simple function
+ */
+export type ParametricModel = ParametricConfig;
+
+/**
  * Registry of all available models in the system
- * Each entry includes an ID, import path, and display name
+ * Each entry includes an ID, import path, display name, and type
  */
 export const availableModels = [
-  // Synchronous models
-  { id: "demo", path: "../models/demo", name: "Demo Model" },
-  { id: "cube", path: "../models/cube", name: "Simple Cube" },
-  { id: "compound", path: "../models/compound", name: "Compound Model" },
-  { id: "hook", path: "../models/hook", name: "Hook" },
+  // Static models (function-based)
+  { id: "demo", path: "../models/demo", name: "Demo Model", type: "static" as const },
+  { id: "cube", path: "../models/cube", name: "Simple Cube", type: "static" as const },
+  { id: "compound", path: "../models/compound", name: "Compound Model", type: "static" as const },
+  { id: "hook", path: "../models/hook", name: "Hook", type: "static" as const },
+  
+  // Parametric models (ParametricConfig-based)
+  { id: "parametric-hook", path: "../models/parametric-hook", name: "Parametric Hook", type: "parametric" as const },
 ];
+
+/**
+ * Helper to determine if a model export is a parametric config
+ */
+function isParametricConfig(obj: any): obj is ParametricConfig {
+  return (
+    obj &&
+    typeof obj === 'object' &&
+    'parameters' in obj &&
+    'generateModel' in obj &&
+    typeof obj.generateModel === 'function'
+  );
+}
 
 /**
  * Load the default model from the models directory
@@ -46,6 +70,8 @@ export const availableModels = [
 export async function loadDefaultModel(): Promise<{
   model: any;
   metadata?: ModelMetadata;
+  isParametric?: boolean;
+  config?: ParametricConfig;
 }> {
   return loadModelById("demo");
 }
@@ -55,17 +81,22 @@ export async function loadDefaultModel(): Promise<{
  * This function:
  * 1. Finds the model definition in the registry
  * 2. Dynamically imports the model module
- * 3. Extracts the model creator function and metadata
- * 4. Creates the model
- * 5. Returns the model and its metadata
+ * 3. Handles both static and parametric models
+ * 4. For static models: creates the model immediately
+ * 5. For parametric models: returns the config for UI setup
  *
  * @param modelId The ID of the model to load from the availableModels registry
- * @returns Promise that resolves to the created model and its metadata
+ * @returns Promise that resolves to the model result
  * @throws Error if the model with the given ID is not found
  */
 export async function loadModelById(
   modelId: string
-): Promise<{ model: any; metadata?: ModelMetadata }> {
+): Promise<{ 
+  model: any; 
+  metadata?: ModelMetadata; 
+  isParametric?: boolean;
+  config?: ParametricConfig;
+}> {
   try {
     // Find the model definition
     const modelDef = availableModels.find((m) => m.id === modelId);
@@ -76,16 +107,49 @@ export async function loadModelById(
     // Import the model module
     const modelModule = await import(modelDef.path);
 
-    // Get the model creator function (default export)
-    const createModel = modelModule.default as ModelCreator;
+    // Get the default export
+    const defaultExport = modelModule.default;
 
-    // Get metadata if available
-    const metadata = modelModule.modelMetadata as ModelMetadata | undefined;
+    // Check if this is a parametric model
+    if (isParametricConfig(defaultExport)) {
+      // Parametric model - return the config for UI setup
+      const config = defaultExport as ParametricConfig;
+      
+      // Generate initial model with default parameters
+      const initialParams: Record<string, any> = {};
+      for (const [key, paramConfig] of Object.entries(config.parameters)) {
+        initialParams[key] = paramConfig.value;
+      }
+      const initialModel = config.generateModel(initialParams);
 
-    // Create the model - all synchronous now
-    const model = createModel();
+      return {
+        model: initialModel,
+        metadata: config.name ? { 
+          name: config.name, 
+          description: config.description || "" 
+        } : undefined,
+        isParametric: true,
+        config: config
+      };
+    } else {
+      // Static model - execute the function
+      const createModel = defaultExport as ModelCreator;
+      if (typeof createModel !== 'function') {
+        throw new Error(`createModel is not a function`);
+      }
 
-    return { model, metadata };
+      // Get metadata if available
+      const metadata = modelModule.modelMetadata as ModelMetadata | undefined;
+
+      // Create the model
+      const model = createModel();
+
+      return { 
+        model, 
+        metadata,
+        isParametric: false 
+      };
+    }
   } catch (error) {
     console.error(`Error loading model "${modelId}":`, error);
     throw error;
@@ -96,8 +160,8 @@ export async function loadModelById(
  * Get a list of all available models
  * Used by the UI to populate the model selection dropdown
  *
- * @returns Array of model information (id and name)
+ * @returns Array of model information (id, name, and type)
  */
 export function getAvailableModels() {
-  return availableModels.map(({ id, name }) => ({ id, name }));
+  return availableModels.map(({ id, name, type }) => ({ id, name, type }));
 }

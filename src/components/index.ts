@@ -10,6 +10,7 @@ import './canvas/StatusBar';
 import './canvas/ModelViewer';
 import './context/DownloadPanel';
 import './context/ModelSelector';
+import './config/ParametricPanel';
 
 // Log initialization
 console.log('ManifoldCAD: Web Components initialized');

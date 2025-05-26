@@ -11,7 +11,7 @@
     "test": "npm run compile && npm run test:all",
     "test:all": "node --test tests/simple-service.test.js tests/manifold-integration.test.js tests/lib/export.test.js",
     "test:lib": "npm run compile && node --test tests/lib/export.test.js",
-    "test:services": "npm run compile && node --test tests/simple-service.test.js", 
+    "test:services": "npm run compile && node --test tests/simple-service.test.js",
     "test:ui": "npm run compile && node --test tests/ui/store.test.js",
     "test:integration": "npm run compile && node --test tests/manifold-integration.test.js",
     "test:skip-compile": "node --test tests/**/*.test.js",
@@ -25,6 +25,7 @@
     "@gltf-transform/core": "^4.1.3",
     "@google/model-viewer": "^3.3.0",
     "@preact/signals": "^2.0.4",
-    "manifold-3d": "^3.1.0"
+    "manifold-3d": "^3.1.0",
+    "tweakpane": "^4.0.5"
   }
 }

@@ -9,6 +9,7 @@ import { signal, computed } from '@preact/signals';
 import { ModelMetadata, getAvailableModels as getAvailableModelsFromLoader } from '../core/model-loader';
 import { getModelService } from '../services';
 import { StatusState, ModelUrlsState } from './types';
+import type { ParametricConfig } from '../types/parametric-config';
 
 // ===== Application State Signals =====
 
@@ -42,6 +43,16 @@ export const modelMetadata = signal<ModelMetadata | null>(null);
  * The currently loaded model object
  */
 export const currentModel = signal<any | null>(null);
+
+/**
+ * Whether the current model is parametric
+ */
+export const isModelParametric = signal<boolean>(false);
+
+/**
+ * Current parametric model configuration (if applicable)
+ */
+export const currentParametricConfig = signal<ParametricConfig | null>(null);
 
 /**
  * Available models that can be loaded
@@ -93,6 +104,8 @@ export async function loadModel(modelId: string) {
     // Update all state from service result
     currentModel.value = result.model;
     modelMetadata.value = result.metadata || null;
+    isModelParametric.value = result.isParametric || false;
+    currentParametricConfig.value = result.config || null;
     modelUrls.value = {
       objUrl: result.exports.objUrl,
       glbUrl: result.exports.glbUrl
@@ -115,6 +128,13 @@ export async function loadModel(modelId: string) {
     
     throw error;
   }
+}
+
+/**
+ * Update the current model (e.g., from parametric changes)
+ */
+export function updateModel(model: any) {
+  currentModel.value = model;
 }
 
 /**
