@@ -94,11 +94,8 @@ export class ParametricPanel extends HTMLElement {
   private setupModelGenerationListener() {
     // Listen for model generation from ParameterManager
     const handleModelGenerated = async (event: Event) => {
-      console.log('ParametricPanel received modelGenerated event');
       const customEvent = event as CustomEvent;
       const { manifold, params } = customEvent.detail;
-      
-      console.log('Updating model in store:', manifold);
       
       // Update the global model state
       updateModel(manifold);
@@ -130,8 +127,6 @@ export class ParametricPanel extends HTMLElement {
 
   private async updateModelExports(manifold: any) {
     try {
-      console.log('Generating new exports for updated model...');
-      
       const exportService = getExportService();
       
       // Generate OBJ export
@@ -145,8 +140,6 @@ export class ParametricPanel extends HTMLElement {
         objUrl: objResult.url,
         glbUrl: glbResult.url
       };
-      
-      console.log('Updated model URLs:', modelUrls.value);
       
     } catch (error) {
       console.error('Failed to generate exports for parametric model:', error);

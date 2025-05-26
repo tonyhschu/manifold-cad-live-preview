@@ -46,16 +46,10 @@ export class ParameterManager {
       const tweakpaneConfig: any = { ...paramConfig };
       delete tweakpaneConfig.value; // Remove value from config since it's in this.params
       
-      console.log(`Setting up parameter ${key}:`, { 
-        value: this.params[key], 
-        config: tweakpaneConfig 
-      });
-      
       // Cast to any to bypass TypeScript issues for now
       const binding = (this.pane as any).addBinding(this.params, key, tweakpaneConfig);
       
-      binding.on('change', (ev) => {
-        console.log(`Parameter ${key} changed to:`, ev.value);
+      binding.on('change', () => {
         this.renderModel();
       });
     } catch (error) {
@@ -107,20 +101,14 @@ export class ParameterManager {
 
   private renderModel(): void {
     try {
-      console.log('Rendering model with parameters:', this.params);
-      
       // Framework guarantee: generateModel called with complete parameter object
       const manifold = this.config.generateModel(this.params);
-      
-      console.log('Generated manifold:', manifold);
       
       // Emit event for external listeners (e.g., 3D viewer)
       const event = new CustomEvent('modelGenerated', { 
         detail: { manifold, params: { ...this.params } }
       });
       document.dispatchEvent(event);
-      
-      console.log('Dispatched modelGenerated event');
       
     } catch (error) {
       console.error('Model generation failed:', error);
