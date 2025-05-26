@@ -25,22 +25,25 @@ export interface TweakpaneColorParam {
   color?: { type: 'float' | 'int' };
 }
 
-// Custom UI escape hatch
+// Custom UI escape hatch - NOT YET IMPLEMENTED
+// See Issue #14: https://github.com/tonyhschu/manifold-cad-live-preview/issues/14
+/*
 export interface CustomParam<T = any> {
   type: 'custom';
   value: T;
   setup: (container: HTMLElement, currentValue: T, onChange: (newValue: T) => void) => (() => void) | void;
   fallback?: TweakpaneParam;
 }
+*/
 
-// Union of all parameter types
+// Union of all parameter types (custom parameters commented out until Issue #14)
 export type TweakpaneParam = 
   | TweakpaneNumberParam 
   | TweakpaneBooleanParam 
   | TweakpaneStringParam 
   | TweakpaneColorParam;
 
-export type ParameterConfig = TweakpaneParam | CustomParam;
+export type ParameterConfig = TweakpaneParam; // | CustomParam; // TODO: Issue #14
 
 // Core configuration interface
 export interface ParametricConfig {
@@ -81,6 +84,9 @@ export const P = {
     color: { type: 'float' } 
   }),
 
+  // Custom UI helper - NOT YET IMPLEMENTED
+  // See Issue #14: https://github.com/tonyhschu/manifold-cad-live-preview/issues/14
+  /*
   custom: <T>(
     value: T, 
     setup: CustomParam<T>['setup'], 
@@ -91,6 +97,7 @@ export const P = {
     setup,
     ...(fallback && { fallback })
   })
+  */
 };
 
 // Config creation helper

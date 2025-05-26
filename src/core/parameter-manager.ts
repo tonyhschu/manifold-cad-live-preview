@@ -1,12 +1,12 @@
 import { Pane } from 'tweakpane';
-import type { ParametricConfig, ParameterConfig, CustomParam, TweakpaneParam } from '../types/parametric-config';
+import type { ParametricConfig, ParameterConfig, TweakpaneParam } from '../types/parametric-config';
 import type { Manifold } from '../lib/manifold';
 
 export class ParameterManager {
   private pane: Pane;
   private config: ParametricConfig;
   private params: Record<string, any> = {};
-  private customCleanupFunctions: (() => void)[] = [];
+  // private customCleanupFunctions: (() => void)[] = []; // TODO: Issue #14
 
   constructor(config: ParametricConfig, container: HTMLElement) {
     this.config = config;
@@ -28,17 +28,22 @@ export class ParameterManager {
 
   private setupUI(): void {
     for (const [key, paramConfig] of Object.entries(this.config.parameters)) {
-      if (this.isCustomParam(paramConfig)) {
-        this.setupCustomParameter(key, paramConfig);
-      } else {
-        this.setupTweakpaneParameter(key, paramConfig);
-      }
+      // Custom parameters not yet implemented - see Issue #14
+      // if (this.isCustomParam(paramConfig)) {
+      //   this.setupCustomParameter(key, paramConfig);
+      // } else {
+      this.setupTweakpaneParameter(key, paramConfig as TweakpaneParam);
+      // }
     }
   }
 
+  // Custom parameter methods - NOT YET IMPLEMENTED
+  // See Issue #14: https://github.com/tonyhschu/manifold-cad-live-preview/issues/14
+  /*
   private isCustomParam(param: ParameterConfig): param is CustomParam {
     return 'type' in param && param.type === 'custom';
   }
+  */
 
   private setupTweakpaneParameter(key: string, paramConfig: TweakpaneParam): void {
     try {
@@ -60,6 +65,9 @@ export class ParameterManager {
     }
   }
 
+  // Custom parameter setup - NOT YET IMPLEMENTED  
+  // See Issue #14: https://github.com/tonyhschu/manifold-cad-live-preview/issues/14
+  /*
   private setupCustomParameter(key: string, paramConfig: CustomParam): void {
     // Create container for custom component
     const folder = (this.pane as any).addFolder({ title: key });
@@ -98,6 +106,7 @@ export class ParameterManager {
       }
     }
   }
+  */
 
   private renderModel(): void {
     try {
@@ -141,15 +150,15 @@ export class ParameterManager {
   }
 
   destroy(): void {
-    // Clean up custom components
-    this.customCleanupFunctions.forEach(cleanup => {
-      try {
-        cleanup();
-      } catch (error) {
-        console.warn('Error during custom parameter cleanup:', error);
-      }
-    });
-    this.customCleanupFunctions = [];
+    // Clean up custom components (when Issue #14 is implemented)
+    // this.customCleanupFunctions.forEach(cleanup => {
+    //   try {
+    //     cleanup();
+    //   } catch (error) {
+    //     console.warn('Error during custom parameter cleanup:', error);
+    //   }
+    // });
+    // this.customCleanupFunctions = [];
 
     // Dispose Tweakpane
     this.pane.dispose();
