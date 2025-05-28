@@ -1,6 +1,4 @@
 // src/models/cube.ts
-// A simple parametric cube model
-
 import { Manifold } from "../lib/manifold";
 import { P, createConfig } from "../types/parametric-config";
 import type { ParametricConfig } from "../types/parametric-config";
@@ -12,7 +10,10 @@ function createCube(size = 15, centered = true): Manifold {
   return Manifold.cube([size, size, size], centered);
 }
 
-// Parametric configuration
+// Export the pure function as default for pipeline compatibility
+export default createCube;
+
+// Keep the parametric config for UI compatibility
 export const cubeConfig: ParametricConfig = createConfig(
   {
     size: P.number(15, 1, 100, 1),
@@ -25,8 +26,5 @@ export const cubeConfig: ParametricConfig = createConfig(
   }
 );
 
-// Export pure function for composition
+// Also export the pure function by name
 export { createCube };
-
-// Default export for backward compatibility
-export default cubeConfig;
