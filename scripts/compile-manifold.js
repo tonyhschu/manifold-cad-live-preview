@@ -51,6 +51,21 @@ async function compile(manifoldOnly = false) {
     return false;
   }
   
+  // Compile export-core.ts
+  console.log(`Compiling export-core.ts...`);
+  const exportCoreSrc = path.join(srcDir, 'export-core.ts');
+  const tscExportCoreCommand = 
+    `npx tsc ${exportCoreSrc} --outDir ${distDir} --module es2022 --target es2019 ` +
+    `--moduleResolution node --lib es2019,dom --skipLibCheck --declaration`;
+  
+  try {
+    await execAsync(tscExportCoreCommand);
+    console.log(`✅ export-core.ts compiled successfully`);
+  } catch (error) {
+    console.error(`❌ export-core.ts compilation failed:`, error.message);
+    return false;
+  }
+  
   // Compile individual model files for pipeline
   console.log(`Compiling pipeline model files...`);
   const modelFiles = [
