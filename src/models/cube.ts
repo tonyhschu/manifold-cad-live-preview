@@ -1,25 +1,32 @@
 // src/models/cube.ts
-// A simple example model that creates just a cube
+// A simple parametric cube model
 
 import { Manifold } from "../lib/manifold";
+import { P, createConfig } from "../types/parametric-config";
+import type { ParametricConfig } from "../types/parametric-config";
 
 /**
- * Creates a simple cube model
- * @returns A Manifold object
+ * Creates a parametric cube model
  */
-export default function createModel() {
-  // Create a simple cube
-  const shape = Manifold.cube([15, 15, 15], true);
-  console.log("Created simple cube model", shape);
-  
-  // Return the model
-  return shape;
+function createCube(size = 15, centered = true): Manifold {
+  return Manifold.cube([size, size, size], centered);
 }
 
-// Model metadata
-export const modelMetadata = {
-  name: "Simple Cube",
-  description: "A basic 15x15x15 cube centered at the origin",
-  author: "ManifoldCAD Team",
-  version: "1.0.0",
-};
+// Parametric configuration
+export const cubeConfig: ParametricConfig = createConfig(
+  {
+    size: P.number(15, 1, 100, 1),
+    centered: P.boolean(true)
+  },
+  (params) => createCube(params.size, params.centered),
+  {
+    name: "Parametric Cube",
+    description: "A simple parametric cube with configurable size"
+  }
+);
+
+// Export pure function for composition
+export { createCube };
+
+// Default export for backward compatibility
+export default cubeConfig;

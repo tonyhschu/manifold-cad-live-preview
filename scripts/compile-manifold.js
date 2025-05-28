@@ -51,9 +51,50 @@ async function compile(manifoldOnly = false) {
     return false;
   }
   
-  // Skip pipeline compilation if manifold-only flag is set
+  // Compile individual model files for pipeline
+  console.log(`Compiling pipeline model files...`);
+  const modelFiles = [
+    { src: path.join(projectRoot, 'src/types/parametric-config.ts'), dest: path.join(projectRoot, 'dist/types') },
+    { src: path.join(projectRoot, 'src/models/parametric-hook.ts'), dest: path.join(projectRoot, 'dist/models') },
+    { src: path.join(projectRoot, 'src/models/cube.ts'), dest: path.join(projectRoot, 'dist/models') },
+  ];
+
+  for (const file of modelFiles) {
+    if (!fs.existsSync(file.src)) {
+      console.log(`⚠️  Skipping ${path.basename(file.src)} - file not found`);
+      continue;
+    }
+    
+    if (!fs.existsSync(file.dest)) {
+      fs.mkdirSync(file.dest, { recursive: true });
+    }
+
+    const filename = path.basename(file.src);
+    console.log(`Compiling ${filename}...`);
+    
+    const tscCommand = 
+      `npx tsc ${file.src} --outDir ${file.dest} --module es2022 --target es2019 ` +
+      `--moduleResolution bundler --lib es2019,dom --skipLibCheck --declaration --esModuleInterop --allowSyntheticDefaultImports --allowImportingTsExtensions false`;
+    
+    try {
+      await execAsync(tscCommand);
+      const jsFilename = filename.replace('.ts', '.js');
+      const outputFile = path.join(file.dest, jsFilename);
+      if (fs.existsSync(outputFile)) {
+        console.log(`✅ ${filename} compiled successfully`);
+      } else {
+        console.error(`❌ ${filename} compilation failed: Output file not found`);
+        return false;
+      }
+    } catch (error) {
+      console.error(`❌ ${filename} compilation failed:`, error.message);
+      return false;
+    }
+  }
+  
+  // Skip project-wide compilation if manifold-only flag is set
   if (manifoldOnly) {
-    console.log(`✅ Manifold-only compilation completed`);
+    console.log(`✅ Compilation completed`);
     return true;
   }
   

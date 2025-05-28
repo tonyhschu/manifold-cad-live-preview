@@ -9,6 +9,7 @@
  */
 
 import { writeFile } from 'fs/promises';
+import { existsSync as fs_existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { parseArgs } from 'util';
@@ -37,32 +38,31 @@ if (values.help || positionals.length === 0) {
   console.log(`
 Manifold CAD Headless Pipeline
 
-Usage: node scripts/pipeline.js <model-id> [options]
+Usage: node scripts/pipeline.js <model-path> [options]
 
 Arguments:
-  model-id          ID of the parametric model to generate
+  model-path        Path to the parametric model file (e.g., src/models/parametric-hook.ts)
 
 Options:
   -p, --params      Parameter overrides (format: key=value,key2=value2)
-  -o, --output      Output filename (default: <model-id>.<format>)
+  -o, --output      Output filename (default: <model-name>.<format>)
   -f, --format      Export format (default: obj)
   -h, --help        Show this help
 
 Examples:
-  node scripts/pipeline.js parametric-hook
-  node scripts/pipeline.js parametric-hook --params thickness=5,width=20
-  node scripts/pipeline.js parametric-hook --output custom-hook.obj --params mountingType=magnetic
+  node scripts/pipeline.js src/models/parametric-hook.ts
+  node scripts/pipeline.js src/models/parametric-hook.ts --params thickness=5,width=20
+  node scripts/pipeline.js src/models/cube.ts --output custom-cube.obj --params size=15
 
-Supported Models:
-  parametric-hook   Customizable wall hook with mounting options
-  
+The model file should export a ParametricConfig as default export or named 'config'.
+
 Supported Formats:
   obj               Wavefront OBJ format
 `);
   process.exit(0);
 }
 
-const modelId = positionals[0];
+const modelPath = positionals[0];
 
 /**
  * Parse parameter string into object
@@ -97,134 +97,87 @@ function parseParameters(paramString) {
 }
 
 /**
- * Simple parametric hook model for pipeline (minimal implementation)
+ * Extract model name from file path
  */
-function createHook(thickness = 3, width = 13, hookRadius = 10, segments = 16, hookEndAngle = Math.PI * 0.7, mountingType = "screw", includeRounding = true) {
-  const range = (start, end) => {
-    const length = end - start;
-    return Array.from({ length }, (_, i) => start + i);
-  };
-
-  // Generate hook curve points
-  const hook = range(0, segments + 1)
-    .map((index) => (index / segments) * hookEndAngle)
-    .map((theta) => [
-      Math.cos(theta) * hookRadius - hookRadius,
-      Math.sin(theta) * hookRadius,
-    ]);
-
-  // Generate anchor points based on mounting type
-  const anchorRadius = thickness / 2 + (mountingType === "adhesive" ? 2 : 3.1) / 2;
-  const anchor = range(0, segments + 1)
-    .map((index) => (index / segments) * Math.PI)
-    .map((theta) => [
-      Math.cos(theta) * anchorRadius + anchorRadius,
-      -Math.sin(theta) * anchorRadius - 80,
-    ]);
-
-  const hookEndPoint = hook[hook.length - 1];
-  const hookExtensionAngle = hookEndAngle + Math.PI / 2;
-  const hookExtensionLength = 15;
-
-  // Build the midline path
-  const midline = [].concat(
-    [[2 * anchorRadius, -60]],
-    anchor,
-    [[0, -80]],
-    hook,
-    [
-      [
-        hookEndPoint[0] + (Math.cos(hookExtensionAngle) * width) / 2,
-        hookEndPoint[1] + (Math.sin(hookExtensionAngle) * width) / 2,
-      ],
-    ]
-  );
-
-  // Create geometry along the midline
-  const disks = midline.map((p) => {
-    let disk = Manifold.cylinder(width, thickness / 2, thickness / 2).translate([
-      p[0],
-      p[1],
-      0,
-    ]);
-    return disk;
-  });
-
-  const hulls = range(0, midline.length - 1).map((index) => {
-    const d0 = disks[index];
-    const d1 = disks[index + 1];
-    return Manifold.hull([d0, d1]);
-  });
-
-  // Create the hook end based on mounting type
-  let roundedEnd = Manifold.cylinder(thickness, width / 2, width / 2).rotate([0, 90, 0]);
-  
-  if (mountingType === "adhesive") {
-    // Make the back flatter for adhesive mounting
-    const flatBack = Manifold.cube([thickness, width, width], true);
-    roundedEnd = Manifold.union([roundedEnd, flatBack]);
-  }
-
-  const extension = Manifold.hull([
-    roundedEnd.translate([0, 0, 0]),
-    roundedEnd.translate([0, hookExtensionLength, 0]),
-  ]);
-
-  let result = Manifold.union([
-    Manifold.union(hulls),
-    extension
-      .translate([-thickness / 2, width / 2, width / 2])
-      .rotate([0, 0, ((hookExtensionAngle - Math.PI / 2) / Math.PI) * 180])
-      .translate([hookEndPoint[0], hookEndPoint[1], 0]),
-  ]);
-
-  // Add mounting features
-  if (mountingType === "screw") {
-    // Add screw hole
-    const screwHole = Manifold.cylinder(2, thickness + 2, 8).translate([0, -40, 0]);
-    result = Manifold.difference(result, screwHole);
-  } else if (mountingType === "magnetic") {
-    // Add magnet cavity
-    const magnetCavity = Manifold.cylinder(8, 3, 8).translate([0, -40, -thickness/2 + 1]);
-    result = Manifold.difference(result, magnetCavity);
-  }
-
-  return result;
+function getModelName(filePath) {
+  const parts = filePath.split('/');
+  const filename = parts[parts.length - 1];
+  return filename.replace(/\.(ts|js)$/, '');
 }
 
 /**
- * Load a parametric model configuration
+ * Convert TypeScript path to compiled JavaScript path
  */
-async function loadParametricModel(modelId) {
+function getCompiledPath(tsPath) {
+  // Convert src/models/foo.ts to dist/models/foo.js
+  if (tsPath.startsWith('src/')) {
+    return tsPath.replace('src/', 'dist/').replace('.ts', '.js');
+  }
+  return tsPath;
+}
+
+/**
+ * Load a parametric model configuration from file path
+ */
+async function loadParametricModel(modelPath) {
   try {
-    if (modelId === 'parametric-hook') {
-      return {
-        parameters: {
-          thickness: { value: 3, min: 1, max: 10 },
-          width: { value: 13, min: 5, max: 50 },
-          hookRadius: { value: 10, min: 5, max: 20 },
-          segments: { value: 16, min: 8, max: 64 },
-          hookEndAngle: { value: Math.PI * 0.7, min: Math.PI * 0.3, max: Math.PI * 0.9 },
-          mountingType: { value: "screw", options: { screw: "screw", adhesive: "adhesive", magnetic: "magnetic" } },
-          includeRounding: { value: true }
-        },
-        generateModel: (params) => createHook(
-          params.thickness,
-          params.width,
-          params.hookRadius,
-          params.segments,
-          params.hookEndAngle,
-          params.mountingType,
-          params.includeRounding
-        ),
-        name: "Parametric Hook",
-        description: "A customizable wall hook with adjustable dimensions and mounting options"
-      };
+    console.log(`Loading model from: ${modelPath}`);
+    
+    let importPath;
+    
+    // Handle TypeScript files by importing from compiled JavaScript
+    if (modelPath.endsWith('.ts')) {
+      const compiledPath = getCompiledPath(modelPath);
+      importPath = resolve(__dirname, '..', compiledPath);
+      console.log(`Using compiled path: ${compiledPath}`);
     } else {
-      throw new Error(`Unsupported model: ${modelId}`);
+      importPath = resolve(__dirname, '..', modelPath);
     }
+    
+    // Convert to file URL for proper ES module import
+    const fileUrl = `file://${importPath}`;
+    console.log(`Importing from: ${fileUrl}`);
+    
+    // Check if the file exists
+    if (!fs_existsSync(importPath)) {
+      throw new Error(`Compiled file not found: ${importPath}`);
+    }
+    
+    // Dynamic import the module
+    const modelModule = await import(fileUrl);
+    
+    // Try to find the config in common export patterns
+    let config = null;
+    
+    // Try common export names
+    if (modelModule.default) {
+      config = modelModule.default;
+    } else if (modelModule.config) {
+      config = modelModule.config;
+    } else {
+      // Look for exports ending with 'Config'
+      const configExports = Object.keys(modelModule).filter(key => key.toLowerCase().includes('config'));
+      if (configExports.length > 0) {
+        config = modelModule[configExports[0]];
+      }
+    }
+    
+    if (!config) {
+      throw new Error(`No ParametricConfig found in module. Expected default export, 'config' export, or export ending with 'Config'.`);
+    }
+    
+    // Validate that it's a proper ParametricConfig
+    if (!config.parameters || !config.generateModel) {
+      throw new Error(`Invalid ParametricConfig: missing 'parameters' or 'generateModel' properties.`);
+    }
+    
+    return config;
+    
   } catch (error) {
-    throw new Error(`Failed to load model '${modelId}': ${error.message}`);
+    if (error.code === 'ERR_MODULE_NOT_FOUND') {
+      throw new Error(`Model file not found: ${modelPath}. Make sure the file exists and is compiled (for .ts files).`);
+    }
+    throw new Error(`Failed to load model from '${modelPath}': ${error.message}`);
   }
 }
 
@@ -321,12 +274,11 @@ function exportToOBJ(model) {
  */
 async function main() {
   try {
-    console.log(`Loading model: ${modelId}`);
-    
     // Load the parametric model configuration
-    const config = await loadParametricModel(modelId);
+    const config = await loadParametricModel(modelPath);
     
-    console.log(`Model loaded: ${config.name || modelId}`);
+    const modelName = getModelName(modelPath);
+    console.log(`Model loaded: ${config.name || modelName}`);
     if (config.description) {
       console.log(`Description: ${config.description}`);
     }
@@ -350,7 +302,7 @@ async function main() {
     }
     
     // Export the model
-    const outputFilename = values.output || `${modelId}.${values.format}`;
+    const outputFilename = values.output || `${modelName}.${values.format}`;
     console.log(`Exporting to: ${outputFilename}`);
     
     let exportContent;
