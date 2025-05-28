@@ -34,9 +34,9 @@ if (!fs.existsSync(pipelineDistDir)) {
 }
 
 async function compile(manifoldOnly = false) {
-  console.log(`Compiling TypeScript files to JavaScript...`);
+  console.log(`Compiling core libraries for Node.js pipeline...`);
   
-  // Always compile manifold.ts for the lib
+  // Compile manifold.ts for Node.js pipeline
   console.log(`Compiling manifold.ts...`);
   const manifoldSrc = path.join(srcDir, 'manifold.ts');
   const tscManifoldCommand = 
@@ -51,7 +51,7 @@ async function compile(manifoldOnly = false) {
     return false;
   }
   
-  // Compile export-core.ts
+  // Compile export-core.ts for Node.js pipeline
   console.log(`Compiling export-core.ts...`);
   const exportCoreSrc = path.join(srcDir, 'export-core.ts');
   const tscExportCoreCommand = 
@@ -66,86 +66,9 @@ async function compile(manifoldOnly = false) {
     return false;
   }
   
-  // Compile individual model files for pipeline
-  console.log(`Compiling pipeline model files...`);
-  const modelFiles = [
-    { src: path.join(projectRoot, 'src/types/parametric-config.ts'), dest: path.join(projectRoot, 'dist/types') },
-    { src: path.join(projectRoot, 'src/models/parametric-hook.ts'), dest: path.join(projectRoot, 'dist/models') },
-    { src: path.join(projectRoot, 'src/models/cube.ts'), dest: path.join(projectRoot, 'dist/models') },
-  ];
-
-  for (const file of modelFiles) {
-    if (!fs.existsSync(file.src)) {
-      console.log(`⚠️  Skipping ${path.basename(file.src)} - file not found`);
-      continue;
-    }
-    
-    if (!fs.existsSync(file.dest)) {
-      fs.mkdirSync(file.dest, { recursive: true });
-    }
-
-    const filename = path.basename(file.src);
-    console.log(`Compiling ${filename}...`);
-    
-    const tscCommand = 
-      `npx tsc ${file.src} --outDir ${file.dest} --module es2022 --target es2019 ` +
-      `--moduleResolution bundler --lib es2019,dom --skipLibCheck --declaration --esModuleInterop --allowSyntheticDefaultImports --allowImportingTsExtensions false`;
-    
-    try {
-      await execAsync(tscCommand);
-      const jsFilename = filename.replace('.ts', '.js');
-      const outputFile = path.join(file.dest, jsFilename);
-      if (fs.existsSync(outputFile)) {
-        console.log(`✅ ${filename} compiled successfully`);
-      } else {
-        console.error(`❌ ${filename} compilation failed: Output file not found`);
-        return false;
-      }
-    } catch (error) {
-      console.error(`❌ ${filename} compilation failed:`, error.message);
-      return false;
-    }
-  }
+  console.log(`✅ Core library compilation completed`);
   
-  // Skip project-wide compilation if manifold-only flag is set
-  if (manifoldOnly) {
-    console.log(`✅ Compilation completed`);
-    return true;
-  }
-  
-  // Then compile the entire src tree for pipeline
-  console.log(`Compiling pipeline modules...`);
-  const tscPipelineCommand = 
-    `npx tsc --project ${projectRoot} --outDir ${pipelineDistDir} --module es2022 --target es2019 ` +
-    `--moduleResolution node --lib es2019,dom --skipLibCheck --declaration --noEmit false`;
-  
-  try {
-    const { stdout, stderr } = await execAsync(tscPipelineCommand);
-    if (stdout) console.log(stdout);
-    if (stderr && !stderr.includes('error')) console.log(stderr); // Only show non-error output
-    
-    // Check if key files were compiled
-    const keyFiles = [
-      path.join(pipelineDistDir, 'types/parametric-config.js'),
-      path.join(pipelineDistDir, 'models/parametric-hook.js')
-    ];
-    
-    let allExist = true;
-    for (const file of keyFiles) {
-      if (fs.existsSync(file)) {
-        console.log(`✅ ${path.basename(file)} compiled successfully`);
-      } else {
-        console.error(`❌ ${path.basename(file)} compilation failed: Output file not found`);
-        allExist = false;
-      }
-    }
-    
-    return allExist;
-  } catch (error) {
-    console.error(`❌ Pipeline compilation failed:`, error.message);
-    if (error.stderr) console.error(error.stderr);
-    return false;
-  }
+  return true;
 }
 
 // Run compilation if called directly
