@@ -4,6 +4,32 @@ import { resolve, dirname, basename } from 'path';
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { parseArgs } from 'util';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Check for required compiled dependencies
+function checkCompiledDependencies() {
+  const requiredFiles = [
+    '../dist/lib/manifold.js',
+    '../dist/lib/export-core.js'
+  ];
+  
+  const missing = requiredFiles.filter(file => !existsSync(resolve(__dirname, file)));
+  
+  if (missing.length > 0) {
+    console.error(`❌ Missing compiled dependencies:`);
+    missing.forEach(file => console.error(`   ${file}`));
+    console.error(`
+⚠️  DEVELOPER NOTE: You need to compile the core libraries first.
+   Run: npm run compile
+   
+   This step is only needed for developers working on this project.
+   End users should receive pre-compiled libraries.
+`);
+    process.exit(1);
+  }
+}
 
 // Parse command line arguments
 const { values, positionals } = parseArgs({
@@ -39,6 +65,9 @@ Examples:
   process.exit(0);
 }
 
+// Check dependencies before proceeding
+checkCompiledDependencies();
+
 const modelPath = positionals[0];
 
 async function compileModel(modelPath) {
@@ -70,43 +99,6 @@ async function compileModel(modelPath) {
   });
   
   return resolve(tempDir, `${modelName}.js`);
-}
-
-function exportToOBJ(manifold) {
-  try {
-    const mesh = manifold.getMesh();
-    
-    // Use the correct property names
-    const vertices = mesh.vertProperties;
-    const triangles = mesh.triVerts;
-    
-    if (!vertices || !triangles) {
-      throw new Error(`Missing mesh data - vertices: ${!!vertices}, triangles: ${!!triangles}`);
-    }
-    
-    const numVertices = vertices.length / 3;
-    let objContent = '# Exported from Manifold\n';
-    
-    // Add vertices
-    for (let i = 0; i < vertices.length; i += 3) {
-      objContent += `v ${vertices[i]} ${vertices[i + 1]} ${vertices[i + 2]}\n`;
-    }
-    
-    // Add faces (triangles)
-    for (let i = 0; i < triangles.length; i += 3) {
-      if (i + 2 < triangles.length &&
-          triangles[i] < numVertices &&
-          triangles[i + 1] < numVertices &&
-          triangles[i + 2] < numVertices) {
-        // OBJ uses 1-based indexing
-        objContent += `f ${triangles[i] + 1} ${triangles[i + 1] + 1} ${triangles[i + 2] + 1}\n`;
-      }
-    }
-
-    return objContent;
-  } catch (error) {
-    throw new Error(`OBJ export failed: ${error.message}`);
-  }
 }
 
 async function main() {
@@ -147,11 +139,14 @@ async function main() {
     
     console.log(`✅ Model generated:`, typeof model);
     
-    // Export to OBJ
-    console.log('Exporting to OBJ...');
-    const objContent = exportToOBJ(model);
+    // Import the shared export function
+    const { manifoldToOBJ } = await import('../dist/lib/export-core.js');
     
-    // Write to file
+    // Export to OBJ using shared function
+    console.log('Exporting to OBJ...');
+    const objContent = manifoldToOBJ(model);
+    
+    // Write to file (Node.js-specific)
     const modelName = basename(modelPath, '.ts');
     const outputFilename = values.output || `${modelName}.${values.format}`;
     await writeFile(outputFilename, objContent);
