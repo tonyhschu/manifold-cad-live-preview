@@ -8,20 +8,25 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "compile": "node scripts/compile-manifold.js",
-    "test": "npm run compile && npm run test:all",
-    "test:all": "node --test tests/simple-service.test.js tests/manifold-integration.test.js tests/lib/export.test.js tests/parametric-config.test.js tests/parameter-manager.test.js",
-    "test:lib": "npm run compile && node --test tests/lib/export.test.js",
-    "test:services": "npm run compile && node --test tests/simple-service.test.js",
-    "test:parametric": "npm run compile && node --test tests/parametric-config.test.js tests/parameter-manager.test.js",
-    "test:ui": "npm run compile && node --test tests/ui/store.test.js",
-    "test:integration": "npm run compile && node --test tests/manifold-integration.test.js",
-    "test:skip-compile": "node --test tests/**/*.test.js",
-    "test:watch": "npm run compile && node --test --watch tests/**/*.test.js",
+
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:lib": "vitest run tests/lib/",
+    "test:services": "vitest run tests/services/",
+    "test:ui-layer": "vitest run tests/ui/",
+    "test:pipeline": "vitest run tests/pipeline/",
+
+
+
     "pipeline": "node scripts/compile-manifold.js --manifold-only && node scripts/pipeline.js"
   },
   "devDependencies": {
     "typescript": "^5.0.2",
-    "vite": "^4.4.5"
+    "vite": "^4.4.5",
+    "vitest": "^1.0.0",
+    "happy-dom": "^12.0.0",
+    "@vitest/ui": "^1.0.0"
   },
   "dependencies": {
     "@gltf-transform/core": "^4.1.3",
