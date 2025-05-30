@@ -1,103 +1,281 @@
-# ManifoldCAD Test Project
+# ManifoldCAD Live Preview
 
-A test project for working with 3D CAD models using ManifoldCAD and Vite.
+A modern TypeScript framework for 3D CAD model development with live preview and headless generation capabilities. Built on ManifoldCAD and Vite, this project provides two complementary modes for 3D model development and production.
 
-## Hot Module Replacement (HMR) Integration
+## Overview
 
-This project demonstrates how to integrate Vite's Hot Module Replacement (HMR) API with a 3D CAD visualization environment. The implementation allows for real-time updates to models, UI components, and rendering code without losing application state.
+This project offers a complete solution for parametric 3D modeling with two distinct operational modes:
 
-### HMR Features
+### 🖥️ **Browser HMR Mode** - Interactive Development
+- **Live preview** with instant hot module replacement (HMR)
+- **Interactive parameter controls** using Tweakpane UI
+- **Real-time model updates** as you edit code
+- **3D visualization** with camera controls and export options
+- **Perfect for**: Model development, parameter tuning, visual debugging
 
-- Automatic detection of file changes in model definitions
-- Targeted updates based on file type (models, UI components, rendering code)
-- State preservation during updates
-- Clean error handling with fallback to full reload
+### ⚡ **Pipeline Mode** - Headless Generation
+- **Command-line interface** for automated model generation
+- **Batch processing** capabilities with parameter overrides
+- **Programmatic output** in multiple formats (OBJ, GLB)
+- **CI/CD integration** ready for automated workflows
+- **Perfect for**: Production builds, batch generation, automation
 
-### How it Works
+Both modes share the same TypeScript codebase and model definitions, ensuring consistency between development and production environments.
 
-The HMR integration is structured in three main parts:
+## 🚀 Quick Start
 
-1. **HMR Handler Module** (`src/hmr-handler.ts`):
-
-   - Central hub for all HMR logic
-   - Provides utility functions for HMR setup
-   - Registers file-specific update handlers
-   - Manages module disposition
-
-2. **Preview Component HMR** (`src/core/preview.ts`):
-
-   - Tracks the current model ID for reloading
-   - Provides a `refreshView()` method that can be called on HMR updates
-   - Preserves UI state during updates
-
-3. **Application Entry Point** (`src/main.ts`):
-   - Creates and maintains a shared context for HMR
-   - Sets up HMR handlers through the HMR module
-   - Accepts HMR updates for itself
-
-### Example: Updating a Model Definition
-
-When you modify a model definition file:
-
-1. Vite detects the change and sends an HMR update
-2. The HMR handler identifies it as a model update
-3. The current model is reloaded with the new definition
-4. The view refreshes with the updated model while preserving camera position and UI state
-
-## Development
-
-To start the development server with HMR enabled:
-
+### Browser Mode (Development)
 ```bash
+npm install
 npm run dev
 ```
+Open your browser to see live 3D models with interactive controls.
 
-````
+### Pipeline Mode (Generation)
+```bash
+# Generate a model with default parameters
+npm run pipeline src/models/cube.ts
 
-## Why?
+# Generate with custom parameters
+npm run pipeline -- src/models/parametric-hook.ts --params thickness=5,width=20
 
-This all started with my frustration in trying to use ManifoldCAD as a library. The ManifoldCAD.org web editor works great, but I couldn't import other libraries like clipperjs or d3js. I needed ManifoldCAD to play well with the rest of the NPM ecosystem. The main problem is that Manifold is a WASM module which requires async loading. So this project is a way to work around that by providing a synchronous modeling API and using top level away. At a high level...
+# Custom output filename
+npm run pipeline -- src/models/hook.ts --output my-hook.obj
+```
+
+## 🖥️ Browser Mode - Interactive Development
+
+Browser Mode provides a live development environment with instant feedback and interactive parameter controls.
+
+### Features
+
+- **Hot Module Replacement (HMR)**: Instant updates when you modify model code
+- **Interactive Parameter Controls**: Tweakpane-based UI for real-time parameter adjustment
+- **3D Visualization**: Built-in 3D viewer with camera controls
+- **Multiple Export Formats**: Download models as OBJ or GLB files
+- **State Preservation**: Camera position and UI state maintained during code updates
+
+### Getting Started
+
+1. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+
+2. **Open your browser** to the displayed URL (typically `http://localhost:5173`)
+
+3. **Select a model** from the dropdown to see it rendered in 3D
+
+4. **Adjust parameters** using the control panel on the right
+
+5. **Edit model code** in your editor and see changes instantly
+
+### Creating Models
+
+Models can be created in two ways:
+
+#### Function-Based Models
+Simple models that export a function:
+
+```typescript
+// src/models/my-cube.ts
+import { Manifold } from "../lib/manifold";
+
+export default function createCube(size = 15, centered = true): Manifold {
+  return Manifold.cube([size, size, size], centered);
+}
+```
+
+#### Parametric Models
+Advanced models with interactive parameter controls:
+
+```typescript
+// src/models/my-parametric-model.ts
+import { Manifold } from "../lib/manifold";
+import { P, createConfig } from "../types/parametric-config";
+
+function createHook(thickness = 3, width = 13, radius = 10): Manifold {
+  // Your model logic here
+  return Manifold.cylinder(width, thickness/2, thickness/2);
+}
+
+export default createConfig(
+  {
+    thickness: P.number(3, 1, 10, 0.5),
+    width: P.number(13, 5, 50, 1),
+    radius: P.number(10, 5, 20, 0.5)
+  },
+  (params) => createHook(params.thickness, params.width, params.radius),
+  {
+    name: "My Hook",
+    description: "A customizable hook model"
+  }
+);
+```
+
+### Parameter Types
+
+The parameter system supports various input types:
+
+- `P.number(default, min, max, step)` - Numeric sliders
+- `P.boolean(default)` - Checkboxes
+- `P.select(default, options)` - Dropdown selections
+- `P.string(default)` - Text inputs
+- `P.color(default)` - Color pickers
+
+### HMR Integration
+
+The HMR system automatically detects changes and updates the appropriate parts:
+
+- **Model changes**: Reloads the current model while preserving camera position
+- **UI changes**: Updates interface components without losing state
+- **Parameter changes**: Refreshes controls and applies new values
+
+## ⚡ Pipeline Mode - Headless Generation
+
+Pipeline Mode enables automated, headless generation of 3D models from the command line, perfect for production workflows and batch processing.
+
+### Features
+
+- **Command-Line Interface**: Full CLI with help system and error handling
+- **Parameter Override**: Specify custom parameters via command line
+- **Multiple Model Types**: Supports both function-based and parametric models
+- **Output Formats**: Generate OBJ files (GLB support planned)
+- **TypeScript Compilation**: Just-in-time compilation using Vite
+- **Error Handling**: Comprehensive error reporting and validation
+
+### Basic Usage
+
+```bash
+# Generate model with default parameters
+npm run pipeline src/models/cube.ts
+
+# Generate with custom parameters
+npm run pipeline -- src/models/parametric-hook.ts --params thickness=5,width=20
+
+# Specify output filename
+npm run pipeline -- src/models/hook.ts --output custom-hook.obj
+
+# Get help
+npm run pipeline -- --help
+```
+
+### Parameter Syntax
+
+Parameters are specified as comma-separated key=value pairs:
+
+```bash
+--params thickness=5,width=20,mountingType=magnetic,includeRounding=true
+```
+
+**Supported parameter types:**
+- **Numbers**: `thickness=5`, `width=20.5`
+- **Booleans**: `enabled=true`, `centered=false`
+- **Strings**: `mountingType=magnetic`, `material=wood`
+
+### Advanced Usage
+
+```bash
+# Complex parametric model with multiple parameters
+npm run pipeline -- src/models/parametric-hook.ts \
+  --params thickness=4,width=25,hookRadius=15,segments=32,mountingType=adhesive \
+  --output heavy-duty-hook.obj
+
+# Function-based model with parameters
+npm run pipeline -- src/models/cube.ts \
+  --params size=25,centered=false \
+  --output large-cube.obj
+```
+
+### Pipeline Architecture
+
+The pipeline uses Vite's library compilation mode to:
+
+1. **Compile models as ES modules** using TypeScript
+2. **Externalize dependencies** like manifold-3d for efficiency
+3. **Import compiled modules** dynamically at runtime
+4. **Generate output files** in the specified format
+
+This approach ensures consistency between development and production environments while maintaining optimal performance.
+
+### Integration with CI/CD
+
+The pipeline is designed for automation:
+
+```yaml
+# Example GitHub Actions workflow
+- name: Generate 3D Models
+  run: |
+    npm run pipeline src/models/bracket.ts --params size=large
+    npm run pipeline src/models/hook.ts --params thickness=5
+```
+
+### Error Handling
+
+The pipeline provides detailed error reporting:
+
+- **Missing files**: Clear messages for non-existent model files
+- **Parameter validation**: Warnings for unknown parameters
+- **Compilation errors**: TypeScript compilation error details
+- **Export failures**: Detailed error messages for export issues
+
+## 🎯 Project Motivation
+
+This project started with frustration trying to use ManifoldCAD as a library. The ManifoldCAD.org web editor works great, but it couldn't import other libraries like clipperjs or d3js. We needed ManifoldCAD to play well with the rest of the NPM ecosystem.
+
+### The WASM Challenge
+
+The main problem is that Manifold is a WASM module which requires async loading. This project solves that by providing a **synchronous modeling API** using top-level await.
+
+### How It Works
 
 When the JavaScript module system loads `manifold.ts`, it:
 
-1. Sees the top-level await
-2. Waits for the promise to resolve before continuing
-3. Only executes the rest of the code after the WASM is loaded
+1. **Sees the top-level await** and waits for the promise to resolve
+2. **Waits for WASM initialization** before continuing execution
+3. **Only executes the rest** of the code after the WASM is loaded
 
-The top-level await effectively turns the entire module into an asynchronous operation, but the JavaScript module system handles this behind the scenes. Any module that imports from `manifold.ts` will wait until the WASM initialization is complete before executing.
+The top-level await effectively turns the entire module into an asynchronous operation, but the JavaScript module system handles this behind the scenes. Any module that imports from `manifold.ts` will wait until the WASM initialization is complete.
 
-Then, we export synchronous functions that use the already-initialized WASM module:
+Then, we export **synchronous functions** that use the already-initialized WASM module:
 
 ```typescript
 // Export primitive creation functions
 export function cube(size: Readonly<Vec3> | number, center = false): Manifold {
   return manifoldModule.Manifold.cube(size, center);
 }
-````
+```
 
 These functions don't need to be async because we know the module is already initialized.
 
-The critical path works like this:
+### The Critical Path
 
-1. **Application startup**:
+**Application startup:**
+- The browser loads `main.ts`
+- It imports from `core/preview.ts`
+- That imports from `lib/manifold.ts`
+- JavaScript sees top-level await and waits for WASM to load
+- Only after WASM is loaded does execution continue
 
-   - The browser loads `main.ts`
-   - It imports from `core/preview.ts`
-   - That imports from `lib/manifold.ts`
-   - JavaScript sees top-level await and waits for WASM to load
-   - Only after WASM is loaded does the execution continue
+**Model execution time:**
+- When a user selects a model, it triggers `loadAndRenderModel`
+- The model loader dynamically imports the model file
+- The model file imports from `lib/manifold.ts`
+- Since `manifold.ts` was already loaded and initialized, this import is instant
+- The model function uses the already-initialized manifold module
 
-2. **Model execution time**:
-   - When a user selects a model, it triggers `loadAndRenderModel` in preview.ts
-   - That calls `loadModelById` in model-loader.ts
-   - The model loader dynamically imports the model file
-   - The model file imports from `lib/manifold.ts`
-   - But since `manifold.ts` was already loaded and initialized, this import is instant
-   - The model function (e.g., `createModel`) uses the already-initialized manifold module
+### Result
+
+This approach **concentrates all async complexity at the application boundaries** while keeping the core modeling code **pure and synchronous**. You can now:
+
+- ✅ Use ManifoldCAD with any NPM library
+- ✅ Write clean, synchronous modeling code
+- ✅ Get instant hot module replacement
+- ✅ Generate models from command line
+- ✅ Integrate with modern TypeScript tooling
 
 The only places where we still need async/await are:
-
 1. Dynamic importing of model files (with `import()`)
 2. GLB generation (because the glTF library has some async operations)
 
-This approach concentrates all the async complexity at the application boundaries while keeping the core modeling code pure and synchronous.
+This gives you the best of both worlds: the power of ManifoldCAD with the ecosystem of modern JavaScript development.
