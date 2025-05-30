@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// scripts/pipeline-v3.ts
+// TypeScript version of the pipeline with just-in-time compilation
+
 import { build } from 'vite';
 import { resolve, dirname, basename } from 'path';
 import { writeFile, mkdir } from 'fs/promises';
@@ -6,16 +9,26 @@ import { existsSync } from 'fs';
 import { parseArgs } from 'util';
 import { fileURLToPath } from 'url';
 
+// Import core pipeline utilities from compiled version
+import {
+  isParametricConfig,
+  extractDefaultParams,
+  mergeParameters,
+  parseParameterString
+} from '../dist/pipeline/pipeline/core.js';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Check for required compiled dependencies
-function checkCompiledDependencies() {
+function checkCompiledDependencies(): void {
+  // Use current working directory as project root
+  const projectRoot = process.cwd();
   const requiredFiles = [
-    '../dist/lib/manifold.js',
-    '../dist/lib/export-core.js'
+    resolve(projectRoot, 'dist/lib/manifold.js'),
+    resolve(projectRoot, 'dist/lib/export-core.js')
   ];
 
-  const missing = requiredFiles.filter(file => !existsSync(resolve(__dirname, file)));
+  const missing = requiredFiles.filter(file => !existsSync(file));
 
   if (missing.length > 0) {
     console.error(`❌ Missing compiled dependencies:`);
@@ -45,9 +58,9 @@ const { values, positionals } = parseArgs({
 
 if (values.help || positionals.length === 0) {
   console.log(`
-Manifold CAD Pipeline v2
+Manifold CAD Pipeline v3 (TypeScript)
 
-Usage: node scripts/pipeline-v2.js <model-path> [options]
+Usage: pipeline-v3 <model-path> [options]
 
 Arguments:
   model-path        Path to the TypeScript model file
@@ -59,10 +72,10 @@ Options:
   -h, --help        Show this help
 
 Examples:
-  node scripts/pipeline-v2.js src/models/cube.ts
-  node scripts/pipeline-v2.js src/models/cube.ts --params size=25,centered=false
-  node scripts/pipeline-v2.js src/models/parametric-hook.ts
-  node scripts/pipeline-v2.js src/models/parametric-hook.ts --params thickness=5,mountingType=magnetic
+  pipeline-v3 src/models/cube.ts
+  pipeline-v3 src/models/cube.ts --params size=25,centered=false
+  pipeline-v3 src/models/parametric-hook.ts
+  pipeline-v3 src/models/parametric-hook.ts --params thickness=5,mountingType=magnetic
 `);
   process.exit(0);
 }
@@ -72,7 +85,7 @@ checkCompiledDependencies();
 
 const modelPath = positionals[0];
 
-async function compileModel(modelPath) {
+async function compileModel(modelPath: string): Promise<string> {
   console.log(`Compiling ${modelPath}...`);
 
   const modelName = basename(modelPath, '.ts');
@@ -103,44 +116,7 @@ async function compileModel(modelPath) {
   return resolve(tempDir, `${modelName}.js`);
 }
 
-// Helper to determine if a model export is a parametric config
-function isParametricConfig(obj) {
-  return (
-    obj &&
-    typeof obj === 'object' &&
-    'parameters' in obj &&
-    'generateModel' in obj &&
-    typeof obj.generateModel === 'function'
-  );
-}
-
-// Helper to extract default parameter values from ParametricConfig
-function extractDefaultParams(config) {
-  const defaults = {};
-  for (const [key, paramConfig] of Object.entries(config.parameters)) {
-    defaults[key] = paramConfig.value;
-  }
-  return defaults;
-}
-
-// Helper to merge user parameters with defaults
-function mergeParameters(defaults, userParams) {
-  const merged = { ...defaults };
-
-  // Override with user-provided parameters
-  for (const [key, value] of Object.entries(userParams)) {
-    if (key in defaults) {
-      merged[key] = value;
-      console.log(`  ${key}: ${defaults[key]} → ${value}`);
-    } else {
-      console.warn(`  Warning: Unknown parameter "${key}" ignored`);
-    }
-  }
-
-  return merged;
-}
-
-async function main() {
+export async function main(): Promise<void> {
   try {
     // Compile the model
     const compiledPath = await compileModel(modelPath);
@@ -157,20 +133,12 @@ async function main() {
     }
 
     // Parse user parameters if provided
-    const userParams = {};
-    if (values.params) {
-      values.params.split(',').forEach(pair => {
-        const [key, value] = pair.split('=');
-        // Try to parse as number, boolean, or keep as string
-        if (value === 'true') userParams[key] = true;
-        else if (value === 'false') userParams[key] = false;
-        else if (!isNaN(value)) userParams[key] = Number(value);
-        else userParams[key] = value;
-      });
+    const userParams = values.params ? parseParameterString(values.params) : {};
+    if (Object.keys(userParams).length > 0) {
       console.log(`User parameters:`, userParams);
     }
 
-    let model;
+    let model: any;
 
     // Check if this is a parametric model
     if (isParametricConfig(defaultExport)) {
@@ -183,7 +151,7 @@ async function main() {
 
       // Merge user parameters with defaults
       const finalParams = Object.keys(userParams).length > 0
-        ? mergeParameters(defaultParams, userParams)
+        ? mergeParameters(defaultParams, userParams, { logChanges: true })
         : defaultParams;
 
       console.log(`Final parameters:`, finalParams);
@@ -211,7 +179,8 @@ async function main() {
     console.log(`✅ Model generated:`, typeof model);
 
     // Import the shared export function
-    const { manifoldToOBJ } = await import('../dist/lib/export-core.js');
+    const projectRoot = process.cwd();
+    const { manifoldToOBJ } = await import(`file://${resolve(projectRoot, 'dist/lib/export-core.js')}`);
 
     // Export to OBJ using shared function
     console.log('Exporting to OBJ...');
@@ -225,10 +194,13 @@ async function main() {
     console.log(`✅ Model exported to: ${outputFilename}`);
     console.log(`✅ Pipeline completed successfully!`);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error(`❌ Error:`, error.message);
     process.exit(1);
   }
 }
 
-main();
+// Run main function if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}
