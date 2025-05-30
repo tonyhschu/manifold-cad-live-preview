@@ -32,18 +32,24 @@ Compiles core TypeScript libraries for Node.js consumption:
 
 **When to run:** Automatically via `npm run compile` or `npm run pipeline`
 
-### `pipeline-v2.js` ⭐ **Current Pipeline**
-Modern Vite-based pipeline for generating 3D models:
-- Uses Vite's library compilation mode
-- Compiles TypeScript models on-demand
-- Imports shared export functions from `dist/lib/`
-- Supports parameter overrides
+### `pipeline-v3.ts` ⭐ **Current Pipeline**
+Modern TypeScript pipeline with just-in-time compilation:
+- Pure TypeScript implementation
+- Uses Vite for just-in-time compilation of all dependencies
+- No manual pre-compilation required
+- Supports both parametric and function-based models
+- Full parameter override support
 
 **Usage:**
 ```bash
 npm run pipeline src/models/cube.ts --params size=25
-node scripts/pipeline-v2.js src/models/hook.ts --params thickness=5,width=20
+node scripts/run-pipeline-v3.js src/models/hook.ts --params thickness=5,width=20
 ```
+
+### `pipeline-v2.js` (Legacy)
+Previous JavaScript-based pipeline:
+- Requires manual compilation via `compile-manifold.js`
+- Still available as `npm run pipeline-v2`
 
 ## Environment Separation
 
@@ -53,9 +59,9 @@ node scripts/pipeline-v2.js src/models/hook.ts --params thickness=5,width=20
 - **Hot Reload:** Full Vite HMR support
 - **Target:** Modern browsers with ES modules
 
-### Node.js Pipeline Environment  
-- **Compilation:** Pre-compiled via `compile-manifold.js`
-- **Imports:** From compiled JavaScript (`import { manifoldToOBJ } from '../dist/lib/export-core.js'`)
+### Node.js Pipeline Environment
+- **Compilation:** Just-in-time via Vite (pipeline-v3) or pre-compiled (pipeline-v2)
+- **Imports:** Direct from TypeScript sources with JIT compilation
 - **Execution:** Node.js ES modules
 - **Target:** Node.js 18+ with ES module support
 
@@ -83,8 +89,9 @@ npm run dev  # Vite handles everything automatically
 
 ### For Pipeline Development
 ```bash
-npm run compile  # Compile core libraries
-npm run pipeline src/models/your-model.ts
+npm run pipeline src/models/your-model.ts  # Uses pipeline-v3 with JIT compilation
+# OR for legacy pipeline:
+npm run pipeline-v2 src/models/your-model.ts  # Requires manual compilation
 ```
 
 ### For Testing
@@ -95,7 +102,7 @@ npm test  # Automatically compiles and runs all tests
 ## Future Plans
 
 - **Library Extraction:** Core functions will be extracted to a separate NPM package
-- **Template System:** `create-manifold-script` for project scaffolding  
+- **Template System:** `create-manifold-script` for project scaffolding
 - **Batch Processing:** Multiple model generation with parameter sets
 - **Format Support:** STL, 3MF, and other 3D printing formats
 

@@ -19,29 +19,38 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Check for required compiled dependencies
-function checkCompiledDependencies(): void {
-  // Use current working directory as project root
-  const projectRoot = process.cwd();
-  const requiredFiles = [
-    resolve(projectRoot, 'dist/lib/manifold.js'),
-    resolve(projectRoot, 'dist/lib/export-core.js')
-  ];
+// Compile core dependencies using Vite (just-in-time)
+async function ensureCoreDependencies(): Promise<{ manifoldToOBJ: (model: any) => string }> {
+  const tempDir = 'temp/core';
 
-  const missing = requiredFiles.filter(file => !existsSync(file));
-
-  if (missing.length > 0) {
-    console.error(`❌ Missing compiled dependencies:`);
-    missing.forEach(file => console.error(`   ${file}`));
-    console.error(`
-⚠️  DEVELOPER NOTE: You need to compile the core libraries first.
-   Run: npm run compile
-
-   This step is only needed for developers working on this project.
-   End users should receive pre-compiled libraries.
-`);
-    process.exit(1);
+  // Ensure temp directory exists
+  if (!existsSync(tempDir)) {
+    await mkdir(tempDir, { recursive: true });
   }
+
+  // Compile export-core.ts
+  await build({
+    configFile: false,
+    build: {
+      target: 'node18',
+      lib: {
+        entry: resolve('src/lib/export-core.ts'),
+        name: 'ExportCore',
+        fileName: 'export-core',
+        formats: ['es']
+      },
+      outDir: tempDir,
+      rollupOptions: {
+        external: ['manifold-3d']
+      }
+    },
+    logLevel: 'warn'
+  });
+
+  // Import the compiled export function
+  const { manifoldToOBJ } = await import(`file://${resolve(tempDir, 'export-core.js')}`);
+
+  return { manifoldToOBJ };
 }
 
 // Parse command line arguments
@@ -80,8 +89,7 @@ Examples:
   process.exit(0);
 }
 
-// Check dependencies before proceeding
-checkCompiledDependencies();
+// No dependency check needed - we'll compile on-demand
 
 const modelPath = positionals[0];
 
@@ -118,6 +126,10 @@ async function compileModel(modelPath: string): Promise<string> {
 
 export async function main(): Promise<void> {
   try {
+    // Ensure core dependencies are compiled
+    console.log('Preparing core dependencies...');
+    const { manifoldToOBJ } = await ensureCoreDependencies();
+
     // Compile the model
     const compiledPath = await compileModel(modelPath);
     console.log(`✅ Model compiled to: ${compiledPath}`);
@@ -178,11 +190,7 @@ export async function main(): Promise<void> {
 
     console.log(`✅ Model generated:`, typeof model);
 
-    // Import the shared export function
-    const projectRoot = process.cwd();
-    const { manifoldToOBJ } = await import(`file://${resolve(projectRoot, 'dist/lib/export-core.js')}`);
-
-    // Export to OBJ using shared function
+    // Export to OBJ using compiled export function
     console.log('Exporting to OBJ...');
     const objContent = manifoldToOBJ(model);
 
