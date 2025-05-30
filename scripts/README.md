@@ -25,14 +25,7 @@ Development Environment          Pipeline Environment
 
 ## Core Scripts
 
-### `compile-manifold.js`
-Compiles core TypeScript libraries for Node.js consumption:
-- `src/lib/manifold.ts` → `dist/lib/manifold.js`
-- `src/lib/export-core.ts` → `dist/lib/export-core.js`
-
-**When to run:** Automatically via `npm run compile` or `npm run pipeline`
-
-### `pipeline-v3.ts` ⭐ **Current Pipeline**
+### `pipeline.ts` ⭐ **Main Pipeline**
 Modern TypeScript pipeline with just-in-time compilation:
 - Pure TypeScript implementation
 - Uses Vite for just-in-time compilation of all dependencies
@@ -43,13 +36,11 @@ Modern TypeScript pipeline with just-in-time compilation:
 **Usage:**
 ```bash
 npm run pipeline src/models/cube.ts --params size=25
-node scripts/run-pipeline-v3.js src/models/hook.ts --params thickness=5,width=20
+node scripts/run-pipeline.js src/models/hook.ts --params thickness=5,width=20
 ```
 
-### `pipeline-v2.js` (Legacy)
-Previous JavaScript-based pipeline:
-- Requires manual compilation via `compile-manifold.js`
-- Still available as `npm run pipeline-v2`
+### `run-pipeline.js`
+Bootstrap script that compiles and runs the TypeScript pipeline using Vite.
 
 ## Environment Separation
 
@@ -60,7 +51,7 @@ Previous JavaScript-based pipeline:
 - **Target:** Modern browsers with ES modules
 
 ### Node.js Pipeline Environment
-- **Compilation:** Just-in-time via Vite (pipeline-v3) or pre-compiled (pipeline-v2)
+- **Compilation:** Just-in-time via Vite
 - **Imports:** Direct from TypeScript sources with JIT compilation
 - **Execution:** Node.js ES modules
 - **Target:** Node.js 18+ with ES module support
@@ -89,9 +80,7 @@ npm run dev  # Vite handles everything automatically
 
 ### For Pipeline Development
 ```bash
-npm run pipeline src/models/your-model.ts  # Uses pipeline-v3 with JIT compilation
-# OR for legacy pipeline:
-npm run pipeline-v2 src/models/your-model.ts  # Requires manual compilation
+npm run pipeline src/models/your-model.ts  # Uses JIT compilation
 ```
 
 ### For Testing

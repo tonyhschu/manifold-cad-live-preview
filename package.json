@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "compile": "node scripts/compile-manifold.js",
+
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
@@ -15,9 +15,7 @@
     "test:services": "vitest run tests/services/",
     "test:ui-layer": "vitest run tests/ui/",
     "test:pipeline": "vitest run tests/pipeline/",
-    "pipeline": "node scripts/run-pipeline-v3.js",
-    "pipeline-v2": "node scripts/compile-manifold.js --manifold-only && node scripts/pipeline-v2.js",
-    "pipeline-v3": "node scripts/run-pipeline-v3.js"
+    "pipeline": "node scripts/run-pipeline.js"
   },
   "devDependencies": {
     "typescript": "^5.0.2",

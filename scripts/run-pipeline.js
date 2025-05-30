@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// scripts/run-pipeline-v3.js
-// Bootstrap script that compiles and runs pipeline-v3.ts using Vite
+// scripts/run-pipeline.js
+// Bootstrap script that compiles and runs pipeline.ts using Vite
 
 import { build } from 'vite';
 import { resolve, dirname } from 'path';
@@ -11,7 +11,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function compilePipelineScript() {
-  console.log('Compiling pipeline-v3.ts...');
+  console.log('Compiling pipeline.ts...');
 
   const tempDir = 'temp/scripts';
 
@@ -25,9 +25,9 @@ async function compilePipelineScript() {
     build: {
       target: 'node18',
       lib: {
-        entry: resolve(__dirname, 'pipeline-v3.ts'),
-        name: 'PipelineV3',
-        fileName: 'pipeline-v3',
+        entry: resolve(__dirname, 'pipeline.ts'),
+        name: 'Pipeline',
+        fileName: 'pipeline',
         formats: ['es']
       },
       outDir: tempDir,
@@ -45,7 +45,7 @@ async function compilePipelineScript() {
     logLevel: 'warn' // Reduce build noise
   });
 
-  return resolve(tempDir, 'pipeline-v3.js');
+  return resolve(tempDir, 'pipeline.js');
 }
 
 async function runCompiledPipeline(compiledPath) {

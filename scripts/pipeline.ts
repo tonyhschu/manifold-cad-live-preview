@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// scripts/pipeline-v3.ts
-// TypeScript version of the pipeline with just-in-time compilation
+// scripts/pipeline.ts
+// TypeScript pipeline with just-in-time compilation
 
 import { build } from 'vite';
 import { resolve, dirname, basename } from 'path';
@@ -9,18 +9,50 @@ import { existsSync } from 'fs';
 import { parseArgs } from 'util';
 import { fileURLToPath } from 'url';
 
-// Import core pipeline utilities from compiled version
-import {
-  isParametricConfig,
-  extractDefaultParams,
-  mergeParameters,
-  parseParameterString
-} from '../dist/pipeline/pipeline/core.js';
+// Core pipeline utilities will be compiled on-demand
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// Inline manifoldToOBJ function to avoid compilation issues
+function manifoldToOBJ(model: any): string {
+  const mesh = model.getMesh();
+  const vertices = mesh.vertProperties;
+  const triangles = mesh.triVerts;
+
+  if (!vertices || !triangles) {
+    throw new Error("Invalid mesh data for export");
+  }
+
+  const numVertices = vertices.length / 3;
+  let objContent = "# Exported from Manifold\n";
+  objContent += `# Vertices: ${numVertices}, Triangles: ${triangles.length / 3}\n`;
+  objContent += `# Generated: ${new Date().toISOString()}\n\n`;
+
+  // Add vertices
+  for (let i = 0; i < vertices.length; i += 3) {
+    objContent += `v ${vertices[i]} ${vertices[i + 1]} ${vertices[i + 2]}\n`;
+  }
+
+  // Add faces
+  for (let i = 0; i < triangles.length; i += 3) {
+    if (i + 2 < triangles.length &&
+        triangles[i] < numVertices &&
+        triangles[i + 1] < numVertices &&
+        triangles[i + 2] < numVertices) {
+      objContent += `f ${triangles[i] + 1} ${triangles[i + 1] + 1} ${triangles[i + 2] + 1}\n`;
+    }
+  }
+
+  return objContent;
+}
+
 // Compile core dependencies using Vite (just-in-time)
-async function ensureCoreDependencies(): Promise<{ manifoldToOBJ: (model: any) => string }> {
+async function ensureCoreDependencies(): Promise<{
+  isParametricConfig: (obj: any) => boolean;
+  extractDefaultParams: (config: any) => any;
+  mergeParameters: (defaults: any, overrides: any, options?: any) => any;
+  parseParameterString: (paramStr: string) => any;
+}> {
   const tempDir = 'temp/core';
 
   // Ensure temp directory exists
@@ -28,29 +60,44 @@ async function ensureCoreDependencies(): Promise<{ manifoldToOBJ: (model: any) =
     await mkdir(tempDir, { recursive: true });
   }
 
-  // Compile export-core.ts
-  await build({
-    configFile: false,
-    build: {
-      target: 'node18',
-      lib: {
-        entry: resolve('src/lib/export-core.ts'),
-        name: 'ExportCore',
-        fileName: 'export-core',
-        formats: ['es']
+  // Compile pipeline core utilities
+  try {
+    await build({
+      configFile: false,
+      build: {
+        target: 'node18',
+        lib: {
+          entry: resolve('src/pipeline/core.ts'),
+          name: 'PipelineCore',
+          fileName: 'pipeline-core',
+          formats: ['es']
+        },
+        outDir: tempDir,
+        rollupOptions: {
+          external: ['manifold-3d']
+        }
       },
-      outDir: tempDir,
-      rollupOptions: {
-        external: ['manifold-3d']
-      }
-    },
-    logLevel: 'warn'
-  });
+      logLevel: 'warn'
+    });
+  } catch (error) {
+    console.error('Failed to compile pipeline core:', error);
+    throw error;
+  }
 
-  // Import the compiled export function
-  const { manifoldToOBJ } = await import(`file://${resolve(tempDir, 'export-core.js')}`);
+  // Import the compiled functions
+  const {
+    isParametricConfig,
+    extractDefaultParams,
+    mergeParameters,
+    parseParameterString
+  } = await import(`file://${resolve(tempDir, 'pipeline-core.js')}`);
 
-  return { manifoldToOBJ };
+  return {
+    isParametricConfig,
+    extractDefaultParams,
+    mergeParameters,
+    parseParameterString
+  };
 }
 
 // Parse command line arguments
@@ -67,9 +114,9 @@ const { values, positionals } = parseArgs({
 
 if (values.help || positionals.length === 0) {
   console.log(`
-Manifold CAD Pipeline v3 (TypeScript)
+Manifold CAD Pipeline
 
-Usage: pipeline-v3 <model-path> [options]
+Usage: pipeline <model-path> [options]
 
 Arguments:
   model-path        Path to the TypeScript model file
@@ -81,10 +128,10 @@ Options:
   -h, --help        Show this help
 
 Examples:
-  pipeline-v3 src/models/cube.ts
-  pipeline-v3 src/models/cube.ts --params size=25,centered=false
-  pipeline-v3 src/models/parametric-hook.ts
-  pipeline-v3 src/models/parametric-hook.ts --params thickness=5,mountingType=magnetic
+  npm run pipeline src/models/cube.ts
+  npm run pipeline src/models/cube.ts --params size=25,centered=false
+  npm run pipeline src/models/parametric-hook.ts
+  node scripts/run-pipeline.js src/models/parametric-hook.ts --params thickness=5,mountingType=magnetic
 `);
   process.exit(0);
 }
@@ -128,7 +175,12 @@ export async function main(): Promise<void> {
   try {
     // Ensure core dependencies are compiled
     console.log('Preparing core dependencies...');
-    const { manifoldToOBJ } = await ensureCoreDependencies();
+    const {
+      isParametricConfig,
+      extractDefaultParams,
+      mergeParameters,
+      parseParameterString
+    } = await ensureCoreDependencies();
 
     // Compile the model
     const compiledPath = await compileModel(modelPath);

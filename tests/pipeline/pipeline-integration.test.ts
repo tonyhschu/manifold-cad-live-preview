@@ -15,7 +15,7 @@ async function runPipeline(args: string[], options: { timeout?: number } = {}): 
   const { timeout = 30000 } = options;
 
   return new Promise((resolve, reject) => {
-    const child = spawn('node', ['scripts/run-pipeline-v3.js', ...args], {
+    const child = spawn('node', ['scripts/run-pipeline.js', ...args], {
       cwd: process.cwd(),
       stdio: 'pipe'
     });
@@ -215,8 +215,8 @@ describe('Pipeline Integration Tests', () => {
       const result = await runPipeline([]);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('Manifold CAD Pipeline v3 (TypeScript)');
-      expect(result.stdout).toContain('Usage: pipeline-v3 <model-path> [options]');
+      expect(result.stdout).toContain('Manifold CAD Pipeline');
+      expect(result.stdout).toContain('Usage: pipeline <model-path> [options]');
       expect(result.stdout).toContain('Examples:');
     });
 
@@ -224,7 +224,7 @@ describe('Pipeline Integration Tests', () => {
       const result = await runPipeline(['--help']);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('Manifold CAD Pipeline v3 (TypeScript)');
+      expect(result.stdout).toContain('Manifold CAD Pipeline');
       expect(result.stdout).toContain('Options:');
       expect(result.stdout).toContain('-p, --params');
       expect(result.stdout).toContain('-o, --output');
