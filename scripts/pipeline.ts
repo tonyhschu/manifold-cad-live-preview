@@ -13,92 +13,16 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Inline manifoldToOBJ function to avoid compilation issues
-function manifoldToOBJ(model: any): string {
-  const mesh = model.getMesh();
-  const vertices = mesh.vertProperties;
-  const triangles = mesh.triVerts;
+// Import manifoldToOBJ from the original source
+import { manifoldToOBJ } from '../src/lib/export-core.js';
 
-  if (!vertices || !triangles) {
-    throw new Error("Invalid mesh data for export");
-  }
-
-  const numVertices = vertices.length / 3;
-  let objContent = "# Exported from Manifold\n";
-  objContent += `# Vertices: ${numVertices}, Triangles: ${triangles.length / 3}\n`;
-  objContent += `# Generated: ${new Date().toISOString()}\n\n`;
-
-  // Add vertices
-  for (let i = 0; i < vertices.length; i += 3) {
-    objContent += `v ${vertices[i]} ${vertices[i + 1]} ${vertices[i + 2]}\n`;
-  }
-
-  // Add faces
-  for (let i = 0; i < triangles.length; i += 3) {
-    if (i + 2 < triangles.length &&
-        triangles[i] < numVertices &&
-        triangles[i + 1] < numVertices &&
-        triangles[i + 2] < numVertices) {
-      objContent += `f ${triangles[i] + 1} ${triangles[i + 1] + 1} ${triangles[i + 2] + 1}\n`;
-    }
-  }
-
-  return objContent;
-}
-
-// Compile core dependencies using Vite (just-in-time)
-async function ensureCoreDependencies(): Promise<{
-  isParametricConfig: (obj: any) => boolean;
-  extractDefaultParams: (config: any) => any;
-  mergeParameters: (defaults: any, overrides: any, options?: any) => any;
-  parseParameterString: (paramStr: string) => any;
-}> {
-  const tempDir = 'temp/core';
-
-  // Ensure temp directory exists
-  if (!existsSync(tempDir)) {
-    await mkdir(tempDir, { recursive: true });
-  }
-
-  // Compile pipeline core utilities
-  try {
-    await build({
-      configFile: false,
-      build: {
-        target: 'node18',
-        lib: {
-          entry: resolve('src/pipeline/core.ts'),
-          name: 'PipelineCore',
-          fileName: 'pipeline-core',
-          formats: ['es']
-        },
-        outDir: tempDir,
-        rollupOptions: {
-          external: ['manifold-3d']
-        }
-      },
-      logLevel: 'warn'
-    });
-  } catch (error) {
-    console.error('Failed to compile pipeline core:', error);
-    throw error;
-  }
-
-  // Import the compiled functions
-  const {
-    isParametricConfig,
-    extractDefaultParams,
-    mergeParameters,
-    parseParameterString
-  } = await import(`file://${resolve(tempDir, 'pipeline-core.js')}`);
-
-  return {
-    isParametricConfig,
-    extractDefaultParams,
-    mergeParameters,
-    parseParameterString
-  };
-}
+// Import pipeline utilities directly from source
+import {
+  isParametricConfig,
+  extractDefaultParams,
+  mergeParameters,
+  parseParameterString
+} from '../src/pipeline/core.js';
 
 // Parse command line arguments
 const { values, positionals } = parseArgs({
@@ -173,14 +97,7 @@ async function compileModel(modelPath: string): Promise<string> {
 
 export async function main(): Promise<void> {
   try {
-    // Ensure core dependencies are compiled
-    console.log('Preparing core dependencies...');
-    const {
-      isParametricConfig,
-      extractDefaultParams,
-      mergeParameters,
-      parseParameterString
-    } = await ensureCoreDependencies();
+    // All dependencies imported directly from source - no compilation needed
 
     // Compile the model
     const compiledPath = await compileModel(modelPath);
