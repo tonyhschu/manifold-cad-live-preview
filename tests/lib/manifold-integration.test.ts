@@ -121,15 +121,26 @@ describe('manifold.ts correctly exports all WASM module features', () => {
     expect(rawModule).toBeDefined()
     expect(typeof rawModule.Manifold).toBe('function')
 
-    // Test that the exported Manifold is the same as the raw module's Manifold (transparent!)
-    expect(Manifold).toBe(rawModule.Manifold)
-    expect(CrossSection).toBe(rawModule.CrossSection)
+    // Test that the exported Manifold is a proxy wrapper (not the same object, but provides same functionality)
+    expect(Manifold).not.toBe(rawModule.Manifold) // Now it's a proxy!
+    expect(CrossSection).toBe(rawModule.CrossSection) // CrossSection is still direct export
 
-    // Test that all expected Manifold static methods exist
+    // Test that all expected Manifold static methods exist and work
     const expectedMethods = ['cube', 'sphere', 'cylinder', 'union', 'difference', 'intersection', 'hull']
     for (const method of expectedMethods) {
       expect(typeof Manifold[method as keyof typeof Manifold]).toBe('function')
     }
+
+    // Test that the proxy provides additional tracking methods
+    const cube = Manifold.cube([5, 5, 5])
+    expect(typeof cube.getOperationTree).toBe('function')
+    expect(typeof cube.getOperationId).toBe('function')
+
+    // Test that original functionality still works through the proxy
+    expect(typeof cube.getMesh).toBe('function')
+    expect(typeof cube.translate).toBe('function')
+    const mesh = cube.getMesh()
+    expect(mesh.vertProperties).toBeDefined()
   })
 
   it('exports utils object with utility functions', () => {
