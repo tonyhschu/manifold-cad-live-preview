@@ -1,18 +1,18 @@
 // src/lib/manifold.ts
 /**
  * ManifoldCAD Synchronous API Module
- * 
+ *
  * This module provides synchronous access to ManifoldCAD operations by using the top-level await pattern.
  * The WASM module is loaded and initialized once when the application starts up, allowing all subsequent
  * operations to be performed synchronously.
- * 
+ *
  * This library provides transparent access to the original ManifoldCAD API - no wrappers, no changes.
  * Just sync instead of async!
- * 
+ *
  * Usage:
  * ```
  * import { Manifold } from "../lib/manifold";
- * 
+ *
  * // Direct access to the original ManifoldCAD API, but synchronous!
  * const box = Manifold.cube([20, 20, 20]);
  * const ball = Manifold.sphere(12);
@@ -54,7 +54,7 @@ manifoldModule.setup();
 export type Manifold = InstanceType<typeof manifoldModule.Manifold>;
 
 /**
- * CrossSection class from the WASM module  
+ * CrossSection class from the WASM module
  */
 export type CrossSection = InstanceType<typeof manifoldModule.CrossSection>;
 
@@ -72,8 +72,15 @@ export function getInitCount(): number {
 
 
 // Direct re-exports of the main classes (transparent access)
-export const Manifold = manifoldModule.Manifold;
+export const OriginalManifold = manifoldModule.Manifold;
 export const CrossSection = manifoldModule.CrossSection;
+
+// Import the tracking utilities
+import { createTrackedManifold } from './tracking/mm-manifold';
+
+// Create the tracked Manifold after WASM is loaded
+export const Manifold = createTrackedManifold(manifoldModule.Manifold);
+export type Manifold = ReturnType<typeof createTrackedManifold>;
 
 // Export a utils object containing ALL utility functions for discoverability
 export const utils = Object.fromEntries(

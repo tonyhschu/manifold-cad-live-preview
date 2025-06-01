@@ -45,7 +45,8 @@ export const availableModels = [
   { id: "cube", path: "../models/cube", name: "Simple Cube", type: "static" as const },
   { id: "compound", path: "../models/compound", name: "Compound Model", type: "static" as const },
   { id: "hook", path: "../models/hook", name: "Hook", type: "static" as const },
-  
+  { id: "tracked-test", path: "../models/tracked-test", name: "Tracked Test", type: "static" as const },
+
   // Parametric models (ParametricConfig-based)
   { id: "parametric-hook", path: "../models/parametric-hook", name: "Parametric Hook", type: "parametric" as const },
 ];
@@ -91,9 +92,9 @@ export async function loadDefaultModel(): Promise<{
  */
 export async function loadModelById(
   modelId: string
-): Promise<{ 
-  model: any; 
-  metadata?: ModelMetadata; 
+): Promise<{
+  model: any;
+  metadata?: ModelMetadata;
   isParametric?: boolean;
   config?: ParametricConfig;
 }> {
@@ -114,7 +115,7 @@ export async function loadModelById(
     if (isParametricConfig(defaultExport)) {
       // Parametric model - return the config for UI setup
       const config = defaultExport as ParametricConfig;
-      
+
       // Generate initial model with default parameters
       const initialParams: Record<string, any> = {};
       for (const [key, paramConfig] of Object.entries(config.parameters)) {
@@ -124,9 +125,9 @@ export async function loadModelById(
 
       return {
         model: initialModel,
-        metadata: config.name ? { 
-          name: config.name, 
-          description: config.description || "" 
+        metadata: config.name ? {
+          name: config.name,
+          description: config.description || ""
         } : undefined,
         isParametric: true,
         config: config
@@ -144,10 +145,10 @@ export async function loadModelById(
       // Create the model
       const model = createModel();
 
-      return { 
-        model, 
+      return {
+        model,
         metadata,
-        isParametric: false 
+        isParametric: false
       };
     }
   } catch (error) {
