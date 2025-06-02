@@ -11,6 +11,9 @@
     "test": "npm run test --workspaces",
     "test:wrapper": "npm run test --workspace @manifold-studio/wrapper",
     "test:configurator": "npm run test --workspace @manifold-studio/configurator",
+    "dev": "npm run dev --workspace @manifold-studio/wrapper & npm run dev:configurator",
+    "devAll": "npm run dev --workspace @manifold-studio/wrapper & npm run dev:configurator",
+    "dev:wrapper": "npm run dev --workspace @manifold-studio/wrapper",
     "dev:configurator": "npm run dev --workspace @manifold-studio/configurator"
   },
   "devDependencies": {

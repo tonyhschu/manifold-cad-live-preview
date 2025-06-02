@@ -1,4 +1,4 @@
-# ManifoldCAD Live Preview
+# Manifold Studio
 
 A modern TypeScript framework for 3D CAD model development with live preview and headless generation capabilities. Built on ManifoldCAD and Vite, this project provides two complementary modes for 3D model development and production.
 
@@ -7,6 +7,7 @@ A modern TypeScript framework for 3D CAD model development with live preview and
 This project offers a complete solution for parametric 3D modeling with two distinct operational modes:
 
 ### 🖥️ **Browser HMR Mode** - Interactive Development
+
 - **Live preview** with instant hot module replacement (HMR)
 - **Interactive parameter controls** using Tweakpane UI
 - **Real-time model updates** as you edit code
@@ -14,6 +15,7 @@ This project offers a complete solution for parametric 3D modeling with two dist
 - **Perfect for**: Model development, parameter tuning, visual debugging
 
 ### ⚡ **Pipeline Mode** - Headless Generation
+
 - **Command-line interface** for automated model generation
 - **Batch processing** capabilities with parameter overrides
 - **Programmatic output** in multiple formats (OBJ, GLB)
@@ -22,26 +24,118 @@ This project offers a complete solution for parametric 3D modeling with two dist
 
 Both modes share the same TypeScript codebase and model definitions, ensuring consistency between development and production environments.
 
+## 📦 Monorepo Structure
+
+This project uses a monorepo structure with NPM workspaces:
+
+```
+manifold-studio/
+├── packages/
+│   ├── wrapper/                    # @manifold-studio/wrapper
+│   │   ├── src/                    # Core Manifold API wrapper
+│   │   │   ├── lib/               # Manifold API with operation tracking
+│   │   │   ├── pipeline/          # Headless generation capabilities
+│   │   │   └── types/             # TypeScript definitions
+│   │   └── tests/                 # Node.js environment tests
+│   └── configurator/              # @manifold-studio/configurator
+│       ├── src/                   # UI components and development environment
+│       │   ├── components/        # UI components (canvas, controls)
+│       │   ├── services/          # Service layer integration
+│       │   ├── models/            # Example 3D models
+│       │   └── state/             # State management
+│       └── tests/                 # Browser environment tests
+└── package.json                   # Workspace configuration
+```
+
+### Package Responsibilities
+
+- **@manifold-studio/wrapper**: Core API wrapper with headless capabilities
+
+  - ManifoldCAD API wrapper with top-level await pattern
+  - Operation tracking system
+  - Export utilities (OBJ, GLB)
+  - Headless pipeline functionality for command-line generation
+
+- **@manifold-studio/configurator**: UI components and development environment
+  - Interactive UI components (canvas, parameter controls)
+  - Service layer integration
+  - State management and HMR integration
+  - Development server setup
+
 ## 🚀 Quick Start
 
 ### Browser Mode (Development)
+
 ```bash
+# Install dependencies
 npm install
-npm run dev
+
+# Start full development environment (wrapper + configurator)
+npm run devAll
+
+# Or start components individually:
+# npm run dev:wrapper    # Start wrapper in watch mode
+# npm run dev:configurator  # Start configurator dev server
 ```
-Open your browser to see live 3D models with interactive controls.
+
+Open your browser to http://localhost:5174 to see live 3D models with interactive controls.
 
 ### Pipeline Mode (Generation)
+
 ```bash
 # Generate a model with default parameters
-npm run pipeline src/models/cube.ts
+npm run pipeline packages/configurator/src/models/cube.ts
 
 # Generate with custom parameters
-npm run pipeline -- src/models/parametric-hook.ts --params thickness=5,width=20
+npm run pipeline -- packages/configurator/src/models/parametric-hook.ts --params thickness=5,width=20
 
 # Custom output filename
-npm run pipeline -- src/models/hook.ts --output my-hook.obj
+npm run pipeline -- packages/configurator/src/models/hook.ts --output my-hook.obj
 ```
+
+## 🔧 Development Workflow
+
+### Cross-Package Development
+
+When working with both packages, changes in the wrapper package need to propagate to the configurator:
+
+1. **Wrapper changes** → TypeScript watch rebuilds automatically (~1-2 seconds)
+2. **Configurator detects change** → Vite HMR updates the browser
+3. **Total time**: ~2-3 seconds for cross-package changes
+
+### Development Commands
+
+```bash
+# Full development environment
+npm run devAll                    # Start both wrapper watch + configurator dev server
+
+# Individual packages
+npm run dev:wrapper               # Wrapper in watch mode (rebuilds on changes)
+npm run dev:configurator          # Configurator dev server with HMR
+
+# Building and testing
+npm run build                     # Build all packages
+npm run test                      # Test all packages
+npm run test:wrapper              # Test wrapper package only
+npm run test:configurator         # Test configurator package only
+```
+
+### Recommended Development Setup
+
+For the best development experience, run both packages in watch mode:
+
+```bash
+# Terminal 1: Wrapper watch mode
+npm run dev:wrapper
+
+# Terminal 2: Configurator dev server
+npm run dev:configurator
+
+# Or use the convenience command:
+npm run devAll
+```
+
+This ensures that changes to the wrapper package automatically rebuild and propagate to the configurator's live preview.
 
 ## 🖥️ Browser Mode - Interactive Development
 
@@ -58,6 +152,7 @@ Browser Mode provides a live development environment with instant feedback and i
 ### Getting Started
 
 1. **Start the development server:**
+
    ```bash
    npm run dev
    ```
@@ -75,40 +170,42 @@ Browser Mode provides a live development environment with instant feedback and i
 Models can be created in two ways:
 
 #### Function-Based Models
+
 Simple models that export a function:
 
 ```typescript
-// src/models/my-cube.ts
-import { Manifold } from "../lib/manifold";
+// packages/configurator/src/models/my-cube.ts
+import { Manifold } from "@manifold-studio/wrapper";
 
-export default function createCube(size = 15, centered = true): Manifold {
+export default function createCube(size = 15, centered = true): ManifoldType {
   return Manifold.cube([size, size, size], centered);
 }
 ```
 
 #### Parametric Models
+
 Advanced models with interactive parameter controls:
 
 ```typescript
-// src/models/my-parametric-model.ts
-import { Manifold } from "../lib/manifold";
-import { P, createConfig } from "../types/parametric-config";
+// packages/configurator/src/models/my-parametric-model.ts
+import { Manifold, P, createConfig } from "@manifold-studio/wrapper";
+import type { ManifoldType } from "@manifold-studio/wrapper";
 
-function createHook(thickness = 3, width = 13, radius = 10): Manifold {
+function createHook(thickness = 3, width = 13, radius = 10): ManifoldType {
   // Your model logic here
-  return Manifold.cylinder(width, thickness/2, thickness/2);
+  return Manifold.cylinder(width, thickness / 2, thickness / 2);
 }
 
 export default createConfig(
   {
     thickness: P.number(3, 1, 10, 0.5),
     width: P.number(13, 5, 50, 1),
-    radius: P.number(10, 5, 20, 0.5)
+    radius: P.number(10, 5, 20, 0.5),
   },
   (params) => createHook(params.thickness, params.width, params.radius),
   {
     name: "My Hook",
-    description: "A customizable hook model"
+    description: "A customizable hook model",
   }
 );
 ```
@@ -148,13 +245,13 @@ Pipeline Mode enables automated, headless generation of 3D models from the comma
 
 ```bash
 # Generate model with default parameters
-npm run pipeline src/models/cube.ts
+npm run pipeline packages/configurator/src/models/cube.ts
 
 # Generate with custom parameters
-npm run pipeline -- src/models/parametric-hook.ts --params thickness=5,width=20
+npm run pipeline -- packages/configurator/src/models/parametric-hook.ts --params thickness=5,width=20
 
 # Specify output filename
-npm run pipeline -- src/models/hook.ts --output custom-hook.obj
+npm run pipeline -- packages/configurator/src/models/hook.ts --output custom-hook.obj
 
 # Get help
 npm run pipeline -- --help
@@ -169,6 +266,7 @@ Parameters are specified as comma-separated key=value pairs:
 ```
 
 **Supported parameter types:**
+
 - **Numbers**: `thickness=5`, `width=20.5`
 - **Booleans**: `enabled=true`, `centered=false`
 - **Strings**: `mountingType=magnetic`, `material=wood`
@@ -177,12 +275,12 @@ Parameters are specified as comma-separated key=value pairs:
 
 ```bash
 # Complex parametric model with multiple parameters
-npm run pipeline -- src/models/parametric-hook.ts \
+npm run pipeline -- packages/configurator/src/models/parametric-hook.ts \
   --params thickness=4,width=25,hookRadius=15,segments=32,mountingType=adhesive \
   --output heavy-duty-hook.obj
 
 # Function-based model with parameters
-npm run pipeline -- src/models/cube.ts \
+npm run pipeline -- packages/configurator/src/models/cube.ts \
   --params size=25,centered=false \
   --output large-cube.obj
 ```
@@ -206,8 +304,8 @@ The pipeline is designed for automation:
 # Example GitHub Actions workflow
 - name: Generate 3D Models
   run: |
-    npm run pipeline src/models/bracket.ts --params size=large
-    npm run pipeline src/models/hook.ts --params thickness=5
+    npm run pipeline packages/configurator/src/models/bracket.ts --params size=large
+    npm run pipeline packages/configurator/src/models/hook.ts --params thickness=5
 ```
 
 ### Error Handling
@@ -251,6 +349,7 @@ These functions don't need to be async because we know the module is already ini
 ### The Critical Path
 
 **Application startup:**
+
 - The browser loads `main.ts`
 - It imports from `core/preview.ts`
 - That imports from `lib/manifold.ts`
@@ -258,6 +357,7 @@ These functions don't need to be async because we know the module is already ini
 - Only after WASM is loaded does execution continue
 
 **Model execution time:**
+
 - When a user selects a model, it triggers `loadAndRenderModel`
 - The model loader dynamically imports the model file
 - The model file imports from `lib/manifold.ts`
@@ -275,6 +375,7 @@ This approach **concentrates all async complexity at the application boundaries*
 - ✅ Integrate with modern TypeScript tooling
 
 The only places where we still need async/await are:
+
 1. Dynamic importing of model files (with `import()`)
 2. GLB generation (because the glTF library has some async operations)
 

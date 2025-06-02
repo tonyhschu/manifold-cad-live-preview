@@ -67,6 +67,8 @@ let initCount = 1;
  * @internal This is primarily for debugging and should not be relied upon in production
  */
 export function getInitCount(): number {
+  console.log('getInitCount', initCount);
+
   return initCount;
 }
 
