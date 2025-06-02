@@ -1,7 +1,7 @@
 // src/lib/gltf-export.ts
 // GLB/glTF export utilities for the synchronous Manifold API
 
-import type { Manifold } from './manifold';
+import type { ManifoldType } from './manifold';
 
 import {
   Document,
@@ -52,7 +52,7 @@ export function setupIO(io: WebIO): WebIO {
  * @returns A Promise that resolves to an GLB blob
  * @throws Error if the conversion fails
  */
-export async function manifoldToGLB(manifoldObject: Manifold): Promise<Blob> {
+export async function manifoldToGLB(manifoldObject: ManifoldType): Promise<Blob> {
   // Create a new document and IO instance
   const document = new Document();
   const io = new WebIO();

@@ -1,13 +1,13 @@
 // src/lib/export-core.ts
 // Pure export functions (environment-agnostic)
 
-import type { Manifold } from './manifold';
+import type { ManifoldType } from './manifold';
 
 /**
  * Export a manifold to OBJ format string
  * Pure function - no browser dependencies
  */
-export function manifoldToOBJ(model: Manifold): string {
+export function manifoldToOBJ(model: ManifoldType): string {
   const mesh = model.getMesh();
   const vertices = mesh.vertProperties;
   const triangles = mesh.triVerts;

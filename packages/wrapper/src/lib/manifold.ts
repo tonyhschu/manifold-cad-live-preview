@@ -49,14 +49,14 @@ const manifoldModule = await ManifoldModule();
 manifoldModule.setup();
 
 /**
- * Manifold class from the WASM module
+ * Original Manifold class from the WASM module
  */
-export type Manifold = InstanceType<typeof manifoldModule.Manifold>;
+export type OriginalManifoldType = InstanceType<typeof manifoldModule.Manifold>;
 
 /**
  * CrossSection class from the WASM module
  */
-export type CrossSection = InstanceType<typeof manifoldModule.CrossSection>;
+export type CrossSectionType = InstanceType<typeof manifoldModule.CrossSection>;
 
 // Keeps track of the init count for informational purposes
 let initCount = 1;
@@ -80,7 +80,7 @@ import { createTrackedManifold } from './tracking/mm-manifold';
 
 // Create the tracked Manifold after WASM is loaded
 export const Manifold = createTrackedManifold(manifoldModule.Manifold);
-export type Manifold = ReturnType<typeof createTrackedManifold>;
+export type ManifoldType = ReturnType<typeof createTrackedManifold>;
 
 // Export a utils object containing ALL utility functions for discoverability
 export const utils = Object.fromEntries(

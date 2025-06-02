@@ -1,7 +1,7 @@
 // src/lib/export.ts
 // Export utilities for the Manifold API
 
-import type { Manifold } from './manifold';
+import type { ManifoldType } from './manifold';
 import { manifoldToOBJ } from './export-core';
 
 /**
@@ -28,11 +28,11 @@ export interface ExportOptions {
  * @returns A Blob containing the OBJ data
  * @throws Error if the model data is invalid
  */
-export function exportToOBJ(model: Manifold, _options?: ExportOptions): Blob {
+export function exportToOBJ(model: ManifoldType, _options?: ExportOptions): Blob {
   try {
     // Use the pure function to get OBJ string
     const objContent = manifoldToOBJ(model);
-    
+
     // Convert to blob (browser-specific)
     return new Blob([objContent], { type: "model/obj" });
   } catch (error) {

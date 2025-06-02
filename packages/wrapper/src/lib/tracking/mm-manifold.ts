@@ -2,7 +2,7 @@
 // Proxy-based tracking wrapper that preserves complete API transparency
 
 // No imports needed from manifold.ts since we receive the class as parameter
-import { getOperationRegistry, type OperationInfo } from './operation-registry';
+import { getOperationRegistry } from './operation-registry';
 
 export interface OperationMetadata {
   name?: string;

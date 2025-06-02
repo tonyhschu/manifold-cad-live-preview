@@ -1,4 +1,4 @@
-import type { Manifold } from '../lib/manifold';
+import type { ManifoldType } from '../lib/manifold';
 
 // Re-export Tweakpane types for direct usage
 export type { BindingParams } from 'tweakpane';
@@ -37,10 +37,10 @@ export interface CustomParam<T = any> {
 */
 
 // Union of all parameter types (custom parameters commented out until Issue #14)
-export type TweakpaneParam = 
-  | TweakpaneNumberParam 
-  | TweakpaneBooleanParam 
-  | TweakpaneStringParam 
+export type TweakpaneParam =
+  | TweakpaneNumberParam
+  | TweakpaneBooleanParam
+  | TweakpaneStringParam
   | TweakpaneColorParam;
 
 export type ParameterConfig = TweakpaneParam; // | CustomParam; // TODO: Issue #14
@@ -48,7 +48,7 @@ export type ParameterConfig = TweakpaneParam; // | CustomParam; // TODO: Issue #
 // Core configuration interface
 export interface ParametricConfig {
   parameters: Record<string, ParameterConfig>;
-  generateModel: (params: Record<string, any>) => Manifold;
+  generateModel: (params: Record<string, any>) => ManifoldType;
   name?: string;
   description?: string;
 }
@@ -66,30 +66,30 @@ export const P = {
     ...(max !== undefined && { max }),
     ...(step !== undefined && { step })
   }),
-  
+
   boolean: (value: boolean): TweakpaneBooleanParam => ({ value }),
-  
+
   select: (value: string, options: string[] | Record<string, string>): TweakpaneStringParam => {
     // Convert array to object format that Tweakpane expects
-    const optionsObj = Array.isArray(options) 
+    const optionsObj = Array.isArray(options)
       ? options.reduce((acc, opt) => ({ ...acc, [opt]: opt }), {})
       : options;
     return { value, options: optionsObj };
   },
-  
+
   string: (value: string): TweakpaneStringParam => ({ value }),
-  
-  color: (value: string): TweakpaneColorParam => ({ 
-    value, 
-    color: { type: 'float' } 
+
+  color: (value: string): TweakpaneColorParam => ({
+    value,
+    color: { type: 'float' }
   }),
 
   // Custom UI helper - NOT YET IMPLEMENTED
   // See Issue #14: https://github.com/tonyhschu/manifold-cad-live-preview/issues/14
   /*
   custom: <T>(
-    value: T, 
-    setup: CustomParam<T>['setup'], 
+    value: T,
+    setup: CustomParam<T>['setup'],
     fallback?: TweakpaneParam
   ): CustomParam<T> => ({
     type: 'custom',
@@ -103,12 +103,12 @@ export const P = {
 // Config creation helper
 export function createConfig<T extends Record<string, ParameterConfig>>(
   parameters: T,
-  modelFn: (params: ExtractParamTypes<T>) => Manifold,
+  modelFn: (params: ExtractParamTypes<T>) => ManifoldType,
   metadata: { name?: string; description?: string } = {}
 ): ParametricConfig {
   return {
     parameters,
-    generateModel: modelFn as (params: Record<string, any>) => Manifold,
+    generateModel: modelFn as (params: Record<string, any>) => ManifoldType,
     ...metadata
   };
 }
