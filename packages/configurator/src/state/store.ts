@@ -16,7 +16,7 @@ import type { ParametricConfig } from '@manifold-studio/wrapper';
 /**
  * Current model ID
  */
-export const currentModelId = signal('demo');
+export const currentModelId = signal('main');
 
 /**
  * Status message and error state

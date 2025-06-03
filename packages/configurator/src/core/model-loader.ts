@@ -36,20 +36,56 @@ export type ModelCreator = () => any;
 export type ParametricModel = ParametricConfig;
 
 /**
- * Registry of all available models in the system
- * Each entry includes an ID, import path, display name, and type
+ * Development-only registry for our internal models
+ * This is used when running in development mode within the monorepo
  */
-export const availableModels = [
-  // Static models (function-based)
-  { id: "demo", path: "../models/demo", name: "Demo Model", type: "static" as const },
-  { id: "cube", path: "../models/cube", name: "Simple Cube", type: "static" as const },
-  { id: "compound", path: "../models/compound", name: "Compound Model", type: "static" as const },
-  { id: "hook", path: "../models/hook", name: "Hook", type: "static" as const },
-  { id: "tracked-test", path: "../models/tracked-test", name: "Tracked Test", type: "static" as const },
+const developmentModels = [
+  // Main model (follows user convention)
+  { id: "main", path: "../../examples/main.js", name: "Parametric Hook", type: "parametric" as const },
 
-  // Parametric models (ParametricConfig-based)
-  { id: "parametric-hook", path: "../models/parametric-hook", name: "Parametric Hook", type: "parametric" as const },
+  // Component models (in examples/components/ directory - follows user convention)
+  { id: "demo", path: "../../examples/components/demo.js", name: "Demo Model", type: "static" as const },
+  { id: "cube", path: "../../examples/components/cube.js", name: "Simple Cube", type: "static" as const },
+  { id: "simple-hook", path: "../../examples/components/simple-hook.js", name: "Simple Hook", type: "static" as const },
+
+  // Legacy models (still in models directory for backward compatibility)
+  { id: "tracked-test", path: "../models/tracked-test", name: "Tracked Test", type: "static" as const },
+  { id: "parametric-hook", path: "../models/parametric-hook", name: "Parametric Hook (Legacy)", type: "parametric" as const },
 ];
+
+/**
+ * Model registry entry interface
+ */
+export interface ModelRegistryEntry {
+  id: string;
+  path: string;
+  name: string;
+  type: 'static' | 'parametric';
+}
+
+/**
+ * Check if we're running in development mode (within the monorepo)
+ */
+function isDevelopmentMode(): boolean {
+  try {
+    // Multiple checks to determine if we're in development mode:
+    // 1. Vite dev mode
+    // 2. URL contains configurator or packages (monorepo structure)
+    // 3. Check if we have access to development models (fallback)
+    const isViteDev = import.meta.env?.DEV === true;
+    const isMonorepoPath = typeof window !== 'undefined' &&
+                          (window.location.pathname.includes('configurator') ||
+                           window.location.pathname.includes('packages'));
+
+    // If we're in a test environment, also consider it development mode
+    const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+
+    return isViteDev || isMonorepoPath || isTestEnv;
+  } catch {
+    // If we can't determine, assume development mode for safety
+    return true;
+  }
+}
 
 /**
  * Helper to determine if a model export is a parametric config
@@ -74,7 +110,19 @@ export async function loadDefaultModel(): Promise<{
   isParametric?: boolean;
   config?: ParametricConfig;
 }> {
-  return loadModelById("demo");
+  if (isDevelopmentMode()) {
+    return loadModelById("main");
+  } else {
+    // In generated projects, try to load main.js
+    const models = await getAvailableModelsAsync();
+    if (models.length === 0) {
+      throw new Error('No models found. Please ensure you have a main.js file or models in a components/ directory.');
+    }
+
+    // Prefer 'main' model if it exists, otherwise use first available
+    const defaultModel = models.find(m => m.id === 'main') || models[0];
+    return loadModelById(defaultModel.id);
+  }
 }
 
 /**
@@ -100,7 +148,7 @@ export async function loadModelById(
 }> {
   try {
     // Find the model definition
-    const modelDef = availableModels.find((m) => m.id === modelId);
+    const modelDef = developmentModels.find((m) => m.id === modelId);
     if (!modelDef) {
       throw new Error(`Model with ID "${modelId}" not found`);
     }
@@ -164,5 +212,16 @@ export async function loadModelById(
  * @returns Array of model information (id, name, and type)
  */
 export function getAvailableModels() {
-  return availableModels.map(({ id, name, type }) => ({ id, name, type }));
+  if (isDevelopmentMode()) {
+    return developmentModels.map(({ id, name, type }) => ({ id, name, type }));
+  } else {
+    // In generated projects, we need async discovery
+    // Return empty array for now - the async version should be used
+    console.warn('getAvailableModels() called in generated project mode. Use getAvailableModelsAsync() instead.');
+    return [];
+  }
+}
+
+export async function getAvailableModelsAsync() {
+  return developmentModels.map(({ id, name, type }) => ({ id, name, type }));
 }
