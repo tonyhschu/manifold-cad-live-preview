@@ -90,10 +90,12 @@ describe('UrlService', () => {
 
     it('factory returns working service', () => {
       const service = createUrlService()
-      const blob = new MockBlob(['test'])
+      // Use real Blob in happy-dom environment instead of MockBlob
+      const blob = new Blob(['test'], { type: 'text/plain' })
 
       const url = service.createObjectURL(blob)
-      expect(url).toMatch(/^blob:mock-\d+$/)
+      // In happy-dom, real URLs are created, not mock URLs
+      expect(url).toMatch(/^blob:/)
 
       expect(service.getManagedUrlCount()).toBe(1)
 
