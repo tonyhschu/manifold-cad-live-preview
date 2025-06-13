@@ -13,6 +13,13 @@ export interface ConfiguratorOptions {
   models?: Record<string, any>;
   defaultModel?: string;
   container?: string | HTMLElement;
+  /** Custom model registry for user projects - maps model ID to actual model objects */
+  modelRegistry?: Record<string, {
+    id: string;
+    name: string;
+    type: 'static' | 'parametric';
+    loader: () => Promise<any>; // Function that returns the actual model/config
+  }>;
 }
 
 /**
@@ -177,7 +184,7 @@ function loadModelViewerScript(): Promise<void> {
  */
 async function initializeConfigurator() {
   // Initialize store
-  initializeStore();
+  await initializeStore();
 
   // Initialize services
   initializeServices();
@@ -213,7 +220,7 @@ async function initializeConfigurator() {
  * Start the Manifold Studio configurator
  */
 export async function startConfigurator(options: ConfiguratorOptions = {}) {
-  const { models = {}, defaultModel, container = 'body' } = options;
+  const { models = {}, defaultModel, container = 'body', modelRegistry } = options;
 
   // Get or create container element
   let containerElement: HTMLElement;
@@ -249,6 +256,29 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
 
   // Initialize the configurator
   const { modelViewer } = await initializeConfigurator();
+
+  // Set up custom model registry if provided
+  if (modelRegistry) {
+    console.log('🔍 Using custom model registry');
+    const { configureModelDiscovery } = await import('./core/model-loader');
+
+    // Convert model registry to the format expected by the configurator
+    const registryModels = Object.values(modelRegistry).map(model => ({
+      id: model.id,
+      name: model.name,
+      type: model.type,
+      path: model.id, // Use ID as path since we have the loader function
+      loader: model.loader
+    }));
+
+    console.log('🎯 Custom registry has models:', registryModels.map(m => m.id));
+    configureModelDiscovery({ customModels: registryModels });
+
+    // Refresh the store with the new models
+    const { refreshAvailableModels } = await import('./state/store');
+    await refreshAvailableModels();
+    console.log('✅ Store updated with custom models');
+  }
 
   // Register models if provided (for future enhancement)
   if (Object.keys(models).length > 0) {

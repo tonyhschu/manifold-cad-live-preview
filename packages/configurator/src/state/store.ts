@@ -6,7 +6,7 @@
  */
 
 import { signal, computed } from '@preact/signals';
-import { ModelMetadata, getAvailableModels as getAvailableModelsFromLoader } from '../core/model-loader';
+import { ModelMetadata, getAvailableModels as getAvailableModelsFromLoader, getAvailableModelsAsync, setupModelDiscoveryHMR } from '../core/model-loader';
 import { getModelService } from '../services';
 import { StatusState, ModelUrlsState } from './types';
 import type { ParametricConfig } from '@manifold-studio/wrapper';
@@ -57,7 +57,7 @@ export const currentParametricConfig = signal<ParametricConfig | null>(null);
 /**
  * Available models that can be loaded
  */
-export const availableModels = signal(getAvailableModelsFromLoader());
+export const availableModels = signal<Array<{id: string; name: string; type: 'static' | 'parametric'}>>([]);
 
 // ===== Computed Values =====
 
@@ -147,15 +147,27 @@ export function updateStatus(message: string, isError = false) {
 /**
  * Refresh the available models list
  */
-export function refreshAvailableModels() {
-  // Use the model loader directly since it doesn't need services
-  availableModels.value = getAvailableModelsFromLoader();
+export async function refreshAvailableModels() {
+  try {
+    const models = await getAvailableModelsAsync();
+    availableModels.value = models.map(({ id, name, type }) => ({ id, name, type }));
+  } catch (error) {
+    console.error('Failed to refresh available models:', error);
+  }
 }
 
 /**
  * Initialize the store with available models
  */
-export function initializeStore() {
-  // No-op now since availableModels is initialized directly
-  // This function is kept for potential future initialization needs
+export async function initializeStore() {
+  // Load available models asynchronously
+  await refreshAvailableModels();
+
+  // Set up HMR for model discovery
+  setupModelDiscoveryHMR(() => {
+    // Refresh the model list when HMR detects changes
+    refreshAvailableModels().catch(error => {
+      console.error('Failed to refresh models after HMR update:', error);
+    });
+  });
 }

@@ -10,6 +10,7 @@ import { currentModelId, loadModel, updateStatus, initializeStore } from "./stat
 import { createModelViewer } from "./core/preview";
 import { setupHMR } from "./hmr-handler";
 import { initializeServices } from "./services";
+import { configureModelDiscovery } from "./core/model-loader";
 
 // Get DOM elements
 const modelViewerElement = document.getElementById("viewer") as any;
@@ -51,14 +52,17 @@ if (import.meta.hot !== undefined) {
 async function runPreview() {
   try {
     console.log("Starting ManifoldCAD preview");
-    
+
+    // Configure for development mode (monorepo)
+    configureModelDiscovery({ useDevelopmentModels: true });
+
     // Initialize services first
     updateStatus("Initializing services...");
     initializeServices();
     
     // Initialize store (loads available models)
     updateStatus("Loading available models...");
-    initializeStore();
+    await initializeStore();
     
     // Update initial status
     updateStatus("Starting ManifoldCAD preview...");

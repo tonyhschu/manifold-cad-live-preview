@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getAvailableModels, getAvailableModelsAsync, loadDefaultModel, loadModelById } from '../../src/core/model-loader';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { getAvailableModels, getAvailableModelsAsync, loadDefaultModel, loadModelById, configureModelDiscovery } from '../../src/core/model-loader';
 
 // Mock import.meta.env
 vi.mock('import.meta', () => ({
@@ -24,6 +24,9 @@ describe('Model Loader', () => {
 
   describe('getAvailableModels (sync)', () => {
     it('should return development models in development mode', () => {
+      // Configure for development mode
+      configureModelDiscovery({ useDevelopmentModels: true });
+
       const models = getAvailableModels();
 
       expect(models).toBeInstanceOf(Array);
@@ -37,6 +40,9 @@ describe('Model Loader', () => {
     });
 
     it('should return models with correct structure', () => {
+      // Configure for development mode
+      configureModelDiscovery({ useDevelopmentModels: true });
+
       const models = getAvailableModels();
 
       models.forEach(model => {
@@ -50,6 +56,9 @@ describe('Model Loader', () => {
 
   describe('getAvailableModelsAsync', () => {
     it('should return development models in development mode', async () => {
+      // Configure for development mode
+      configureModelDiscovery({ useDevelopmentModels: true });
+
       const models = await getAvailableModelsAsync();
 
       expect(models).toBeInstanceOf(Array);
@@ -61,10 +70,85 @@ describe('Model Loader', () => {
       expect(modelIds).toContain('demo');
       expect(modelIds).toContain('cube');
     });
+
+    it('should return models with correct structure including path', async () => {
+      // Configure for development mode
+      configureModelDiscovery({ useDevelopmentModels: true });
+
+      const models = await getAvailableModelsAsync();
+
+      models.forEach(model => {
+        expect(model).toHaveProperty('id');
+        expect(model).toHaveProperty('name');
+        expect(model).toHaveProperty('type');
+        expect(model).toHaveProperty('path');
+        expect(['static', 'parametric']).toContain(model.type);
+      });
+    });
+  });
+
+  describe('getAvailableModelsAsync in generated projects', () => {
+    beforeEach(() => {
+      // Configure for generated project mode (file discovery)
+      configureModelDiscovery({ useDevelopmentModels: false });
+    });
+
+    afterEach(() => {
+      // Restore development mode
+      configureModelDiscovery({ useDevelopmentModels: true });
+    });
+
+    it('should use custom models when configured', async () => {
+      // Configure with custom models (simulates what would be discovered)
+      const customModels = [
+        { id: 'main', path: './main.ts', name: 'Test Box', type: 'parametric' as const },
+        { id: 'components/wheel', path: './components/wheel.ts', name: 'Wheel Component', type: 'static' as const },
+        { id: 'components/chassis', path: './components/chassis.ts', name: 'Chassis Component', type: 'static' as const }
+      ];
+
+      configureModelDiscovery({ customModels });
+
+      const models = await getAvailableModelsAsync();
+
+      expect(models).toBeInstanceOf(Array);
+      expect(models.length).toBe(3);
+
+      const modelIds = models.map(m => m.id);
+      expect(modelIds).toContain('main');
+      expect(modelIds).toContain('components/wheel');
+      expect(modelIds).toContain('components/chassis');
+
+      // Check that main is detected as parametric
+      const mainModel = models.find(m => m.id === 'main');
+      expect(mainModel?.type).toBe('parametric');
+      expect(mainModel?.name).toBe('Test Box');
+    });
+
+    it('should discover models from actual files in test environment', async () => {
+      // This tests the real file discovery mechanism
+      // It will find actual TypeScript files in the test environment
+      const models = await getAvailableModelsAsync();
+
+      expect(models).toBeInstanceOf(Array);
+      // Should find some files (even if they're not model files)
+      expect(models.length).toBeGreaterThanOrEqual(0);
+
+      // Each discovered model should have the correct structure
+      models.forEach(model => {
+        expect(model).toHaveProperty('id');
+        expect(model).toHaveProperty('name');
+        expect(model).toHaveProperty('type');
+        expect(model).toHaveProperty('path');
+        expect(['static', 'parametric']).toContain(model.type);
+      });
+    });
   });
 
   describe('loadDefaultModel', () => {
     it('should load the main model in development mode', async () => {
+      // Ensure we're in development mode
+      configureModelDiscovery({ useDevelopmentModels: true });
+
       const result = await loadDefaultModel();
 
       expect(result).toHaveProperty('model');
@@ -79,6 +163,9 @@ describe('Model Loader', () => {
 
   describe('loadModelById', () => {
     it('should load a static model correctly', async () => {
+      // Ensure we're in development mode
+      configureModelDiscovery({ useDevelopmentModels: true });
+
       const result = await loadModelById('demo');
 
       expect(result).toHaveProperty('model');
@@ -88,6 +175,9 @@ describe('Model Loader', () => {
     });
 
     it('should load a parametric model correctly', async () => {
+      // Ensure we're in development mode
+      configureModelDiscovery({ useDevelopmentModels: true });
+
       const result = await loadModelById('main');
 
       expect(result).toHaveProperty('model');

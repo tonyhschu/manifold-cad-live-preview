@@ -61,30 +61,41 @@ export interface ModelRegistryEntry {
   path: string;
   name: string;
   type: 'static' | 'parametric';
+  loader?: () => Promise<any>; // Optional loader function for user project models
 }
 
 /**
- * Check if we're running in development mode (within the monorepo)
+ * Configuration for model discovery
  */
-function isDevelopmentMode(): boolean {
-  try {
-    // Multiple checks to determine if we're in development mode:
-    // 1. Vite dev mode
-    // 2. URL contains configurator or packages (monorepo structure)
-    // 3. Check if we have access to development models (fallback)
-    const isViteDev = import.meta.env?.DEV === true;
-    const isMonorepoPath = typeof window !== 'undefined' &&
-                          (window.location.pathname.includes('configurator') ||
-                           window.location.pathname.includes('packages'));
+interface ModelDiscoveryConfig {
+  /** Use hardcoded development models instead of file discovery */
+  useDevelopmentModels?: boolean;
+  /** Custom model registry to use instead of discovery */
+  customModels?: ModelRegistryEntry[];
+}
 
-    // If we're in a test environment, also consider it development mode
-    const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+/**
+ * Global configuration for model discovery
+ * Can be set by the development environment or tests
+ */
+let modelDiscoveryConfig: ModelDiscoveryConfig = {
+  useDevelopmentModels: false // Default to file discovery (customer-facing behavior)
+};
 
-    return isViteDev || isMonorepoPath || isTestEnv;
-  } catch {
-    // If we can't determine, assume development mode for safety
-    return true;
-  }
+/**
+ * Configure model discovery behavior
+ * This is primarily used by the development environment and tests
+ */
+export function configureModelDiscovery(config: ModelDiscoveryConfig) {
+  modelDiscoveryConfig = { ...modelDiscoveryConfig, ...config };
+}
+
+/**
+ * Check if we should use development models
+ * This is now configuration-driven rather than environment-detection
+ */
+function shouldUseDevelopmentModels(): boolean {
+  return modelDiscoveryConfig.useDevelopmentModels === true;
 }
 
 /**
@@ -110,19 +121,15 @@ export async function loadDefaultModel(): Promise<{
   isParametric?: boolean;
   config?: ParametricConfig;
 }> {
-  if (isDevelopmentMode()) {
-    return loadModelById("main");
-  } else {
-    // In generated projects, try to load main.js
-    const models = await getAvailableModelsAsync();
-    if (models.length === 0) {
-      throw new Error('No models found. Please ensure you have a main.js file or models in a components/ directory.');
-    }
-
-    // Prefer 'main' model if it exists, otherwise use first available
-    const defaultModel = models.find(m => m.id === 'main') || models[0];
-    return loadModelById(defaultModel.id);
+  // Always try to load main model first, regardless of environment
+  const models = await getAvailableModelsAsync();
+  if (models.length === 0) {
+    throw new Error('No models found. Please ensure you have a main.ts file or models in a components/ directory.');
   }
+
+  // Prefer 'main' model if it exists, otherwise use first available
+  const defaultModel = models.find(m => m.id === 'main') || models[0];
+  return loadModelById(defaultModel.id);
 }
 
 /**
@@ -147,14 +154,26 @@ export async function loadModelById(
   config?: ParametricConfig;
 }> {
   try {
+    // Get available models (this will use the appropriate discovery method)
+    const availableModels = await getAvailableModelsAsync();
+
     // Find the model definition
-    const modelDef = developmentModels.find((m) => m.id === modelId);
+    const modelDef = availableModels.find((m) => m.id === modelId);
     if (!modelDef) {
       throw new Error(`Model with ID "${modelId}" not found`);
     }
 
     // Import the model module
-    const modelModule = await import(modelDef.path);
+    let modelModule;
+    if (modelDef.loader) {
+      // Use the custom loader function for user project models
+      console.log(`Loading model "${modelId}" using custom loader`);
+      modelModule = await modelDef.loader();
+    } else {
+      // Use standard import for development models
+      console.log(`Loading model "${modelId}" using standard import from ${modelDef.path}`);
+      modelModule = await import(modelDef.path);
+    }
 
     // Get the default export
     const defaultExport = modelModule.default;
@@ -212,16 +231,151 @@ export async function loadModelById(
  * @returns Array of model information (id, name, and type)
  */
 export function getAvailableModels() {
-  if (isDevelopmentMode()) {
+  // Check if we have custom models configured (for testing)
+  if (modelDiscoveryConfig.customModels) {
+    return modelDiscoveryConfig.customModels.map(({ id, name, type }) => ({ id, name, type }));
+  }
+
+  // Check if we should use development models (for monorepo development)
+  if (shouldUseDevelopmentModels()) {
     return developmentModels.map(({ id, name, type }) => ({ id, name, type }));
+  }
+
+  // In generated projects, we need async discovery
+  // Return empty array for now - the async version should be used
+  console.warn('getAvailableModels() called in generated project mode. Use getAvailableModelsAsync() instead.');
+  return [];
+}
+
+/**
+ * Scan for user models in generated projects using Vite's import.meta.glob
+ */
+async function scanForUserModels(): Promise<ModelRegistryEntry[]> {
+  const models: ModelRegistryEntry[] = [];
+
+  try {
+    // Use Vite's glob import to discover model files at build time
+    const modelModules = import.meta.glob([
+      './main.{ts,js}',
+      './components/**/*.{ts,js}',
+      './assemblies/**/*.{ts,js}',
+      './**/*.{ts,js}',
+      '!./node_modules/**',
+      '!./dist/**',
+      '!./src/**'
+    ], {
+      eager: false
+    });
+
+    console.log('🔍 Model Discovery: Found files:', Object.keys(modelModules));
+
+    // Process each discovered file
+    for (const [filePath, moduleLoader] of Object.entries(modelModules)) {
+      try {
+        // Extract model name from file path
+        const modelId = extractModelName(filePath);
+
+        // Skip if we already have this model (avoid duplicates)
+        if (models.find(m => m.id === modelId)) {
+          continue;
+        }
+
+        // Try to load the module to determine its type
+        const module = await moduleLoader();
+        const defaultExport = (module as any).default;
+
+        // Determine model type and name
+        let modelName = modelId;
+        let modelType: 'static' | 'parametric' = 'static';
+
+        if (isParametricConfig(defaultExport)) {
+          modelType = 'parametric';
+          modelName = defaultExport.name || modelId;
+        }
+
+        models.push({
+          id: modelId,
+          path: filePath,
+          name: modelName,
+          type: modelType
+        });
+      } catch (error) {
+        console.warn(`Failed to process model file ${filePath}:`, error);
+        // Continue processing other files
+      }
+    }
+  } catch (error) {
+    console.warn('Error during model discovery:', error);
+  }
+
+  console.log('🎯 Model Discovery: Final models:', models.map(m => m.id));
+  return models;
+}
+
+/**
+ * Set up HMR for model discovery
+ * This ensures the model list refreshes when files are added/removed
+ */
+export function setupModelDiscoveryHMR(onRefresh?: () => void) {
+  if (import.meta.hot) {
+    console.log('🔥 Setting up Model Discovery HMR...');
+
+    // Listen for any HMR updates and refresh model discovery
+    import.meta.hot.on('vite:afterUpdate', (data) => {
+      console.log('🔄 HMR afterUpdate detected, refreshing model discovery...', data);
+      if (onRefresh) {
+        onRefresh();
+      }
+    });
+
+    // Also listen for file additions/removals specifically
+    import.meta.hot.on('vite:beforeUpdate', (data) => {
+      console.log('🔄 HMR beforeUpdate:', data);
+    });
+
+    // Listen for other HMR events
+    import.meta.hot.on('vite:error', (data) => {
+      console.log('❌ HMR error:', data);
+    });
+
+    console.log('✅ Model Discovery HMR setup complete');
   } else {
-    // In generated projects, we need async discovery
-    // Return empty array for now - the async version should be used
-    console.warn('getAvailableModels() called in generated project mode. Use getAvailableModelsAsync() instead.');
-    return [];
+    console.log('❌ HMR not available - model discovery will not auto-refresh');
   }
 }
 
-export async function getAvailableModelsAsync() {
-  return developmentModels.map(({ id, name, type }) => ({ id, name, type }));
+/**
+ * Extract model name from file path
+ * Examples:
+ * './main.ts' -> 'main'
+ * './components/wheel.ts' -> 'components/wheel'
+ * './assemblies/front-axle.ts' -> 'assemblies/front-axle'
+ * './nested/dir/model.ts' -> 'nested/dir/model'
+ */
+function extractModelName(filePath: string): string {
+  // Remove leading './' and file extension
+  const cleanPath = filePath.replace(/^\.\//, '').replace(/\.(ts|js)$/, '');
+
+  // For main.ts, keep it simple
+  if (cleanPath === 'main') {
+    return 'main';
+  }
+
+  // For everything else, use the full path to avoid collisions
+  return cleanPath;
+}
+
+export async function getAvailableModelsAsync(): Promise<ModelRegistryEntry[]> {
+  // Check if we have custom models configured (for testing)
+  if (modelDiscoveryConfig.customModels) {
+    return modelDiscoveryConfig.customModels;
+  }
+
+  // Check if we should use development models (for monorepo development)
+  if (shouldUseDevelopmentModels()) {
+    return developmentModels.map(({ id, name, type, path }) => ({ id, name, type, path }));
+  }
+
+  // Default behavior: scan for user models (customer-facing generated projects)
+  return await scanForUserModels();
 }
