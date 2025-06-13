@@ -1,18 +1,20 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022"],
     "module": "ESNext",
     "skipLibCheck": true,
-    "types": ["vite/client", "node"],
+    "types": ["node"],
 
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    /* Node.js mode */
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "preserve",
+    "noEmit": false,
+    "outDir": "./bin",
+    "rootDir": "./src",
 
     /* Linting */
     "strict": true,
@@ -21,5 +23,5 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src/**/*"],
-  "exclude": ["dist", "tests"]
+  "exclude": ["bin", "templates", "tests"]
 }

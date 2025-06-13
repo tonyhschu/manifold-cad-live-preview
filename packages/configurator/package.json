@@ -2,12 +2,14 @@
   "name": "@manifold-studio/configurator",
   "version": "1.0.0",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "main": "dist/lib/index.js",
+  "types": "dist/lib/index.d.ts",
+  "files": ["dist/lib"],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run build:lib && npm run build:app",
+    "build:lib": "vite build --config vite.config.lib.ts",
+    "build:app": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

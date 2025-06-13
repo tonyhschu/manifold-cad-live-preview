@@ -1,0 +1,72 @@
+# {{projectName}}
+
+{{description}}
+
+This project was created with [Manifold Studio](https://github.com/tonyhschu/manifold-cad-live-preview), a modern TypeScript framework for 3D CAD model development.
+
+## Getting Started
+
+### Development Mode
+
+Start the development server with live preview:
+
+```bash
+npm run dev
+```
+
+This will open your browser to `http://localhost:5173` where you can:
+- See your 3D model rendered in real-time
+- Adjust parameters using the control panel
+- Export your model as OBJ or GLB files
+
+### Customizing Your Model
+
+Edit `main.js` to modify your 3D model:
+
+1. **Adjust parameters**: Change the default values or add new parameters
+2. **Modify geometry**: Update the `createParametricBox` function
+3. **Add features**: Import additional Manifold operations or external libraries
+
+### Project Structure
+
+```
+{{projectName}}/
+├── main.js              # Your main 3D model
+├── components/          # Additional model components (create as needed)
+├── package.json         # Project dependencies
+├── vite.config.js       # Development server configuration
+└── index.html           # HTML bootstrap
+```
+
+## Available Scripts
+
+- `npm run dev` - Start development server with live preview
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+
+## Learn More
+
+- [Manifold Studio Documentation](https://github.com/tonyhschu/manifold-cad-live-preview)
+- [ManifoldCAD API Reference](https://elalish.github.io/manifold/docs/html/index.html)
+- [Vite Documentation](https://vitejs.dev/)
+
+## Adding Dependencies
+
+You can install any NPM package to enhance your models:
+
+```bash
+# Example: Add D3 for data visualization
+npm install d3
+
+# Example: Add math utilities
+npm install mathjs
+```
+
+Then import and use them in your model:
+
+```javascript
+import * as d3 from 'd3';
+import { evaluate } from 'mathjs';
+```
+
+Happy modeling! 🎨
