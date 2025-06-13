@@ -312,6 +312,118 @@ The pipeline provides detailed error reporting:
 - **Compilation errors**: TypeScript compilation error details
 - **Export failures**: Detailed error messages for export issues
 
+## 📦 Monorepo Architecture
+
+This project uses a monorepo structure with NPM workspaces:
+
+```
+manifold-studio/
+├── packages/
+│   ├── wrapper/                    # @manifold-studio/wrapper
+│   │   ├── src/                    # Core Manifold API wrapper
+│   │   │   ├── lib/               # Manifold API with operation tracking
+│   │   │   ├── pipeline/          # Headless generation capabilities
+│   │   │   └── types/             # TypeScript definitions
+│   │   └── tests/                 # Node.js environment tests
+│   ├── configurator/              # @manifold-studio/configurator
+│   │   ├── src/                   # UI components and development environment
+│   │   │   ├── components/        # UI components (canvas, controls)
+│   │   │   ├── services/          # Service layer integration
+│   │   │   ├── examples/          # Example 3D models
+│   │   │   └── state/             # State management
+│   │   └── tests/                 # Browser environment tests
+│   └── create-app/                # @manifold-studio/create-app
+│       ├── src/                   # CLI tool source
+│       ├── templates/             # Project templates
+│       └── bin/                   # Compiled CLI executable
+└── package.json                   # Workspace configuration
+```
+
+### Package Responsibilities
+
+- **@manifold-studio/wrapper**: Core API wrapper with headless capabilities
+
+  - ManifoldCAD API wrapper with top-level await pattern
+  - Operation tracking system
+  - Export utilities (OBJ, GLB)
+  - Headless pipeline functionality for command-line generation
+
+- **@manifold-studio/configurator**: UI components and development environment
+
+  - Interactive UI components (canvas, parameter controls)
+  - Service layer integration
+  - State management and HMR integration
+  - Development server setup
+  - Library exports for generated projects
+
+- **@manifold-studio/create-app**: Project scaffolding tool
+  - CLI for generating new projects
+  - TypeScript project templates
+  - Handlebars template processing
+  - NPM link workflow for local development
+
+## 🔧 Development Workflow
+
+### Cross-Package Development
+
+When working with the monorepo, changes in the wrapper package need to propagate to the configurator:
+
+1. **Wrapper changes** → TypeScript watch rebuilds automatically (~1-2 seconds)
+2. **Configurator detects change** → Vite HMR updates the browser
+3. **Total time**: ~2-3 seconds for cross-package changes
+
+### Development Commands
+
+```bash
+# Full development environment
+npm run devAll                    # Start both wrapper watch + configurator dev server
+
+# Individual packages
+npm run dev:wrapper               # Wrapper in watch mode (rebuilds on changes)
+npm run dev:configurator          # Configurator dev server with HMR
+npm run dev:create-app            # Create-app in watch mode
+
+# Building and testing
+npm run build                     # Build all packages
+npm run test                      # Test all packages
+npm run test:wrapper              # Test wrapper package only
+npm run test:configurator         # Test configurator package only
+npm run test:create-app           # Test create-app package only
+```
+
+### Recommended Development Setup
+
+For the best development experience, run both packages in watch mode:
+
+```bash
+# Terminal 1: Wrapper watch mode
+npm run dev:wrapper
+
+# Terminal 2: Configurator dev server
+npm run dev:configurator
+
+# Or use the convenience command:
+npm run devAll
+```
+
+This ensures that changes to the wrapper package automatically rebuild and propagate to the configurator's live preview.
+
+### Testing Generated Projects
+
+Use the test script to verify the scaffolding workflow:
+
+```bash
+# Test the complete scaffolding workflow
+./packages/create-app/test-local.sh
+
+# This will:
+# 1. Build all packages
+# 2. Create npm links
+# 3. Generate a test project
+# 4. Set up dependencies with npm link
+# 5. Verify the project works
+```
+
 ## 🎯 Project Motivation
 
 This project started with frustration trying to use ManifoldCAD as a library. The ManifoldCAD.org web editor works great, but it couldn't import other libraries like clipperjs or d3js. We needed ManifoldCAD to play well with the rest of the NPM ecosystem.
