@@ -1,86 +1,163 @@
 # Manifold Studio
 
-A modern TypeScript framework for 3D CAD model development with live preview and headless generation capabilities. Built on ManifoldCAD and Vite, this project provides two complementary modes for 3D model development and production.
-
-## Overview
-
-This project offers a complete solution for parametric 3D modeling with two distinct operational modes:
-
-### 🖥️ **Browser HMR Mode** - Interactive Development
-
-- **Live preview** with instant hot module replacement (HMR)
-- **Interactive parameter controls** using Tweakpane UI
-- **Real-time model updates** as you edit code
-- **3D visualization** with camera controls and export options
-- **Perfect for**: Model development, parameter tuning, visual debugging
-
-### ⚡ **Pipeline Mode** - Headless Generation
-
-- **Command-line interface** for automated model generation
-- **Batch processing** capabilities with parameter overrides
-- **Programmatic output** in multiple formats (OBJ, GLB)
-- **CI/CD integration** ready for automated workflows
-- **Perfect for**: Production builds, batch generation, automation
-
-Both modes share the same TypeScript codebase and model definitions, ensuring consistency between development and production environments.
-
-## 📦 Monorepo Structure
-
-This project uses a monorepo structure with NPM workspaces:
-
-```
-manifold-studio/
-├── packages/
-│   ├── wrapper/                    # @manifold-studio/wrapper
-│   │   ├── src/                    # Core Manifold API wrapper
-│   │   │   ├── lib/               # Manifold API with operation tracking
-│   │   │   ├── pipeline/          # Headless generation capabilities
-│   │   │   └── types/             # TypeScript definitions
-│   │   └── tests/                 # Node.js environment tests
-│   └── configurator/              # @manifold-studio/configurator
-│       ├── src/                   # UI components and development environment
-│       │   ├── components/        # UI components (canvas, controls)
-│       │   ├── services/          # Service layer integration
-│       │   ├── models/            # Example 3D models
-│       │   └── state/             # State management
-│       └── tests/                 # Browser environment tests
-└── package.json                   # Workspace configuration
-```
-
-### Package Responsibilities
-
-- **@manifold-studio/wrapper**: Core API wrapper with headless capabilities
-
-  - ManifoldCAD API wrapper with top-level await pattern
-  - Operation tracking system
-  - Export utilities (OBJ, GLB)
-  - Headless pipeline functionality for command-line generation
-
-- **@manifold-studio/configurator**: UI components and development environment
-  - Interactive UI components (canvas, parameter controls)
-  - Service layer integration
-  - State management and HMR integration
-  - Development server setup
+A modern TypeScript framework for 3D CAD model development with live preview and parametric controls.
 
 ## 🚀 Quick Start
 
-### Browser Mode (Development)
+Get started with a new 3D modeling project in seconds:
 
 ```bash
-# Install dependencies
+# Create a new project
+npx @manifold-studio/create-app my-3d-project
+
+# Set up for local development (until packages are published)
+cd my-3d-project
 npm install
+npm link @manifold-studio/wrapper @manifold-studio/configurator
 
-# Start full development environment (wrapper + configurator)
-npm run devAll
-
-# Or start components individually:
-# npm run dev:wrapper    # Start wrapper in watch mode
-# npm run dev:configurator  # Start configurator dev server
+# Start developing
+npm run dev
 ```
 
-Open your browser to http://localhost:5174 to see live 3D models with interactive controls.
+This opens a browser with:
 
-### Pipeline Mode (Generation)
+- **3D Canvas**: Real-time model preview with camera controls
+- **Parameter Panel**: Sliders and controls for your model parameters
+- **Export Tools**: Download STL, OBJ, GLB files instantly
+- **Hot Reloading**: Edit code and see changes immediately
+
+## Overview
+
+Manifold Studio provides two complementary development modes:
+
+1. **Browser HMR Mode**: Live development environment with hot module reloading for rapid iteration
+2. **Pipeline Mode**: Command-line tools for batch processing and CI/CD integration
+
+Both modes use the same underlying TypeScript API built on [ManifoldCAD](https://github.com/elalish/manifold), ensuring your models work consistently across development and production workflows.
+
+## 📦 Project Scaffolding
+
+### @manifold-studio/create-app
+
+The `create-app` package provides a CLI tool for scaffolding new Manifold Studio projects:
+
+```bash
+# Create a new TypeScript project with full configurator UI
+npx @manifold-studio/create-app my-project
+
+# Generated project structure:
+my-project/
+├── main.ts              # Your main 3D model with parametric controls
+├── components/          # Additional model components
+│   └── example.ts       # Example component
+├── package.json         # Dependencies and scripts
+├── tsconfig.json        # TypeScript configuration
+├── vite.config.ts       # Development server configuration
+└── index.html           # HTML bootstrap
+```
+
+**Generated projects include:**
+
+- **TypeScript by default** with full type safety
+- **Parametric box example** with width, height, depth controls
+- **Component system** for modular model development
+- **Hot module reloading** for instant feedback
+- **Export functionality** built-in
+
+### Development Workflow for Generated Projects
+
+```bash
+cd my-project
+npm run dev          # Start development server
+# Edit main.ts       # See changes instantly in browser
+# Add components/    # Automatically discovered by model selector
+```
+
+## 🖥️ Developing 3D Models
+
+### Basic Model Structure
+
+Every Manifold Studio model is a TypeScript function that returns a `Manifold` object:
+
+```typescript
+import { Manifold, P, createConfig } from "@manifold-studio/wrapper";
+
+// Simple model function
+function createBox(width = 20, height = 15, depth = 10) {
+  return Manifold.cube([width, height, depth], true);
+}
+
+// Parametric configuration for UI controls
+const boxConfig = createConfig(
+  {
+    width: P.number(20, 10, 100, 1),
+    height: P.number(15, 10, 100, 1),
+    depth: P.number(10, 5, 50, 1),
+  },
+  (params) => createBox(params.width, params.height, params.depth),
+  {
+    name: "Parametric Box",
+    description: "A customizable box with adjustable dimensions",
+  }
+);
+```
+
+### Parameter Types
+
+Define interactive controls for your models:
+
+```typescript
+import { P } from "@manifold-studio/wrapper";
+
+const config = createConfig(
+  {
+    // Numbers with min, max, step
+    width: P.number(20, 1, 100, 0.5),
+
+    // Booleans for toggles
+    hasLid: P.boolean(true),
+
+    // Strings for text input
+    label: P.string("My Model"),
+
+    // Choices for dropdowns
+    material: P.choice("plastic", ["plastic", "metal", "wood"]),
+  },
+  (params) => {
+    // Your model logic using params
+    return createModel(params);
+  }
+);
+```
+
+### Component System
+
+Organize complex models using components:
+
+```typescript
+// components/wheel.ts
+export function createWheel(radius = 10, width = 5) {
+  return Manifold.cylinder(width, radius);
+}
+
+// main.ts
+import { createWheel } from "./components/wheel";
+
+function createCar(wheelRadius = 10) {
+  const wheel = createWheel(wheelRadius, 3);
+  const body = Manifold.cube([40, 15, 8], true);
+
+  // Position wheels
+  const frontWheel = wheel.translate([-12, 0, -6]);
+  const backWheel = wheel.translate([12, 0, -6]);
+
+  return Manifold.union([body, frontWheel, backWheel]);
+}
+```
+
+## ⚡ Pipeline Mode - Headless Generation
+
+Generate 3D models from the command line for automation and CI/CD:
 
 ```bash
 # Generate a model with default parameters
@@ -93,63 +170,26 @@ npm run pipeline -- packages/configurator/src/models/parametric-hook.ts --params
 npm run pipeline -- packages/configurator/src/models/hook.ts --output my-hook.obj
 ```
 
-## 🔧 Development Workflow
+**Perfect for:**
 
-### Cross-Package Development
+- Batch generation of model variants
+- CI/CD integration
+- Automated testing
+- Production builds
 
-When working with both packages, changes in the wrapper package need to propagate to the configurator:
+## 🎨 Browser Mode - Interactive Development
 
-1. **Wrapper changes** → TypeScript watch rebuilds automatically (~1-2 seconds)
-2. **Configurator detects change** → Vite HMR updates the browser
-3. **Total time**: ~2-3 seconds for cross-package changes
-
-### Development Commands
-
-```bash
-# Full development environment
-npm run devAll                    # Start both wrapper watch + configurator dev server
-
-# Individual packages
-npm run dev:wrapper               # Wrapper in watch mode (rebuilds on changes)
-npm run dev:configurator          # Configurator dev server with HMR
-
-# Building and testing
-npm run build                     # Build all packages
-npm run test                      # Test all packages
-npm run test:wrapper              # Test wrapper package only
-npm run test:configurator         # Test configurator package only
-```
-
-### Recommended Development Setup
-
-For the best development experience, run both packages in watch mode:
-
-```bash
-# Terminal 1: Wrapper watch mode
-npm run dev:wrapper
-
-# Terminal 2: Configurator dev server
-npm run dev:configurator
-
-# Or use the convenience command:
-npm run devAll
-```
-
-This ensures that changes to the wrapper package automatically rebuild and propagate to the configurator's live preview.
-
-## 🖥️ Browser Mode - Interactive Development
-
-Browser Mode provides a live development environment with instant feedback and interactive parameter controls.
+The browser mode provides a live development environment with instant feedback:
 
 ### Features
 
 - **Hot Module Replacement (HMR)**: Instant updates when you modify model code
-- **Interactive Parameter Controls**: Tweakpane-based UI for real-time parameter adjustment
+- **Interactive Parameter Controls**: Real-time parameter adjustment
 - **3D Visualization**: Built-in 3D viewer with camera controls
 - **Multiple Export Formats**: Download models as OBJ or GLB files
-- **State Preservation**: Camera position and UI state maintained during code updates
+- **Component Discovery**: Automatically finds models in your project
 
-### Getting Started
+### Getting Started with Browser Mode
 
 1. **Start the development server:**
 
@@ -165,68 +205,23 @@ Browser Mode provides a live development environment with instant feedback and i
 
 5. **Edit model code** in your editor and see changes instantly
 
-### Creating Models
+## � Motivation
 
-Models can be created in two ways:
+ManifoldCAD is great - I really wanted to use it with the rest of the NPM ecosystem. That meant that I had to solve the "WASM in Node.js" problem. Once I solved that, then I built a development environment on top of it. And then it sort of ... spiraled out of control. Here's what I wanted to build:
 
-#### Function-Based Models
+- **Code-First**: Define models in TypeScript with full IDE support
+- **Version Control Friendly**: Models are just code - diff, merge, and collaborate naturally
+- **Parametric by Design**: Built-in parameter system with automatic UI generation
+- **Export Flexibility**: Generate STL, OBJ, GLB, and other formats programmatically
+- **Modern Tooling**: Leverage the entire JavaScript ecosystem
 
-Simple models that export a function:
+Right now, this is an over-engineered solution for a code CAD environment for designing 3D printed toys for my kids, but perhaps it can be something more.
 
-```typescript
-// packages/configurator/src/models/my-cube.ts
-import { Manifold } from "@manifold-studio/wrapper";
+---
 
-export default function createCube(size = 15, centered = true): ManifoldType {
-  return Manifold.cube([size, size, size], centered);
-}
-```
+# 🔧 Manifold Studio Internals
 
-#### Parametric Models
-
-Advanced models with interactive parameter controls:
-
-```typescript
-// packages/configurator/src/models/my-parametric-model.ts
-import { Manifold, P, createConfig } from "@manifold-studio/wrapper";
-import type { ManifoldType } from "@manifold-studio/wrapper";
-
-function createHook(thickness = 3, width = 13, radius = 10): ManifoldType {
-  // Your model logic here
-  return Manifold.cylinder(width, thickness / 2, thickness / 2);
-}
-
-export default createConfig(
-  {
-    thickness: P.number(3, 1, 10, 0.5),
-    width: P.number(13, 5, 50, 1),
-    radius: P.number(10, 5, 20, 0.5),
-  },
-  (params) => createHook(params.thickness, params.width, params.radius),
-  {
-    name: "My Hook",
-    description: "A customizable hook model",
-  }
-);
-```
-
-### Parameter Types
-
-The parameter system supports various input types:
-
-- `P.number(default, min, max, step)` - Numeric sliders
-- `P.boolean(default)` - Checkboxes
-- `P.select(default, options)` - Dropdown selections
-- `P.string(default)` - Text inputs
-- `P.color(default)` - Color pickers
-
-### HMR Integration
-
-The HMR system automatically detects changes and updates the appropriate parts:
-
-- **Model changes**: Reloads the current model while preserving camera position
-- **UI changes**: Updates interface components without losing state
-- **Parameter changes**: Refreshes controls and applies new values
+_This section covers the internal architecture and development of Manifold Studio itself._
 
 ## ⚡ Pipeline Mode - Headless Generation
 
