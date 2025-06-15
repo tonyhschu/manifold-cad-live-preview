@@ -13,7 +13,7 @@
     "test:configurator": "npm run test --workspace @manifold-studio/configurator",
     "test:create-app": "npm run test --workspace @manifold-studio/create-app",
     "dev": "npm run dev --workspace @manifold-studio/wrapper & npm run dev:configurator",
-    "devAll": "npm run dev --workspace @manifold-studio/wrapper & npm run dev:configurator",
+    "devAll": "REPO_HMR=true npm run dev --workspace @manifold-studio/wrapper & REPO_HMR=true npm run dev:configurator",
     "dev:wrapper": "npm run dev --workspace @manifold-studio/wrapper",
     "dev:configurator": "npm run dev --workspace @manifold-studio/configurator",
     "dev:create-app": "npm run dev --workspace @manifold-studio/create-app"

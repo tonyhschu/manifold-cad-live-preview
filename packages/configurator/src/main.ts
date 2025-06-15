@@ -8,7 +8,7 @@ import "./style.css";
 import "./components"; // Register all web components
 import { currentModelId, loadModel, updateStatus, initializeStore } from "./state/store";
 import { createModelViewer } from "./core/preview";
-import { setupHMR } from "./hmr-handler";
+import { setupSimpleHMR } from "./hmr-simple";
 import { initializeServices } from "./services";
 import { configureModelDiscovery } from "./core/model-loader";
 
@@ -42,8 +42,8 @@ const appContext = {
 
 // Initialize HMR for development
 if (import.meta.hot !== undefined) {
-  console.log("HMR is available - setting up handlers");
-  setupHMR(appContext);
+  console.log("HMR is available - setting up simple HMR system");
+  setupSimpleHMR();
 }
 
 /**

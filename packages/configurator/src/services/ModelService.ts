@@ -40,18 +40,28 @@ export class ModelService implements IModelService {
     onProgress?.(0, `Loading model: ${modelId}...`);
 
     try {
-      // Check cache first
-      const cached = this.getCachedModel(modelId);
-      if (cached) {
-        onProgress?.(100, 'Model loaded from cache');
-        return {
-          model: cached.model,
-          metadata: cached.metadata,
-          isParametric: cached.isParametric,
-          config: cached.config,
-          exports: cached.exports!
-        };
+      // Skip cache during development for HMR
+      const skipCache = import.meta.env.DEV && (globalThis as any).__MODEL_REBUILD_TIMESTAMP__;
+
+      if (!skipCache) {
+        // Check cache first (production mode)
+        const cached = this.getCachedModel(modelId);
+        if (cached) {
+          console.log(`🎯 ModelService: Loading "${modelId}" from cache (cache hit)`);
+          onProgress?.(100, 'Model loaded from cache');
+          return {
+            model: cached.model,
+            metadata: cached.metadata,
+            isParametric: cached.isParametric,
+            config: cached.config,
+            exports: cached.exports!
+          };
+        }
+      } else {
+        console.log(`🎯 ModelService: Skipping cache for "${modelId}" (HMR mode)`);
       }
+
+      console.log(`🎯 ModelService: Generating fresh exports for "${modelId}"`);
 
       onProgress?.(10, 'Loading model from source...');
 
@@ -146,6 +156,11 @@ export class ModelService implements IModelService {
    * Clear model cache
    */
   clearCache(): void {
+    const cacheSize = this.cache.size;
+    const cachedModels = Array.from(this.cache.keys());
+
+    console.log(`🗑️ ModelService: Clearing cache (${cacheSize} entries):`, cachedModels);
+
     // Clean up any URLs from cached exports
     for (const entry of this.cache.values()) {
       if (entry.exports) {
@@ -154,6 +169,7 @@ export class ModelService implements IModelService {
     }
 
     this.cache.clear();
+    console.log(`✅ ModelService: Cache cleared (now ${this.cache.size} entries)`);
   }
 
   /**

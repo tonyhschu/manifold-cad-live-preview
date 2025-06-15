@@ -6,7 +6,7 @@ import { initializeServices } from './services';
 import { loadDefaultModel } from './core/model-loader';
 import { initializeStore, loadModel } from './state/store';
 import { createModelViewer } from './core/preview';
-import { setupHMR } from './hmr-handler';
+import { setupSimpleHMR } from './hmr-simple';
 import * as storeExports from './state/store';
 
 export interface ConfiguratorOptions {
@@ -211,7 +211,7 @@ async function initializeConfigurator() {
   }
 
   // Set up HMR if available
-  setupHMR({});
+  setupSimpleHMR();
 
   return { modelViewer };
 }

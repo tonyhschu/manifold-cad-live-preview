@@ -17,5 +17,9 @@ export default defineConfig({
         format: 'es'
       }
     }
+  },
+  // Pass REPO_HMR flag to the browser
+  define: {
+    'import.meta.env.VITE_REPO_HMR': JSON.stringify(process.env.REPO_HMR === 'true')
   }
 })

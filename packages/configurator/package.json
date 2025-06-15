@@ -18,7 +18,9 @@
     "@manifold-studio/wrapper": "^1.0.0",
     "@google/model-viewer": "^3.3.0",
     "@preact/signals": "^2.0.4",
-    "tweakpane": "^4.0.5"
+    "tweakpane": "^4.0.5",
+    "chokidar": "^3.5.3",
+    "glob": "^10.3.10"
   },
   "devDependencies": {
     "typescript": "^5.0.2",

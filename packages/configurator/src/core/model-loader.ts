@@ -168,15 +168,53 @@ export async function loadModelById(
     if (modelDef.loader) {
       // Use the custom loader function for user project models
       console.log(`Loading model "${modelId}" using custom loader`);
+      console.log(`🔍 DEBUG: Using custom loader (import.meta.glob)`);
+
+      // CRITICAL: Custom loaders (import.meta.glob) are cached by Vite!
+      // We need to force cache invalidation for HMR
+      if (import.meta.env.DEV) {
+        console.log(`🔄 DEV MODE: Attempting to force fresh load for custom loader`);
+        // Unfortunately, we can't easily cache-bust import.meta.glob loaders
+        // But we can try to invalidate the module cache
+        try {
+          // Force Vite to reload by clearing any internal caches
+          if (import.meta.hot) {
+            console.log(`🔄 Attempting HMR invalidation for custom loader`);
+          }
+        } catch (error) {
+          console.warn('⚠️ Could not invalidate custom loader cache:', error);
+        }
+      }
+
       modelModule = await modelDef.loader();
     } else {
       // Use standard import for development models
       console.log(`Loading model "${modelId}" using standard import from ${modelDef.path}`);
-      modelModule = await import(modelDef.path);
+
+      // Add cache-busting for HMR during development
+      let importPath = modelDef.path;
+      console.log(`🔍 DEBUG: Original modelDef.path: "${modelDef.path}"`);
+      console.log(`🔍 DEBUG: import.meta.env.DEV: ${import.meta.env.DEV}`);
+
+      if (import.meta.env.DEV) {
+        // ALWAYS use cache-busting in development, with unique timestamp
+        const timestamp = Date.now() + Math.random(); // Extra randomness
+        const separator = importPath.includes('?') ? '&' : '?';
+        importPath = `${importPath}${separator}t=${timestamp}&r=${Math.random()}`;
+        console.log(`🔄 AGGRESSIVE cache-busting: ${importPath}`);
+      } else {
+        console.log(`🔍 DEBUG: Not in DEV mode, no cache-busting applied`);
+      }
+
+      console.log(`🔍 DEBUG: About to import from: ${importPath}`);
+      modelModule = await import(importPath);
+      console.log(`🔍 DEBUG: Import successful, module keys:`, Object.keys(modelModule));
     }
 
     // Get the default export
     const defaultExport = modelModule.default;
+    console.log(`🔍 DEBUG: Default export type:`, typeof defaultExport);
+    console.log(`🔍 DEBUG: Default export:`, defaultExport);
 
     // Check if this is a parametric model
     if (isParametricConfig(defaultExport)) {
@@ -201,7 +239,11 @@ export async function loadModelById(
       };
     } else {
       // Static model - execute the function
+      console.log(`🔍 DEBUG: Processing static model "${modelId}"`);
       const createModel = defaultExport as ModelCreator;
+      console.log(`🔍 DEBUG: createModel function:`, createModel);
+      console.log(`🔍 DEBUG: createModel type:`, typeof createModel);
+
       if (typeof createModel !== 'function') {
         throw new Error(`createModel is not a function`);
       }
@@ -210,7 +252,11 @@ export async function loadModelById(
       const metadata = modelModule.modelMetadata as ModelMetadata | undefined;
 
       // Create the model
+      console.log(`🔍 DEBUG: About to call createModel()`);
       const model = createModel();
+      console.log(`🔍 DEBUG: createModel() returned:`, model);
+      console.log(`🔍 DEBUG: Model type:`, typeof model);
+      console.log(`🔍 DEBUG: Model constructor:`, model?.constructor?.name);
 
       return {
         model,
