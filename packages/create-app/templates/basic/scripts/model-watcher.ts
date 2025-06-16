@@ -14,13 +14,13 @@ import { fileURLToPath } from 'url';
 import chokidar from 'chokidar';
 import { glob } from 'glob';
 
-// Import wrapper's proven pipeline utilities directly from source (like tests do)
-import { manifoldToGLB } from '@manifold-studio/wrapper/src/lib/gltf-export';
-import { 
+// Import wrapper's proven pipeline utilities from compiled package
+import { manifoldToGLB } from '@manifold-studio/wrapper';
+import {
   isParametricConfig,
   extractDefaultParams,
   mergeParameters
-} from '@manifold-studio/wrapper/src/pipeline/core';
+} from '@manifold-studio/wrapper';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
