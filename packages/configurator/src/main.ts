@@ -11,12 +11,13 @@ import { createModelViewer } from "./core/preview";
 import { setupSimpleHMR } from "./hmr-simple";
 import { initializeServices } from "./services";
 import { configureModelDiscovery } from "./core/model-loader";
+import { startTempFolderWatcher } from "./watchers/temp-folder-watcher";
 
 // Get DOM elements
 const modelViewerElement = document.getElementById("viewer") as any;
 
 // Create the model viewer controller
-const modelViewer = createModelViewer({
+createModelViewer({
   modelViewer: modelViewerElement
 });
 
@@ -35,10 +36,10 @@ if (modelViewerElement) {
 }
 
 // Application context for HMR
-const appContext = {
-  currentModelId: currentModelId.value,
-  modelViewer
-};
+// const appContext = {
+//   currentModelId: currentModelId.value,
+//   modelViewer
+// };
 
 // Initialize HMR for development
 if (import.meta.hot !== undefined) {
@@ -63,7 +64,11 @@ async function runPreview() {
     // Initialize store (loads available models)
     updateStatus("Loading available models...");
     await initializeStore();
-    
+
+    // Start temp folder watcher for Phase 3 HMR
+    console.log("🔍 Starting temp folder watcher...");
+    startTempFolderWatcher();
+
     // Update initial status
     updateStatus("Starting ManifoldCAD preview...");
     

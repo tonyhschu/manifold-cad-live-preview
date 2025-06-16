@@ -6,7 +6,7 @@
  */
 
 import { IModelService, IExportService, ModelLoadResult, ProgressCallback } from './interfaces';
-import { getAvailableModels, loadModelById, ModelMetadata } from '../core/model-loader';
+import { ModelMetadata } from '../core/model-loader';
 import type { ParametricConfig } from '@manifold-studio/wrapper';
 
 /**
@@ -32,6 +32,72 @@ export class ModelService implements IModelService {
   private cacheMaxAge = 5 * 60 * 1000; // 5 minutes
 
   constructor(private exportService: IExportService) {}
+
+  /**
+   * Try to load model from temp folder GLB files
+   */
+  private async tryLoadFromTempFolder(modelId: string, onProgress?: ProgressCallback): Promise<ModelLoadResult | null> {
+    try {
+      onProgress?.(5, 'Checking temp folder for compiled model...');
+
+      // Try to fetch the manifest to get model info
+      const manifestResponse = await fetch('./temp/manifest.json');
+      if (!manifestResponse.ok) {
+        console.log('📂 No temp/manifest.json found, skipping temp folder loading');
+        return null;
+      }
+
+      const manifest = await manifestResponse.json();
+      const modelInfo = manifest.models.find((m: any) => m.id === modelId && m.status === 'compiled');
+
+      if (!modelInfo || !modelInfo.blobPath) {
+        console.log(`📂 Model "${modelId}" not found in temp folder or not compiled`);
+        return null;
+      }
+
+      onProgress?.(15, 'Loading compiled GLB from temp folder...');
+
+      // Try to fetch the GLB file
+      const glbPath = `./temp/${modelInfo.blobPath}`;
+      const glbResponse = await fetch(glbPath);
+
+      if (!glbResponse.ok) {
+        console.log(`📂 GLB file not found at ${glbPath}`);
+        return null;
+      }
+
+      onProgress?.(50, 'Creating blob URLs...');
+
+      // Create blob URL for the GLB
+      const glbBlob = await glbResponse.blob();
+      const glbUrl = URL.createObjectURL(glbBlob);
+
+      // For temp folder models, we don't have the original Manifold object
+      // So we create a minimal result with just the GLB
+      const result: ModelLoadResult = {
+        model: null, // No Manifold object available from GLB
+        metadata: {
+          name: modelInfo.name,
+          description: `Compiled model from temp folder (${modelInfo.type})`
+        },
+        isParametric: modelInfo.type === 'parametric',
+        config: null, // No config available from GLB
+        exports: {
+          objUrl: '', // No OBJ available from temp folder
+          glbUrl: glbUrl
+        }
+      };
+
+      console.log(`✅ ModelService: Loaded "${modelId}" from temp folder GLB (${modelInfo.blobSize} bytes)`);
+      onProgress?.(100, 'Model loaded from temp folder');
+
+      return result;
+
+    } catch (error) {
+      console.log(`📂 Error loading from temp folder:`, error);
+      return null;
+    }
+  }
 
   /**
    * Load a model by ID with full export generation
@@ -61,56 +127,14 @@ export class ModelService implements IModelService {
         console.log(`🎯 ModelService: Skipping cache for "${modelId}" (HMR mode)`);
       }
 
-      console.log(`🎯 ModelService: Generating fresh exports for "${modelId}"`);
+      // Load from temp folder (primary path)
+      const tempResult = await this.tryLoadFromTempFolder(modelId, onProgress);
+      if (tempResult) {
+        return tempResult;
+      }
 
-      onProgress?.(10, 'Loading model from source...');
-
-      // Load the model using the existing model loader
-      const { model, metadata, isParametric, config } = await loadModelById(modelId);
-
-      onProgress?.(30, 'Model loaded, generating exports...');
-
-      // Generate OBJ export
-      onProgress?.(40, 'Exporting to OBJ format...');
-      const objResult = await this.exportService.exportToOBJ(model, `${modelId}.obj`);
-
-      // Generate GLB export
-      onProgress?.(60, 'Exporting to GLB format...');
-      const glbResult = await this.exportService.exportToGLB(model, `${modelId}.glb`, (progress, message) => {
-        // Scale GLB progress to 60-90 range
-        const scaledProgress = 60 + (progress * 0.3);
-        onProgress?.(scaledProgress, message || 'Generating GLB...');
-      });
-
-      onProgress?.(90, 'Caching model...');
-
-      // Create cache entry
-      const exports = {
-        objUrl: objResult.url,
-        glbUrl: glbResult.url
-      };
-
-      const cacheEntry: CacheEntry = {
-        model,
-        metadata,
-        isParametric,
-        config,
-        loadedAt: Date.now(),
-        exports
-      };
-
-      // Cache the loaded model
-      this.cache.set(modelId, cacheEntry);
-
-      onProgress?.(100, 'Model loaded successfully');
-
-      return {
-        model,
-        metadata,
-        isParametric,
-        config,
-        exports
-      };
+      // No compiled model found - show helpful error
+      throw new Error(`Model "${modelId}" not found. Run "npm run dev:models" to compile your models.`);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown loading error';
@@ -119,18 +143,18 @@ export class ModelService implements IModelService {
   }
 
   /**
-   * Get available models list
+   * Get available models list (deprecated - use store.availableModels instead)
    */
   getAvailableModels(): { id: string; name: string; type: 'static' | 'parametric' }[] {
-    return getAvailableModels();
+    console.warn('ModelService.getAvailableModels() is deprecated. Use store.availableModels instead.');
+    return [];
   }
 
   /**
-   * Refresh available models cache
+   * Refresh available models cache (deprecated - use store.refreshAvailableModels instead)
    */
   refreshAvailableModels(): void {
-    // The model loader doesn't have a refresh method, but we could add one
-    // For now, this is a no-op since getAvailableModels() reads fresh data
+    console.warn('ModelService.refreshAvailableModels() is deprecated. Use store.refreshAvailableModels instead.');
   }
 
   /**

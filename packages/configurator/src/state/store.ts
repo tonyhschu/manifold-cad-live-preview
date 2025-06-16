@@ -6,7 +6,7 @@
  */
 
 import { signal, computed } from '@preact/signals';
-import { ModelMetadata, getAvailableModels as getAvailableModelsFromLoader, getAvailableModelsAsync, setupModelDiscoveryHMR } from '../core/model-loader';
+import { ModelMetadata } from '../core/model-loader';
 import { getModelService } from '../services';
 import { StatusState, ModelUrlsState } from './types';
 import type { ParametricConfig } from '@manifold-studio/wrapper';
@@ -148,15 +148,90 @@ export function updateStatus(message: string, isError = false) {
 }
 
 /**
+ * Interface for manifest.json structure
+ */
+interface TempManifestData {
+  models: Array<{
+    id: string;
+    name: string;
+    type: 'static' | 'parametric';
+    filePath: string;
+    blobPath?: string;
+    lastUpdated: string;
+    status: 'pending' | 'compiling' | 'compiled' | 'error';
+    error?: string;
+    blobSize?: number;
+    compilationTime?: number;
+  }>;
+  lastBuild: string;
+  buildCount: number;
+}
+
+/**
+ * Try to read models from temp/manifest.json
+ */
+async function getModelsFromTempFolder(): Promise<{ id: string; name: string; type: 'static' | 'parametric' }[] | null> {
+  try {
+    const manifestPath = './temp/manifest.json';
+    const response = await fetch(manifestPath);
+
+    if (!response.ok) {
+      console.log('📂 No temp/manifest.json found, falling back to discovery');
+      return null;
+    }
+
+    const manifestContent = await response.text();
+    const manifest: TempManifestData = JSON.parse(manifestContent);
+
+    // Filter to only compiled models
+    const compiledModels = manifest.models
+      .filter(model => model.status === 'compiled')
+      .map(model => ({
+        id: model.id,
+        name: model.name,
+        type: model.type
+      }));
+
+    console.log('📋 Loaded models from temp folder:', {
+      total: manifest.models.length,
+      compiled: compiledModels.length,
+      buildCount: manifest.buildCount,
+      models: compiledModels.map(m => `${m.id} (${m.type})`)
+    });
+
+    return compiledModels;
+
+  } catch (error) {
+    console.log('📂 Error reading temp/manifest.json:', error);
+    return null;
+  }
+}
+
+/**
  * Refresh the available models list
+ * Reads from temp/manifest.json (Phase 3 implementation)
  */
 export async function refreshAvailableModels() {
   try {
-    const models = await getAvailableModelsAsync();
-    availableModels.value = models.map(({ id, name, type }) => ({ id, name, type }));
-    console.log('📋 Available models refreshed:', models.map(m => m.id));
+    // Read from temp folder (primary path)
+    const tempModels = await getModelsFromTempFolder();
+
+    if (tempModels && tempModels.length > 0) {
+      // Use models from temp folder
+      availableModels.value = tempModels;
+      console.log('✅ Available models refreshed from temp folder:', tempModels.map(m => m.id));
+      return;
+    }
+
+    // No models found - show helpful message
+    console.log('📂 No compiled models found in temp folder');
+    availableModels.value = [];
+    updateStatus('No models found. Run "npm run dev:models" to compile your models.', true);
+
   } catch (error) {
-    console.error('Failed to refresh available models:', error);
+    console.error('❌ Failed to refresh available models:', error);
+    availableModels.value = [];
+    updateStatus('Error loading models. Run "npm run dev:models" to compile your models.', true);
   }
 }
 

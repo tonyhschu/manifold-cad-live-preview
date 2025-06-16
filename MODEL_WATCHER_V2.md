@@ -226,49 +226,152 @@ cd my-project && npm run dev:models
 # Edit any .ts file in components/ and watch for real GLB regeneration
 ```
 
-### Phase 3: UI File Watcher ⏳ READY TO IMPLEMENT
+### Phase 3: UI File Watcher ✅ IMPLEMENTED (PARTIAL)
 
 **Goal**: UI watches temp folder and updates model viewer when blobs change
 
-**Prerequisites**: ✅ **ALL MET** - Phase 2 provides complete temp folder pipeline
+**Status**: **PARTIALLY COMPLETE** - Works for static models, but parametric models need redesign
 
-**Verification**:
+**What We Implemented**:
 
-- [ ] UI detects temp/manifest.json changes
-- [ ] Model selector updates with new models
-- [ ] Model viewer updates when current model blob changes
-- [ ] No full page reloads
-- [ ] Combined `npm run dev` script runs both model watcher and UI
+- ✅ UI detects temp/manifest.json changes
+- ✅ Model selector updates with new models
+- ✅ Model viewer loads GLB files from temp folder
+- ✅ No full page reloads
+- ✅ Combined `npm run dev` script runs both model watcher and UI
 
-**Architecture**:
+**Critical Realization**: **Parametric Models Don't Work**
 
-- **Model Watcher** (standalone script): Watches `./components` → Compiles → Writes `./temp`
-- **UI Server** (Vite): Watches `./temp` → Updates model viewer → No page reload
+Our current pipeline only handles **static models**:
 
-**Files to Create**:
-
-- `packages/configurator/src/watchers/temp-folder-watcher.ts`
-- Combined dev script configuration
-
-**Files to Modify**:
-
-- `packages/configurator/src/components/canvas/ModelViewer.ts`
-- `packages/configurator/src/state/store.ts`
-- `package.json` scripts for combined development experience
-
-**Test Plan**:
-
-```bash
-# 1. Start combined development environment
-npm run dev  # Should start both model watcher + UI server
-
-# 2. Edit model file in components/
-# 3. Verify UI updates without page reload
-# 4. Check browser console for temp folder watcher logs
-# 5. Verify model selector shows updated models
+```
+TypeScript → Static GLB (with default params) → UI displays GLB
 ```
 
-### Phase 4: Integration & Polish
+But **parametric models** need:
+
+```
+TypeScript → Parameter Config → UI Controls → Dynamic GLB generation
+```
+
+**The Problem**:
+
+- Models like `wheel.ts` with `createConfig()` need UI parameter input
+- Current pipeline pre-compiles GLBs with default parameters only
+- No way to pass user parameters from UI to model compilation
+- Parametric models become static models (losing their main feature!)
+
+**Files Implemented**:
+
+- ✅ `packages/configurator/src/watchers/temp-folder-watcher.ts`
+- ✅ `packages/configurator/src/state/store.ts` (reads from manifest.json)
+- ✅ `packages/configurator/src/services/ModelService.ts` (loads from temp GLBs)
+- ✅ Combined dev script in create-app template
+
+**Test Results**:
+
+```bash
+npm run dev  # ✅ Starts both model watcher + UI server
+# Edit static model → ✅ UI updates without page reload
+# Edit parametric model → ❌ Parameters ignored, uses defaults only
+```
+
+---
+
+## 🚨 CRITICAL ARCHITECTURAL DECISION NEEDED
+
+### The Parametric Model Problem
+
+**Current Issue**: Our Phase 3 implementation works great for static models, but **completely breaks parametric models**.
+
+**Root Cause**: We're pre-compiling models to static GLB files, but parametric models need:
+
+1. **Parameter extraction** from the compiled model
+2. **UI controls generation** (sliders, checkboxes, etc.)
+3. **Real-time model regeneration** when parameters change
+4. **Dynamic GLB export** with current parameter values
+
+### Proposed Solution: Pure Function Compilation + Runtime Execution
+
+**Vision**: Compile models to pure functions that can run both in development (via Vite) and production (via Web Workers).
+
+#### Architecture Overview
+
+**1. Watcher Compiles to Pure Functions**
+
+```typescript
+// components/wheel.ts (source)
+export const wheelConfig = createConfig(...)
+
+// ↓ Watcher compiles to ↓
+
+// temp/functions/wheel.js (compiled function)
+export function generateWheel(params) {
+  // Pure function - no imports, just math + Manifold calls
+  return manifold; // Returns Manifold object
+}
+export const config = { /* parameter definitions */ };
+```
+
+**2. Development: Vite Hosts Functions**
+
+```typescript
+// Vite middleware/plugin
+app.post("/api/glb/:modelId", async (req, res) => {
+  const fn = await import(`./temp/functions/${modelId}.js`);
+  const manifold = fn.generateWheel(req.body.params);
+  const glb = manifoldToGLB(manifold);
+  res.send(glb);
+});
+```
+
+**3. Production: Web Worker Hosts Functions**
+
+```typescript
+// In production bundle
+const worker = new Worker('/model-functions.js');
+worker.postMessage({ modelId: 'wheel', params: {...} });
+worker.onmessage = (glbBlob) => updateModelViewer(glbBlob);
+```
+
+#### Benefits
+
+- **✅ Static hosting**: Production builds don't need servers
+- **✅ Real-time parameters**: UI can pass parameters to functions
+- **✅ Performance**: Functions run in workers (non-blocking)
+- **✅ Simple development**: Vite handles function hosting during dev
+- **✅ Clean separation**: Compilation vs execution are separate concerns
+
+#### Implementation Challenges
+
+**A. Function Compilation**: How do we compile TypeScript models to pure functions?
+
+- Strip imports, inline dependencies
+- Bundle with Manifold + wrapper utilities
+- Output self-contained functions
+
+**B. Manifold in Workers**: Can Manifold WASM run in web workers?
+
+- Need to test Manifold + WASM in worker context
+- Might need to pass data back to main thread
+
+**C. GLB Export in Browser**: Can we do `manifoldToGLB()` client-side?
+
+- Wrapper already has this capability
+- Just need to ensure it works in workers
+
+#### Next Steps
+
+1. **Prototype function compilation** - Can we compile a simple model to a pure function?
+2. **Test Manifold in workers** - Does WASM work in Web Worker context?
+3. **Design Vite plugin** - How should the development server host these functions?
+4. **Plan production bundling** - How do we bundle functions for production workers?
+
+---
+
+### Phase 4: Integration & Polish (PAUSED)
+
+**Status**: **PAUSED** - Need to resolve parametric model architecture first
 
 **Goal**: Integrate both Vite instances and add production build support
 

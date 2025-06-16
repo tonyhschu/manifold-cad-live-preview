@@ -132,53 +132,53 @@ export class ModelViewer extends HTMLElement {
   /**
    * Recreate the model-viewer element for HMR updates
    */
-  private recreateModelViewer(newSrc: string): void {
-    if (!this.viewerElement) return;
+  // private recreateModelViewer(newSrc: string): void {
+  //   if (!this.viewerElement) return;
 
-    console.log("🔄 Recreating model-viewer element...");
+  //   console.log("🔄 Recreating model-viewer element...");
 
-    // Preserve current camera state
-    const currentOrbit = this.viewerElement.cameraOrbit;
-    const currentTarget = this.viewerElement.cameraTarget;
+  //   // Preserve current camera state
+  //   const currentOrbit = this.viewerElement.cameraOrbit;
+  //   const currentTarget = this.viewerElement.cameraTarget;
 
-    // Get the parent container
-    const parent = this.viewerElement.parentElement;
-    if (!parent) {
-      console.warn("⚠️ No parent element found for model-viewer");
-      return;
-    }
+  //   // Get the parent container
+  //   const parent = this.viewerElement.parentElement;
+  //   if (!parent) {
+  //     console.warn("⚠️ No parent element found for model-viewer");
+  //     return;
+  //   }
 
-    // Create new model-viewer element
-    const newViewer = document.createElement('model-viewer') as ModelViewerElement;
-    newViewer.id = 'viewer';
-    newViewer.setAttribute('camera-controls', '');
-    newViewer.setAttribute('interaction-prompt', 'none');
-    newViewer.setAttribute('rotations-per-second', '0rad');
-    newViewer.setAttribute('auto-rotate-delay', 'Infinity');
-    newViewer.setAttribute('auto-rotate', 'false');
-    newViewer.setAttribute('alt', '3D model');
-    newViewer.style.cssText = 'width: 100%; height: 100%; background-color: #f5f5f5;';
+  //   // Create new model-viewer element
+  //   const newViewer = document.createElement('model-viewer') as ModelViewerElement;
+  //   newViewer.id = 'viewer';
+  //   newViewer.setAttribute('camera-controls', '');
+  //   newViewer.setAttribute('interaction-prompt', 'none');
+  //   newViewer.setAttribute('rotations-per-second', '0rad');
+  //   newViewer.setAttribute('auto-rotate-delay', 'Infinity');
+  //   newViewer.setAttribute('auto-rotate', 'false');
+  //   newViewer.setAttribute('alt', '3D model');
+  //   newViewer.style.cssText = 'width: 100%; height: 100%; background-color: #f5f5f5;';
 
-    // Set the new source
-    newViewer.src = newSrc;
+  //   // Set the new source
+  //   newViewer.src = newSrc;
 
-    // Replace the old element
-    parent.replaceChild(newViewer, this.viewerElement);
-    this.viewerElement = newViewer;
+  //   // Replace the old element
+  //   parent.replaceChild(newViewer, this.viewerElement);
+  //   this.viewerElement = newViewer;
 
-    // Restore camera state after the model loads
-    newViewer.addEventListener('load', () => {
-      if (currentOrbit) {
-        newViewer.cameraOrbit = currentOrbit;
-      }
-      if (currentTarget) {
-        newViewer.cameraTarget = currentTarget;
-      }
-      console.log("📷 Camera state restored after model-viewer recreation");
-    }, { once: true });
+  //   // Restore camera state after the model loads
+  //   newViewer.addEventListener('load', () => {
+  //     if (currentOrbit) {
+  //       newViewer.cameraOrbit = currentOrbit;
+  //     }
+  //     if (currentTarget) {
+  //       newViewer.cameraTarget = currentTarget;
+  //     }
+  //     console.log("📷 Camera state restored after model-viewer recreation");
+  //   }, { once: true });
 
-    console.log("✅ Model-viewer element recreated with new source");
-  }
+  //   console.log("✅ Model-viewer element recreated with new source");
+  // }
 
   /**
    * Debug blob content to verify it's actually different
