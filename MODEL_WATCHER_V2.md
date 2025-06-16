@@ -35,6 +35,13 @@
 - Real 3D models being generated and ready for UI display
 - Architecture proven and stable for UI integration
 
+**✅ CREATE-APP INTEGRATION COMPLETE:**
+
+- Working solution successfully copied to `packages/create-app/templates/basic/`
+- Template now includes model-watcher script, updated package.json, working examples
+- Double-tested with fresh project creation - `npm run dev:models` works out of the box
+- Users will get proven working solution when they run `@manifold-studio/create-app`
+
 ## Overview
 
 Replace the current complex HMR system with a clean file-watcher + temp folder approach that separates model compilation from UI updates.
@@ -97,6 +104,13 @@ User Project:
 - **Standard Vite**: Bundles everything into single files
 - **preserveModules**: Maintains file structure while fixing imports
 - **Result**: Clean library output that works in Node.js ES modules
+
+### 6. **Always Copy Working Solutions from Test to Production**
+
+- **Development Pattern**: Work out solutions in gitignored test directories first
+- **Risk**: Important breakthroughs can be lost if only in gitignored folders
+- **Solution**: Copy proven working code to tracked locations (like create-app templates)
+- **Lesson**: Test in isolation, then integrate into permanent locations
 
 ## Implementation Phases
 
@@ -190,24 +204,26 @@ import { Manifold } from "./lib/manifold.js"; // ✅ Proper extension
 
 **Files Created**:
 
-- `test-local-project/scripts/model-watcher.ts` (complete standalone implementation)
-- `test-local-project/vite.watcher.config.ts` (Vite config for script compilation)
+- `packages/wrapper/vite.config.ts` (Vite config for wrapper compilation)
+- `packages/create-app/templates/basic/scripts/model-watcher.ts` (integrated into create-app template)
+- `packages/create-app/templates/basic/components/wheel.ts` (working example model)
+- Updated `packages/create-app/templates/basic/package.json.hbs` (includes dev:models script)
+- Updated `packages/create-app/templates/basic/README.md.hbs` (documents model development workflow)
 
 **Test Plan**:
 
 ```bash
-# 1. Start model watcher and observe compilation
-npm run dev:models-standalone
+# 1. Build wrapper with Vite (fixes import extensions)
+cd packages/wrapper && npm run build
 
-# 2. Edit model file and verify recompilation
-# Watch console for: "🔄 Processing debounced change event"
+# 2. Create new project with working template
+npx @manifold-studio/create-app my-project
 
-# 3. Check compilation artifacts
-ls -la temp/core/        # Compiled JS files
-cat temp/manifest.json   # Compilation status and metadata
+# 3. Start model watcher - should show real GLB generation
+cd my-project && npm run dev:models
 
-# 4. Verify file watching works
-# Edit any .ts file in components/ and watch console output
+# 4. Verify real GLB blobs created and file watching works
+# Edit any .ts file in components/ and watch for real GLB regeneration
 ```
 
 ### Phase 3: UI File Watcher ⏳ READY TO IMPLEMENT
