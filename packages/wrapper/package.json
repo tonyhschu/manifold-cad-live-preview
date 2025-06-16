@@ -6,10 +6,11 @@
   "types": "dist/index.d.ts",
   "files": ["dist"],
   "scripts": {
-    "build": "tsc",
+    "build": "vite build && tsc --emitDeclarationOnly",
+    "build:old": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dev": "tsc --watch"
+    "dev": "vite build --watch"
   },
   "dependencies": {
     "manifold-3d": "^3.1.0",
