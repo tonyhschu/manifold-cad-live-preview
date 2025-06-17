@@ -7,6 +7,8 @@
   "files": ["dist"],
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly",
+    "build:lib": "vite build && tsc --emitDeclarationOnly",
+    "build:lib:watch": "vite build --watch",
     "build:old": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",

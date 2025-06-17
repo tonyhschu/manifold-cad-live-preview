@@ -14,9 +14,9 @@ npm run build --workspaces
 
 # Step 2: Create global npm links for our packages
 echo "🔗 Creating npm links..."
-cd packages/wrapper && npm link
+cd ../../packages/wrapper && npm link
 cd ../configurator && npm link
-cd ../..
+cd ../../packages/create-app
 
 # Step 3: Generate test project
 echo "🏗️  Generating test project..."

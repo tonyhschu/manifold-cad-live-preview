@@ -33,9 +33,27 @@ This guide covers the development workflow for the V3 pipeline-based architectur
 
 ## Development Workflows
 
-### 🚀 **Quick Start (Most Common)**
+### � **Initial Setup (Required Once)**
 
-For day-to-day V3 development:
+Since our packages aren't published to NPM yet, you need to set up npm linking first:
+
+```bash
+# 1. Create global npm links for our packages
+cd packages/wrapper && npm link
+cd ../configurator && npm link
+cd ../..
+
+# 2. Link packages in test project
+cd test-v3-development
+npm link @manifold-studio/wrapper @manifold-studio/configurator
+cd ..
+```
+
+**Note**: You only need to do this once, or when you clean your npm cache/node_modules.
+
+### �🚀 **Quick Start (Most Common)**
+
+For day-to-day V3 development (after initial setup):
 
 ```bash
 # Terminal 1: Auto-rebuild libraries (wrapper + configurator)
