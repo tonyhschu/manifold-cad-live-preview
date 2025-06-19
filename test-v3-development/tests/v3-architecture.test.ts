@@ -32,18 +32,12 @@ describe('V3 Architecture', () => {
     it('should create pipeline loader instance', () => {
       const loader = createPipelineLoader();
       expect(loader).toBeDefined();
-      expect(typeof loader.checkForUpdates).toBe('function');
       expect(typeof loader.getPipeline).toBe('function');
-      expect(typeof loader.reloadPipeline).toBe('function');
     });
 
     it('should handle missing pipeline gracefully', async () => {
       const loader = createPipelineLoader('./nonexistent/pipeline.js');
-      
-      // Should not throw when checking for updates
-      const result = await loader.checkForUpdates();
-      expect(result).toBe(false);
-      
+
       // Should return null when no pipeline loaded
       expect(loader.getPipeline()).toBeNull();
     });
@@ -238,8 +232,7 @@ describe('V3 Architecture', () => {
 
       // Principle 1: Simple pipeline replacement (not complex HMR)
       const loader = createPipelineLoader();
-      expect(typeof loader.reloadPipeline).toBe('function');
-      expect(typeof loader.checkForUpdates).toBe('function');
+      expect(typeof loader.getPipeline).toBe('function');
 
       // Principle 2: State preservation across reloads
       const stateManager = new UIStateManager();

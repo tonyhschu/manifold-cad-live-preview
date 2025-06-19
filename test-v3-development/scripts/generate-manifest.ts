@@ -23,16 +23,10 @@ async function generateManifest() {
       process.exit(1);
     }
 
-    // Import the pipeline with cache busting
-    const timestamp = Date.now();
-    const random = Math.random();
-    const moduleUrl = `${pipelinePath}?t=${timestamp}&r=${random}`;
-
     console.log('📦 Loading pipeline from:', pipelinePath);
-    console.log('🔄 Cache busting URL:', moduleUrl);
 
     // Dynamic import the pipeline
-    const pipelineModule = await import(moduleUrl);
+    const pipelineModule = await import(pipelinePath);
     const pipeline = pipelineModule.default || pipelineModule.pipeline;
     
     if (!pipeline) {

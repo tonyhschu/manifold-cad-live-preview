@@ -6,28 +6,19 @@
  */
 
 import { Plugin } from 'vite';
-import { watch } from 'chokidar';
 import path from 'path';
 
 interface PipelineHMROptions {
-  /** Directory to watch for pipeline changes */
-  watchDir?: string;
-  /** Files to watch within the directory */
+  /** Files to watch for pipeline changes */
   watchFiles?: string[];
-  /** Debounce delay in milliseconds */
-  debounceMs?: number;
 }
 
 export function pipelineHMR(options: PipelineHMROptions = {}): Plugin {
   const {
-    watchDir = 'temp',
-    watchFiles = ['pipeline.js', 'manifest.json'],
-    debounceMs = 100
+    watchFiles = ['temp/pipeline.js', 'temp/manifest.json']
   } = options;
 
   let server: any;
-  let watcher: any;
-  let debounceTimer: NodeJS.Timeout | null = null;
 
   return {
     name: 'pipeline-hmr',
@@ -35,53 +26,36 @@ export function pipelineHMR(options: PipelineHMROptions = {}): Plugin {
     configureServer(viteServer) {
       server = viteServer;
 
-      // Intercept Vite's HMR to prevent page reloads for temp files
+      console.log(`🔍 Pipeline HMR: Intercepting Vite events for ${watchFiles.join(', ')}`);
+
+      // Intercept Vite's HMR to prevent page reloads for temp files and send custom events
       const originalSend = server.ws.send;
       server.ws.send = function(payload: any) {
-        // Block page reload events for temp files
-        if (payload.type === 'full-reload' ||
-            (payload.type === 'update' && payload.updates?.some((u: any) => u.path?.includes('/temp/')))) {
-          console.log('🚫 Pipeline HMR: Blocked Vite reload for temp file');
-          return;
+        // Check if this is a reload for our watched files
+        if (payload.type === 'full-reload') {
+          // Check if any of our watched files triggered this reload
+          const isPipelineFile = watchFiles.some(file =>
+            payload.path?.includes(file) ||
+            server.moduleGraph?.fileToModulesMap?.has(path.resolve(file))
+          );
+
+          if (isPipelineFile) {
+            console.log('🚫 Pipeline HMR: Blocked Vite reload for pipeline file');
+            console.log('📡 Pipeline HMR: Sending custom pipeline event instead');
+
+            // Send our custom event instead
+            handlePipelineChange(payload.path || 'temp/pipeline.js');
+            return; // Block the original reload
+          }
         }
+
         return originalSend.call(this, payload);
       };
-
-      // Set up file watcher when server starts
-      const watchPaths = watchFiles.map(file => path.join(watchDir, file));
-
-      console.log(`🔍 Pipeline HMR: Watching ${watchPaths.join(', ')}`);
-
-      watcher = watch(watchPaths, {
-        ignored: /node_modules/,
-        persistent: true,
-        ignoreInitial: true
-      });
-
-      watcher.on('change', (filePath: string) => {
-        console.log(`🔄 Pipeline HMR: File changed - ${filePath}`);
-
-        // Debounce multiple rapid changes
-        if (debounceTimer) {
-          clearTimeout(debounceTimer);
-        }
-
-        debounceTimer = setTimeout(() => {
-          handlePipelineChange(filePath);
-        }, debounceMs);
-      });
-
-      watcher.on('error', (error: Error) => {
-        console.error('❌ Pipeline HMR: Watcher error:', error);
-      });
     },
 
     buildEnd() {
-      // Clean up watcher when build ends
-      if (watcher) {
-        watcher.close();
-        console.log('🧹 Pipeline HMR: Watcher closed');
-      }
+      // No cleanup needed for Vite-based approach
+      console.log('🧹 Pipeline HMR: Plugin cleaned up');
     }
   };
 

@@ -90,19 +90,74 @@ if (import.meta.hot) {
 }
 
 // HMR event handlers
-function handlePipelineUpdate(data: any) {
-  console.log('🎯 Handling pipeline update - this is where we would refresh models');
-  // TODO: Call store functions to refresh models and re-render
+async function handlePipelineUpdate(data: any) {
+  console.log('🎯 Handling pipeline update - refreshing models and regenerating GLB');
+  try {
+    // Import store functions dynamically to avoid circular dependencies
+    const { store } = await import('@manifold-studio/configurator');
+
+    // Refresh available models list
+    await store.refreshAvailableModels();
+
+    // Regenerate current model if one is selected
+    const currentModel = store.currentModelId.value;
+    if (currentModel) {
+      console.log(`🔄 Regenerating GLB for current model: ${currentModel}`);
+      await store.loadModel(currentModel);
+    }
+  } catch (error) {
+    console.error('❌ Failed to handle pipeline update:', error);
+  }
 }
 
-function handlePipelineCodeUpdate(data: any) {
-  console.log('🎯 Handling pipeline code update - this is where we would reload pipeline and re-render current model');
-  // TODO: Reload pipeline module and regenerate current model
+async function handlePipelineCodeUpdate(data: any) {
+  console.log('🎯 Handling pipeline code update - regenerating current model GLB');
+
+  // Visual feedback
+  document.title = '🔄 Regenerating GLB...';
+
+  try {
+    // Import store functions
+    const { store } = await import('@manifold-studio/configurator');
+
+    // Regenerate current model GLB with new pipeline code
+    const currentModel = store.currentModelId.value;
+    if (currentModel) {
+      console.log(`🔄 Regenerating GLB for model: ${currentModel}`);
+      await store.loadModel(currentModel);
+      document.title = '✅ GLB Regenerated!';
+
+      // Reset title after a moment
+      setTimeout(() => {
+        document.title = 'V3 Development Test';
+      }, 2000);
+    } else {
+      console.log('ℹ️ No current model selected, skipping GLB regeneration');
+      document.title = 'ℹ️ No model selected';
+      setTimeout(() => {
+        document.title = 'V3 Development Test';
+      }, 2000);
+    }
+  } catch (error) {
+    console.error('❌ Failed to handle pipeline code update:', error);
+    document.title = '❌ GLB regeneration failed';
+    setTimeout(() => {
+      document.title = 'V3 Development Test';
+    }, 3000);
+  }
 }
 
-function handleManifestUpdate(data: any) {
-  console.log('🎯 Handling manifest update - this is where we would refresh model list');
-  // TODO: Refresh available models list
+async function handleManifestUpdate(data: any) {
+  console.log('🎯 Handling manifest update - refreshing model list');
+  try {
+    // Import store functions
+    const { store } = await import('@manifold-studio/configurator');
+
+    // Refresh available models list
+    await store.refreshAvailableModels();
+  } catch (error) {
+    console.error('❌ Failed to handle manifest update:', error);
+  }
 }
 
 // Start the application

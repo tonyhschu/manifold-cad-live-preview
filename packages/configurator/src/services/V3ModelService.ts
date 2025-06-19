@@ -190,12 +190,7 @@ export class V3ModelService implements IModelService {
     return this.uiStateManager.getState();
   }
 
-  /**
-   * Check for pipeline updates manually
-   */
-  async checkForUpdates(): Promise<boolean> {
-    return await this.pipelineLoader.checkForUpdates();
-  }
+
 
   /**
    * Get pipeline info
@@ -219,43 +214,20 @@ export class V3ModelService implements IModelService {
 
   /**
    * Add listener for pipeline changes
+   * Note: In V3, pipeline changes are handled by custom HMR events
    */
   onPipelineChange(callback: () => void): () => void {
-    // Start auto-check if not already running
-    if (!this.isInitialized) {
-      this.initialize();
-    }
-
-    // For now, we'll use a simple polling approach
-    // In a full implementation, this would be event-driven
-    const interval = setInterval(async () => {
-      try {
-        const wasUpdated = await this.pipelineLoader.checkForUpdates();
-        if (wasUpdated) {
-          // Handle pipeline reload
-          const pipelineInfo = this.getPipelineInfo();
-          this.uiStateManager.handlePipelineReload(pipelineInfo?.version);
-          
-          // Notify callback
-          callback();
-        }
-      } catch (error) {
-        console.error('Pipeline change check error:', error);
-      }
-    }, 1000);
-
-    // Return cleanup function
-    return () => {
-      clearInterval(interval);
-    };
+    console.log('ℹ️ V3 pipeline changes handled by HMR events, not polling');
+    // Return no-op cleanup function
+    return () => {};
   }
 
   /**
    * Refresh available models (V3 reloads pipeline)
    */
   refreshAvailableModels(): void {
-    // In V3, this means reloading the pipeline
-    this.pipelineLoader.checkForUpdates();
+    // In V3, pipeline refresh is handled by HMR events
+    console.log('ℹ️ V3 pipeline refresh handled by HMR events');
   }
 
   /**

@@ -7,7 +7,6 @@ import { loadDefaultModel } from './core/model-loader';
 import { initializeStore, loadModel } from './state/store';
 import { createModelViewer } from './core/preview';
 import { setupSimpleHMR } from './hmr-simple';
-import { startTempFolderWatcher } from './watchers/temp-folder-watcher';
 import * as storeExports from './state/store';
 
 export interface ConfiguratorOptions {
@@ -229,9 +228,8 @@ async function initializeConfigurator(useV3Pipeline: boolean = false, pipelinePa
     // Set up HMR if available
     setupSimpleHMR();
 
-    // Start temp folder watcher for Phase 3 HMR
-    console.log('🔍 Starting temp folder watcher...');
-    startTempFolderWatcher();
+    // V3 uses custom HMR events instead of temp folder polling
+    console.log('✅ V3 HMR: Using custom events instead of polling');
   }
 
   // Get DOM elements

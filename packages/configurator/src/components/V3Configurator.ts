@@ -467,14 +467,11 @@ export class V3Configurator {
    */
   private async handleRefresh(): Promise<void> {
     console.log('🔄 Manual refresh requested');
-    this.updateStatus('🔄 Checking for updates...');
-    
-    const wasUpdated = await this.modelService.checkForUpdates();
-    if (wasUpdated) {
-      this.updateStatus('✅ Pipeline updated');
-    } else {
-      this.updateStatus('✅ Already up to date');
-    }
+    this.updateStatus('🔄 Refreshing models...');
+
+    // In V3, refresh is handled by HMR events, so we just refresh the model list
+    this.refreshModelList();
+    this.updateStatus('✅ Models refreshed');
   }
 
   /**

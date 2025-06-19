@@ -6,9 +6,7 @@ export default defineConfig({
   // Plugins
   plugins: [
     pipelineHMR({
-      watchDir: 'temp',
-      watchFiles: ['pipeline.js', 'manifest.json'],
-      debounceMs: 100
+      watchFiles: ['temp/pipeline.js', 'temp/manifest.json']
     })
   ],
   // UI Harness Server configuration

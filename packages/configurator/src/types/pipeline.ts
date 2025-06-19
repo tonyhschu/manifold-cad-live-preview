@@ -37,26 +37,14 @@ export interface ModelPipeline {
 
 /**
  * Pipeline loader interface
- * Handles loading and reloading of pipeline functions
+ * Handles loading of pipeline functions
  */
 export interface PipelineLoader {
-  /**
-   * Check if pipeline has been updated
-   * @returns Promise that resolves to true if pipeline was reloaded
-   */
-  checkForUpdates(): Promise<boolean>;
-
   /**
    * Get the current pipeline instance
    * @returns Current pipeline or null if not loaded
    */
   getPipeline(): ModelPipeline | null;
-
-  /**
-   * Force reload the pipeline
-   * @returns Promise that resolves when pipeline is reloaded
-   */
-  reloadPipeline(): Promise<void>;
 }
 
 /**
