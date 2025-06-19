@@ -8,81 +8,99 @@ This project was created with [Manifold Studio](https://github.com/tonyhschu/man
 
 ### Development Mode
 
-Start the development server with live preview:
+Start the complete development environment:
 
 ```bash
 npm run dev
 ```
 
-This will open your browser to `http://localhost:5173` where you can:
-- See your 3D model rendered in real-time
-- Adjust parameters using the control panel
-- Export your model as OBJ or GLB files
+This starts both the pipeline compiler and UI server, giving you:
+- **Pipeline Compiler**: Automatically compiles your models to `temp/pipeline.js` and `temp/manifest.json`
+- **Live Preview**: Opens your browser to `http://localhost:5173` with real-time 3D rendering
+- **Parameter Controls**: Adjust model parameters using the control panel
+- **Export Options**: Download your models as OBJ or GLB files
+- **Hot Reloading**: See changes instantly without page refreshes
 
-### Model Development Mode
+### Individual Development Servers
 
-For advanced model development with automatic compilation:
+For running servers individually:
 
 ```bash
-npm run dev:models
+# Pipeline compiler only (watches for model changes)
+npm run dev:pipeline
+
+# UI server only (requires pipeline to be built first)
+npm run dev:ui
 ```
 
-This starts the Model Watcher which:
-- Watches your `components/` directory for changes
-- Automatically compiles TypeScript models to GLB files
+This starts only the Pipeline Compiler which:
+- Watches your model files for changes (`main.ts`, `components/*.ts`)
+- Automatically compiles TypeScript models to `temp/pipeline.js`
+- Generates `temp/manifest.json` with model metadata
 - Provides real-time feedback on compilation status
-- Generates a `temp/` folder with compiled model artifacts
 
 ### Customizing Your Models
 
-Create and edit models in the `components/` directory:
+Create and edit models in your project:
 
-1. **Create new models**: Add `.ts` files in `components/` (e.g., `components/my-part.ts`)
-2. **Adjust parameters**: Change default values or add new parameters using `P.number()`, `P.boolean()`, etc.
-3. **Modify geometry**: Update your model functions using Manifold operations
-4. **Add features**: Import additional Manifold operations or external libraries
+1. **Main model**: Edit `main.ts` for your primary model
+2. **Component models**: Add `.ts` files in `components/` (e.g., `components/my-part.ts`)
+3. **Adjust parameters**: Change parameter values, ranges, and types
+4. **Modify geometry**: Update your model functions using Manifold operations
+5. **Add features**: Import additional Manifold operations or external libraries
 
-Example model structure:
+Example V3 model structure:
 ```typescript
-import { Manifold, P, createConfig } from "@manifold-studio/wrapper";
+// V3 Parametric Model Configuration
+declare const manifold: any;
 
-function createMyPart(width: number = 10): Manifold {
-  return Manifold.cube([width, width, width]);
+function createMyPart(params: { width: number; height: number }) {
+  return manifold.cube([params.width, params.height, params.width]);
 }
 
-export default createMyPart;
-
-export const myPartConfig = createConfig(
-  { width: P.number(10, 1, 50, 1) },
-  (params) => createMyPart(params.width),
-  { name: "My Part", description: "A customizable part" }
-);
+export default {
+  name: "My Part",
+  description: "A customizable part",
+  parameters: {
+    width: { value: 10, min: 1, max: 50, step: 1 },
+    height: { value: 10, min: 1, max: 50, step: 1 }
+  },
+  generateModel: createMyPart
+};
 ```
 
 ### Project Structure
 
 ```
 {{projectName}}/
-├── main.ts              # Your main 3D model for UI
-├── components/          # Model components (auto-discovered by model watcher)
+├── src/
+│   └── main.ts          # UI entry point (V3 configurator)
+├── main.ts              # Your main 3D model
+├── components/          # Model components (auto-discovered by pipeline)
 │   ├── example.ts       # Example sphere component
 │   └── wheel.ts         # Example wheel component
 ├── scripts/             # Development tools
-│   └── model-watcher.ts # Automatic model compilation script
-├── temp/                # Generated model artifacts (gitignored)
-│   ├── blobs/           # Compiled GLB files
-│   ├── core/            # Compiled JavaScript
-│   └── manifest.json    # Model compilation status
+│   └── generate-manifest.ts # Manifest generation script
+├── vite-plugins/        # Custom Vite plugins
+│   └── manifest-generator.ts # Manifest generation plugin
+├── temp/                # Generated pipeline artifacts (gitignored)
+│   ├── pipeline.js      # Compiled pipeline with all models
+│   └── manifest.json    # Model metadata and parameters
+├── pipeline-entry.ts    # Pipeline compilation entry point
 ├── package.json         # Project dependencies
-├── vite.config.ts       # Development server configuration
+├── vite.config.ts       # UI server configuration
+├── vite.pipeline.config.ts # Pipeline compiler configuration
 └── index.html           # HTML bootstrap
 ```
 
 ## Available Scripts
 
-- `npm run dev` - Start development server with live preview
-- `npm run dev:models` - Start model watcher for automatic compilation
-- `npm run build` - Build for production
+- `npm run dev` - Start complete development environment (pipeline + UI server)
+- `npm run dev:pipeline` - Start pipeline compiler only for automatic compilation
+- `npm run dev:ui` - Start UI server only (requires pipeline to be built)
+- `npm run build` - Build for production (pipeline + UI)
+- `npm run build:pipeline` - Build pipeline only
+- `npm run generate:manifest` - Generate manifest.json from compiled pipeline
 - `npm run preview` - Preview production build
 
 ## Learn More

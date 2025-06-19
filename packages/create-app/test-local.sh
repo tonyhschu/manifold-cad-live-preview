@@ -20,7 +20,7 @@ cd ../../packages/create-app
 
 # Step 3: Generate test project
 echo "🏗️  Generating test project..."
-node packages/create-app/bin/index.js test-local-project --no-install
+node bin/index.js test-local-project --no-install
 
 # Step 4: Set up the test project
 echo "⚙️  Setting up test project..."

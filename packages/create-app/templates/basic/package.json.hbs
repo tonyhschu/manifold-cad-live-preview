@@ -4,21 +4,28 @@
   "type": "module",
   "description": "{{description}}",
   "scripts": {
-    "dev": "vite",
-    "dev:models": "node --loader ts-node/esm scripts/model-watcher.ts",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "concurrently \"npm run dev:pipeline\" \"npm run dev:ui\"",
+    "dev:pipeline": "vite build --config vite.pipeline.config.ts --watch",
+    "dev:ui": "vite",
+    "build": "npm run build:pipeline && npm run build:ui",
+    "build:pipeline": "vite build --config vite.pipeline.config.ts && npm run generate:manifest",
+    "build:ui": "vite build",
+    "generate:manifest": "tsx scripts/generate-manifest.ts",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:pipeline": "npm run build:pipeline"
   },
   "dependencies": {
     "@manifold-studio/wrapper": "^1.0.0",
     "@manifold-studio/configurator": "^1.0.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
+    "concurrently": "^8.0.0",
+    "jsdom": "^24.0.0",
+    "tsx": "^4.0.0",
     "typescript": "^5.0.2",
     "vite": "^4.4.5",
-    "@types/node": "^20.0.0",
-    "ts-node": "^10.9.2",
-    "chokidar": "^3.5.3",
-    "glob": "^10.3.0"
+    "vitest": "^1.0.0"
   }
 }

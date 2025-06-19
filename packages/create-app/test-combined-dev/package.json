@@ -1,0 +1,25 @@
+{
+  "name": "test-combined-dev",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A Manifold Studio project",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:models\" \"vite\"",
+    "dev:models": "node --loader ts-node/esm scripts/model-watcher.ts",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@manifold-studio/wrapper": "file:../../wrapper",
+    "@manifold-studio/configurator": "file:../../configurator"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.2",
+    "vite": "^4.4.5",
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "chokidar": "^3.5.3",
+    "glob": "^10.3.0",
+    "concurrently": "^8.0.0"
+  }
+}

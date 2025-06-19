@@ -35,7 +35,7 @@ This guide covers the development workflow for the V3 pipeline-based architectur
 
 ### � **Initial Setup (Required Once)**
 
-Since our packages aren't published to NPM yet, you need to set up npm linking first:
+Since our packages aren't published to NPM yet, you need to set up npm linking first. This approach makes `test-v3-development` behave like a real user project that installs packages from npm:
 
 ```bash
 # 1. Create global npm links for our packages
@@ -50,6 +50,8 @@ cd ..
 ```
 
 **Note**: You only need to do this once, or when you clean your npm cache/node_modules.
+
+**Why npm links?** This setup makes `test-v3-development` behave exactly like an end user's project would - it resolves `@manifold-studio/wrapper` and `@manifold-studio/configurator` as if they were installed from npm, but gets the latest local development versions.
 
 ### �🚀 **Quick Start (Most Common)**
 

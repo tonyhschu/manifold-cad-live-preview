@@ -1,8 +1,6 @@
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
 
 export default defineConfig({
-  // UI Server configuration
   // Enable top-level await for Manifold WASM loading
   esbuild: {
     target: 'es2022'
@@ -13,12 +11,6 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true
-  },
-  // Resolve configuration for TypeScript
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, './src')
-    }
   },
   // Pass REPO_HMR flag to the browser
   define: {

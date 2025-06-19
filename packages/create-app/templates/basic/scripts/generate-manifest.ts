@@ -27,10 +27,10 @@ async function generateManifest() {
     const timestamp = Date.now();
     const random = Math.random();
     const moduleUrl = `${pipelinePath}?t=${timestamp}&r=${random}`;
-
+    
     console.log('📦 Loading pipeline from:', pipelinePath);
     console.log('🔄 Cache busting URL:', moduleUrl);
-
+    
     // Dynamic import the pipeline
     const pipelineModule = await import(moduleUrl);
     const pipeline = pipelineModule.default || pipelineModule.pipeline;
@@ -49,7 +49,7 @@ async function generateManifest() {
     // Get pipeline info and models
     const pipelineInfo = pipeline.getPipelineInfo?.() || {};
     const availableModels = pipeline.getAvailableModels();
-
+    
     console.log(`📊 Found ${availableModels.length} models`);
 
     // Build manifest data
@@ -87,9 +87,9 @@ async function generateManifest() {
     // Write manifest file
     const manifestPath = resolve('./temp/manifest.json');
     const jsonContent = JSON.stringify(manifest, null, 2);
-
+    
     writeFileSync(manifestPath, jsonContent, 'utf-8');
-
+    
     console.log('✅ Manifest generated:', manifestPath);
     console.log('📋 Manifest contents:');
     console.log(`   - Version: ${manifest.version}`);

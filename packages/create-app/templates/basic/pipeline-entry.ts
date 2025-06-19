@@ -7,7 +7,7 @@
 
 // Import model files directly - Vite will handle the bundling
 import mainModel from './main.ts';
-import simpleCube from './components/simple-cube.ts';
+import exampleModel from './components/example.ts';
 import wheelModel from './components/wheel.ts';
 
 // Type definitions for better type safety
@@ -59,14 +59,14 @@ function extractDefaultParams(config: ParametricConfig): Record<string, any> {
 // Define the models that were discovered
 const modelDefinitions = [
   { id: 'main', path: './main.ts', module: mainModel },
-  { id: 'components/simple-cube', path: './components/simple-cube.ts', module: simpleCube },
+  { id: 'components/example', path: './components/example.ts', module: exampleModel },
   { id: 'components/wheel', path: './components/wheel.ts', module: wheelModel }
 ];
 
 // Process each model and create the pipeline
 const processedModels: ProcessedModel[] = modelDefinitions.map(({ id, path, module }) => {
   const defaultExport = module;
-
+  
   if (isParametricConfig(defaultExport)) {
     // Parametric model
     return {
@@ -141,7 +141,7 @@ export const manifestData = {
   generatedAt: new Date().toISOString(),
   models: pipeline.getAvailableModels().map(model => {
     const baseModel = model;
-
+    
     if (model.type === 'parametric') {
       const config = pipeline.getModelConfig(model.id);
       return {

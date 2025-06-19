@@ -138,17 +138,19 @@ Model selection → Event → Config UI loads new parameters → Pipeline execut
 
 ### ✅ **What's Working**
 
-- **Pipeline Compiler** - Compiles models to `temp/pipeline.js`
-- **Dual Vite Architecture** - Pipeline build server + UI server
-- **Model Discovery** - Finds `main.ts` and `components/*.ts`
-- **Parameter Extraction** - Extracts configs from parametric models
+- **Pipeline Compiler** - Compiles models to `temp/pipeline.js` with full TypeScript support
+- **Dual Vite Architecture** - Pipeline build server + UI server working seamlessly
+- **Model Discovery** - Finds `main.ts` and `components/*.ts` automatically
+- **Parameter Extraction** - Extracts configs from parametric models with type safety
+- **Manifest Generation** - ✅ **NEW!** Structured `temp/manifest.json` generated automatically
+- **Hot Reload Pipeline** - ✅ **NEW!** File changes → pipeline rebuild → manifest regeneration
 - **Basic V3 Configurator** - Test harness with pipeline integration
 - **NPM Link Development** - Auto-rebuild libraries + test project
+- **Type Safety** - ✅ **NEW!** Full TypeScript types for pipeline compilation
 
 ### 🔄 **What Needs Completion**
 
 - **Clean Configurator Library** - Rebuild as pure library with `startConfigurator()`
-- **Manifest Generation** - Structured metadata in `temp/manifest.json`
 - **Full UI Integration** - 3D viewer, parameter panels, export functionality
 - **Create-App Templates** - Update with V3 dual-server setup
 
@@ -162,13 +164,87 @@ Based on our current progress and refined architecture understanding:
 - **Basic V3 Integration** - Test harness proves V3 pipeline system works
 - **Development Workflow** - Auto-rebuild libraries + hot reload pipeline
 - **Model Discovery & Compilation** - Finds and compiles `main.ts` + `components/*.ts`
+- **✅ Manifest Generation** - ✅ **COMPLETED!** Structured `temp/manifest.json` with Vite plugin
+- **✅ Hot Reload System** - ✅ **COMPLETED!** File changes trigger pipeline + manifest updates
+- **✅ Type Safety** - ✅ **COMPLETED!** Full TypeScript support in pipeline compilation
 
-### 🎯 **Immediate Priorities**
+### 🎯 **Next Immediate Priorities**
 
-1. **Clean Configurator Library** - Remove standalone app, implement `startConfigurator()`
-2. **Manifest Generation** - Add structured `temp/manifest.json` alongside pipeline
-3. **Full UI Integration** - 3D viewer, parameter panels, export functionality
-4. **Create-App Templates** - Update with working V3 setup
+1. **Clean Configurator Library** - Remove standalone app, implement pure library `startConfigurator()`
+2. **Full UI Integration** - Test 3D viewer, parameter panels, export functionality with manifest
+3. **Create-App Templates** - Update with working V3 setup
+4. **End-to-End Testing** - Verify complete source → pipeline → manifest → UI flow
+
+## ✅ Recent Progress: Manifest Generation Implementation
+
+### **What Was Completed (June 2025)**
+
+**✅ Manifest Generation System:**
+
+- Created `scripts/generate-manifest.ts` that dynamically imports compiled pipeline
+- Extracts complete model metadata including parameters, types, descriptions
+- Generates structured `temp/manifest.json` alongside `temp/pipeline.js`
+
+**✅ Vite Plugin Integration:**
+
+- Built `vite-plugins/manifest-generator.ts` for seamless integration
+- Runs manifest generation after every pipeline build (single build + watch mode)
+- Eliminated external dependencies (removed chokidar-cli, 41 packages)
+
+**✅ Hot Reload Architecture:**
+
+```
+Source Change → Vite Rebuild → Plugin Triggers → Manifest Updated
+```
+
+**✅ Type Safety:**
+
+- Added proper TypeScript interfaces for `ParametricModel`, `StaticModel`
+- Fixed union type issues with type guards and assertions
+- Full type safety throughout pipeline compilation
+
+**✅ Simplified Development Workflow:**
+
+```bash
+# Before: Complex chokidar setup
+npm run dev:pipeline  # concurrently + chokidar + multiple watchers
+
+# After: Clean Vite integration
+npm run dev:pipeline  # vite build --watch (plugin handles manifest)
+```
+
+**✅ Generated Manifest Structure:**
+
+```json
+{
+  "version": "1750356501089",
+  "generatedAt": "2025-06-17T18:10:04.506Z",
+  "models": [
+    {
+      "id": "main",
+      "name": "V3 Test Hook",
+      "type": "parametric",
+      "config": {
+        "parameters": {
+          "height": { "value": 25, "min": 1, "max": 50 },
+          "width": { "value": 10, "min": 1, "max": 20 },
+          "thickness": { "value": 2, "min": 0.5, "max": 5 }
+        },
+        "description": "A simple parametric hook for testing V3 architecture - updated!"
+      }
+    }
+  ]
+}
+```
+
+### **Impact**
+
+The UI now has reliable access to structured model metadata, which is the critical missing piece for:
+
+- Model list rendering (knows what models are available)
+- Parameter panel generation (knows parameter schemas)
+- Model type handling (static vs parametric)
+- Cache invalidation (version tracking)
 
 ## Technical Implementation Details
 
@@ -707,24 +783,28 @@ npm run dev  # Starts pipeline compiler + UI server
 
 ## Next Steps
 
-### Phase 1: Complete V3 Configurator Library ⚡ **PRIORITY**
+### Phase 1: Complete V3 Configurator Library ⚡ **CURRENT PRIORITY**
+
+**Goal**: Clean up configurator to be pure library with `startConfigurator()` API
 
 1. **Remove standalone app complexity** - Simplify to library-only build
 2. **Move coordination logic** from old `main.ts` to `core/coordinator.ts`
-3. **Implement `startConfigurator()`** - Single function that handles all initialization
-4. **Rebuild 12 modules** with clean event-based architecture:
+3. **Implement clean `startConfigurator()`** - Single function that handles all initialization
+4. **Test manifest consumption** - Verify configurator can read and use `temp/manifest.json`
+5. **Rebuild 12 modules** with clean event-based architecture:
    - State management (model selection, config UI)
    - Pipeline execution (GLB generation)
    - UI renderers (model list, parameter panels, 3D viewer)
    - Supporting modules (pipeline loader, export, error handling, etc.)
-5. **Test integration** with existing V3 pipeline in `test-v3-development`
+6. **End-to-end testing** - Complete source → pipeline → manifest → UI flow
 
-### Phase 2: Pipeline Enhancements
+### ✅ Phase 2: Pipeline Enhancements **COMPLETED**
 
-1. **Generate `manifest.json`** - Structured metadata alongside `pipeline.js`
-2. **Improve error handling** - Better compilation and runtime error messages
-3. **Hot reload optimization** - Faster pipeline rebuilds and detection
-4. **Source maps** - Debug support for compiled pipeline
+1. ✅ **Generate `manifest.json`** - Structured metadata alongside `pipeline.js`
+2. ✅ **Hot reload optimization** - Vite plugin integration, eliminated chokidar
+3. ✅ **Type safety** - Full TypeScript support in pipeline compilation
+4. **Improve error handling** - Better compilation and runtime error messages
+5. **Source maps** - Debug support for compiled pipeline
 
 ### Phase 3: Create-App Integration
 
