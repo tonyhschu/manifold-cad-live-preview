@@ -34,12 +34,24 @@ export function pipelineHMR(options: PipelineHMROptions = {}): Plugin {
     
     configureServer(viteServer) {
       server = viteServer;
-      
+
+      // Intercept Vite's HMR to prevent page reloads for temp files
+      const originalSend = server.ws.send;
+      server.ws.send = function(payload: any) {
+        // Block page reload events for temp files
+        if (payload.type === 'full-reload' ||
+            (payload.type === 'update' && payload.updates?.some((u: any) => u.path?.includes('/temp/')))) {
+          console.log('🚫 Pipeline HMR: Blocked Vite reload for temp file');
+          return;
+        }
+        return originalSend.call(this, payload);
+      };
+
       // Set up file watcher when server starts
       const watchPaths = watchFiles.map(file => path.join(watchDir, file));
-      
+
       console.log(`🔍 Pipeline HMR: Watching ${watchPaths.join(', ')}`);
-      
+
       watcher = watch(watchPaths, {
         ignored: /node_modules/,
         persistent: true,
@@ -48,12 +60,12 @@ export function pipelineHMR(options: PipelineHMROptions = {}): Plugin {
 
       watcher.on('change', (filePath: string) => {
         console.log(`🔄 Pipeline HMR: File changed - ${filePath}`);
-        
+
         // Debounce multiple rapid changes
         if (debounceTimer) {
           clearTimeout(debounceTimer);
         }
-        
+
         debounceTimer = setTimeout(() => {
           handlePipelineChange(filePath);
         }, debounceMs);

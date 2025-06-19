@@ -43,8 +43,8 @@ export class V3ModelService implements IModelService {
     console.log('🚀 Initializing V3 Model Service...');
 
     try {
-      // Initialize pipeline loader with auto-check
-      const success = await this.pipelineLoader.initialize(true);
+      // Initialize pipeline loader without auto-check (using custom HMR instead)
+      const success = await this.pipelineLoader.initialize(false);
       
       this.isInitialized = true;
       console.log('✅ V3 Model Service initialized');
