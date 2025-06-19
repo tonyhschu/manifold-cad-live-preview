@@ -1,7 +1,16 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import { pipelineHMR } from './vite-plugins/pipeline-hmr';
 
 export default defineConfig({
+  // Plugins
+  plugins: [
+    pipelineHMR({
+      watchDir: 'temp',
+      watchFiles: ['pipeline.js', 'manifest.json'],
+      debounceMs: 100
+    })
+  ],
   // UI Harness Server configuration
   server: {
     port: 5173,

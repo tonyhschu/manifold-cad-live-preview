@@ -1,17 +1,21 @@
 /**
  * ManifoldCAD Preview Environment - Main Module
  *
- * This is the entry point for the application, handling initialization of the preview system,
- * setting up HMR, and loading the default model.
+ * V3 Pipeline-Based Architecture
+ *
+ * This is the entry point for the V3 configurator, using the pipeline-based model system.
  */
 import "./style.css";
 import "./components"; // Register all web components
 import { currentModelId, loadModel, updateStatus, initializeStore } from "./state/store";
 import { createModelViewer } from "./core/preview";
-import { setupSimpleHMR } from "./hmr-simple";
-import { initializeServices } from "./services";
-import { configureModelDiscovery } from "./core/model-loader";
-import { startTempFolderWatcher } from "./watchers/temp-folder-watcher";
+import { setModelService } from "./services";
+
+// V3 Pipeline System
+import { createV3ModelService } from "./services/V3ModelService.js";
+import { Manifold, CrossSection } from '@manifold-studio/wrapper';
+
+console.log('🚀 Starting V3 Pipeline Configurator...');
 
 // Get DOM elements
 const modelViewerElement = document.getElementById("viewer") as any;
@@ -41,48 +45,61 @@ if (modelViewerElement) {
 //   modelViewer
 // };
 
-// Initialize HMR for development
-if (import.meta.hot !== undefined) {
-  console.log("HMR is available - setting up simple HMR system");
-  setupSimpleHMR();
+// V3 uses pipeline-based HMR (automatic pipeline reloading)
+// No need for legacy HMR setup
+
+/**
+ * Initialize V3 Pipeline System
+ */
+async function initializeV3() {
+  console.log("🔧 Initializing V3 Pipeline System...");
+
+  // Make Manifold available globally for pipeline models
+  (globalThis as any).manifold = Manifold;
+  (globalThis as any).CrossSection = CrossSection;
+  console.log("✅ Manifold initialized and available globally");
+
+  // Initialize V3 model service
+  const v3ModelService = createV3ModelService('/temp/pipeline.js');
+  await v3ModelService.initialize();
+
+  // Set V3 service as the model service
+  setModelService(v3ModelService);
+
+  console.log("✅ V3 Pipeline System initialized");
 }
 
 /**
- * Main function to run the preview environment
+ * Main function to run the V3 preview environment
  */
 async function runPreview() {
   try {
-    console.log("Starting ManifoldCAD preview");
+    console.log("Starting V3 Pipeline Configurator");
 
-    // Configure for development mode (monorepo)
-    configureModelDiscovery({ useDevelopmentModels: true });
+    // Initialize V3 Pipeline System
+    updateStatus("Initializing V3 Pipeline System...");
+    await initializeV3();
 
-    // Initialize services first
-    updateStatus("Initializing services...");
-    initializeServices();
-    
-    // Initialize store (loads available models)
-    updateStatus("Loading available models...");
+    // Initialize store with V3 models
+    updateStatus("Loading V3 models...");
     await initializeStore();
 
-    // Start temp folder watcher for Phase 3 HMR
-    console.log("🔍 Starting temp folder watcher...");
-    startTempFolderWatcher();
+    updateStatus("V3 Pipeline System ready");
 
     // Update initial status
-    updateStatus("Starting ManifoldCAD preview...");
-    
+    updateStatus("Starting V3 configurator...");
+
     // Load the default model using our state management
     await loadModel(currentModelId.value);
-    
+
     // Any additional setup after model is loaded
-    console.log("Model loaded successfully");
-    
+    console.log("V3 model loaded successfully");
+
   } catch (error: any) {
-    console.error("Error in preview:", error);
+    console.error("Error in V3 preview:", error);
     updateStatus(`Error: ${error.message}`, true);
   }
 }
 
-// Run the preview
+// Run the V3 preview
 runPreview();

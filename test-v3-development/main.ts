@@ -7,10 +7,10 @@
 // Export parametric config directly (no imports needed)
 export default {
   name: "V3 Test Hook",
-  description: "A simple parametric hook for testing V3 architecture - updated!",
+  description: "A simple parametric hook for testing V3 architecture - Custom HMR working!",
   parameters: {
     height: {
-      value: 25,
+      value: 10,
       min: 1,
       max: 50
     },
@@ -20,7 +20,7 @@ export default {
       max: 20
     },
     thickness: {
-      value: 3,
+      value: 2,
       min: 0.5,
       max: 5
     }

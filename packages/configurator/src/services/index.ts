@@ -48,3 +48,11 @@ export function cleanupServices(): void {
 
 // Re-export convenience functions
 export { getModelService, getExportService, getUrlService } from './ServiceContainer';
+
+/**
+ * Replace the model service (for V3 integration)
+ */
+export function setModelService(modelService: any): void {
+  const container = ServiceContainer.getInstance();
+  container.registerModelService(modelService);
+}

@@ -209,11 +209,26 @@ async function getModelsFromTempFolder(): Promise<{ id: string; name: string; ty
 
 /**
  * Refresh the available models list
- * Reads from temp/manifest.json (Phase 3 implementation)
+ * Uses model service if available (V3), otherwise reads from temp/manifest.json (V1/V2)
  */
 export async function refreshAvailableModels() {
   try {
-    // Read from temp folder (primary path)
+    // Try to use model service first (V3 approach)
+    try {
+      const modelService = getModelService();
+      if (modelService && typeof modelService.getAvailableModels === 'function') {
+        const models = modelService.getAvailableModels();
+        if (models && models.length > 0) {
+          availableModels.value = models;
+          console.log('✅ Available models refreshed from model service (V3):', models.map(m => m.id));
+          return;
+        }
+      }
+    } catch (serviceError) {
+      console.log('📂 Model service not available, falling back to temp folder approach');
+    }
+
+    // Fallback: Read from temp folder (V1/V2 approach)
     const tempModels = await getModelsFromTempFolder();
 
     if (tempModels && tempModels.length > 0) {
@@ -276,7 +291,7 @@ export async function initializeFromURL(): Promise<void> {
     if (modelParam) {
       console.log('🔗 Initializing model from URL:', modelParam);
       // Check if this model exists in available models
-      const models = await getAvailableModelsAsync();
+      const models = availableModels.value;
       const modelExists = models.some(m => m.id === modelParam);
 
       if (modelExists) {

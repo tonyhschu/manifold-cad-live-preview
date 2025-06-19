@@ -14,6 +14,10 @@ export interface ConfiguratorOptions {
   models?: Record<string, any>;
   defaultModel?: string;
   container?: string | HTMLElement;
+  /** Use V3 pipeline system instead of legacy model discovery */
+  useV3Pipeline?: boolean;
+  /** Pipeline path for V3 system */
+  pipelinePath?: string;
   /** Custom model registry for user projects - maps model ID to actual model objects */
   modelRegistry?: Record<string, {
     id: string;
@@ -181,14 +185,54 @@ function loadModelViewerScript(): Promise<void> {
 }
 
 /**
- * Initialize the configurator (similar to main.ts logic)
+ * Initialize V3 Pipeline System
  */
-async function initializeConfigurator() {
-  // Initialize store
-  await initializeStore();
+async function initializeV3(pipelinePath: string = '/temp/pipeline.js') {
+  console.log("🔧 Initializing V3 Pipeline System...");
 
-  // Initialize services
+  // Initialize all services first (including ExportService, UrlService)
   initializeServices();
+
+  // Initialize V3 model service
+  const { createV3ModelService } = await import('./services/V3ModelService.js');
+  const v3ModelService = createV3ModelService(pipelinePath);
+  await v3ModelService.initialize();
+
+  // Replace only the model service with V3 service
+  const { setModelService } = await import('./services');
+  setModelService(v3ModelService);
+
+  console.log("✅ V3 Pipeline System initialized");
+}
+
+/**
+ * Initialize the configurator (V1/V2 legacy or V3 pipeline)
+ */
+async function initializeConfigurator(useV3Pipeline: boolean = false, pipelinePath?: string) {
+  if (useV3Pipeline) {
+    // V3 Pipeline Mode
+    console.log('🚀 Initializing V3 Pipeline Configurator...');
+    await initializeV3(pipelinePath);
+
+    // Initialize store with V3 models
+    await initializeStore();
+  } else {
+    // Legacy V1/V2 Mode
+    console.log('🚀 Initializing Legacy Configurator...');
+
+    // Initialize store
+    await initializeStore();
+
+    // Initialize services
+    initializeServices();
+
+    // Set up HMR if available
+    setupSimpleHMR();
+
+    // Start temp folder watcher for Phase 3 HMR
+    console.log('🔍 Starting temp folder watcher...');
+    startTempFolderWatcher();
+  }
 
   // Get DOM elements
   const modelViewerElement = document.getElementById("viewer") as any;
@@ -211,13 +255,6 @@ async function initializeConfigurator() {
     });
   }
 
-  // Set up HMR if available
-  setupSimpleHMR();
-
-  // Start temp folder watcher for Phase 3 HMR
-  console.log('🔍 Starting temp folder watcher...');
-  startTempFolderWatcher();
-
   return { modelViewer };
 }
 
@@ -225,7 +262,14 @@ async function initializeConfigurator() {
  * Start the Manifold Studio configurator
  */
 export async function startConfigurator(options: ConfiguratorOptions = {}) {
-  const { models = {}, defaultModel, container = 'body', modelRegistry } = options;
+  const {
+    models = {},
+    defaultModel,
+    container = 'body',
+    modelRegistry,
+    useV3Pipeline = false,
+    pipelinePath = '/temp/pipeline.js'
+  } = options;
 
   // Get or create container element
   let containerElement: HTMLElement;
@@ -260,7 +304,7 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
   });
 
   // Initialize the configurator
-  const { modelViewer } = await initializeConfigurator();
+  const { modelViewer } = await initializeConfigurator(useV3Pipeline, pipelinePath);
 
   // Set up custom model registry if provided
   if (modelRegistry) {

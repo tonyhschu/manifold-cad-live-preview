@@ -16,6 +16,19 @@ async function main() {
     (globalThis as any).CrossSection = CrossSection;
     console.log('✅ Manifold initialized and available globally');
 
+    // Test pipeline availability first
+    console.log('🔍 Testing pipeline availability...');
+    try {
+      const pipelineResponse = await fetch('/temp/pipeline.js');
+      console.log('📦 Pipeline response status:', pipelineResponse.status);
+      if (!pipelineResponse.ok) {
+        throw new Error(`Pipeline not available: ${pipelineResponse.status}`);
+      }
+    } catch (pipelineError) {
+      console.error('❌ Pipeline test failed:', pipelineError);
+      throw new Error(`Pipeline not available: ${pipelineError.message}`);
+    }
+
     // Start the configurator with V3 pipeline support
     console.log('🎯 Starting V3 Configurator...');
 
@@ -31,7 +44,7 @@ async function main() {
 
   } catch (error) {
     console.error('❌ Failed to start V3 Configurator:', error);
-    
+
     // Show error in UI
     const app = document.getElementById('app');
     if (app) {
@@ -41,10 +54,55 @@ async function main() {
           <p>${error instanceof Error ? error.message : 'Unknown error'}</p>
           <p><strong>Make sure the pipeline build server is running:</strong></p>
           <code>npm run build:pipeline</code>
+          <details style="margin-top: 1rem; text-align: left;">
+            <summary>Error Details</summary>
+            <pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow: auto;">
+${error instanceof Error ? error.stack : error}
+            </pre>
+          </details>
         </div>
       `;
     }
   }
+}
+
+// Set up custom Pipeline HMR
+if (import.meta.hot) {
+  console.log('🔥 Setting up custom Pipeline HMR...');
+
+  // Listen for our custom pipeline events
+  import.meta.hot.on('pipeline:updated', (data) => {
+    console.log('🔄 Pipeline updated:', data);
+    handlePipelineUpdate(data);
+  });
+
+  import.meta.hot.on('pipeline:code-updated', (data) => {
+    console.log('📦 Pipeline code updated:', data);
+    handlePipelineCodeUpdate(data);
+  });
+
+  import.meta.hot.on('pipeline:manifest-updated', (data) => {
+    console.log('📋 Pipeline manifest updated:', data);
+    handleManifestUpdate(data);
+  });
+} else {
+  console.log('❌ HMR not available');
+}
+
+// HMR event handlers
+function handlePipelineUpdate(data: any) {
+  console.log('🎯 Handling pipeline update - this is where we would refresh models');
+  // TODO: Call store functions to refresh models and re-render
+}
+
+function handlePipelineCodeUpdate(data: any) {
+  console.log('🎯 Handling pipeline code update - this is where we would reload pipeline and re-render current model');
+  // TODO: Reload pipeline module and regenerate current model
+}
+
+function handleManifestUpdate(data: any) {
+  console.log('🎯 Handling manifest update - this is where we would refresh model list');
+  // TODO: Refresh available models list
 }
 
 // Start the application
