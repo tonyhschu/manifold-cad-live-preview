@@ -2,7 +2,29 @@
 
 ## Overview
 
-V3 represents a fundamental shift from dynamic model imports to **compiled pipeline functions**. The key insight: treat the pipeline as a library/blackbox that gets replaced entirely, with client-side re-render logic handling GLB updates.
+V3 represents a fundamental shift from dynamic model imports to **compiled pipeline functions**. The architecture separates concerns cleanly: pipeline compilation, configurator library, user project orchestration, and UI serving.
+
+## Architecture Principles
+
+### Clean Division of Responsibilities
+
+- **Pipeline Compiler**: Source → Pipeline + Manifest
+- **Configurator Library**: UI components that consume pipeline + manifest
+- **User Project**: Imports configurator, provides container, handles pipeline path
+- **UI Server**: Just serves files, no special logic
+
+### Hot Reload Architecture
+
+- **Pipeline watcher** → rebuilds pipeline + manifest
+- **UI detects pipeline change** → reloads models list
+- **Config UI change** → triggers GLB regeneration
+- **File change** → pipeline rebuild → UI reload
+
+### Architectural Simplifications
+
+- **Configurator is library-only** - No standalone app needed since development happens in user projects
+- **Single build system** - Configurator has one Vite config for library build only
+- **Test in user context** - Configurator development happens in `test-v3-development`, not as standalone app
 
 ## What Didn't Work in V1 & V2
 
@@ -56,232 +78,165 @@ TypeScript → Static GLB (default params) → UI displays GLB
 ## Core Architecture
 
 ```
-Source Files → Pipeline Compiler → Pipeline Functions → UI Harness → Live GLB Rendering
-     ↓              ↓                    ↓              ↓              ↓
-   main.ts      Vite Build         Compiled JS     Parameter UI    Model Viewer
-components/    (File Watcher)     (Hot Reload)    (State Mgmt)    (GLB Display)
+User Project (Regular NPM)
+├── Model Source Files (main.ts, components/*.ts)
+├── Pipeline Compiler (Vite Process #1) → temp/pipeline.js + temp/manifest.json
+├── UI Server (Vite Process #2) → Serves UI + Pipeline artifacts
+└── Configurator Library → UI Components + Pipeline Execution
 ```
 
-### Key Principles
+### Component Responsibilities
 
-1. **Pipeline as Build Artifact**: The compiled pipeline function is the primary output, not GLBs
-2. **Blackbox Replacement**: Entire pipeline gets replaced on changes (no complex HMR)
-3. **Client-Side Execution**: Pipeline runs in main thread (initially), workers later
-4. **State Preservation**: UI state lives outside pipeline, survives pipeline reloads
-5. **Dual Server Architecture**: Pipeline build server + UI harness server
+#### 1. User Project
 
-## V1 Code Salvage Analysis
+- **Regular NPM project** that users can run with `npm run dev`
+- **Model source code** using wrapper and configuration abstraction
+- **Imports configurator library** to aid development
+- **Orchestrates** the relationship between pipeline and UI
 
-### ✅ **Directly Reusable (40%)**
+#### 2. Pipeline Compiler (Vite Process #1)
 
-#### Core Interfaces & Types
+- **Watches** model source files (`main.ts`, `components/*.ts`)
+- **Compiles** TypeScript to self-contained pipeline functions
+- **Generates** `temp/pipeline.js` (executable pipeline)
+- **Produces** `temp/manifest.json` (model metadata and configurations)
+- **Rebuilds** automatically on file changes
 
-```typescript
-// From packages/configurator/src/core/model-loader.ts
-export interface ModelMetadata {
-  name: string;
-  description: string;
-  author?: string;
-  version?: string;
-}
+#### 3. UI Server (Vite Process #2)
 
-export interface ModelRegistryEntry {
-  id: string;
-  path: string;
-  name: string;
-  type: "static" | "parametric";
-}
+- **Serves** user project HTML and assets
+- **Serves** pipeline artifacts (`/temp/pipeline.js`, `/temp/manifest.json`)
+- **Provides** hot module replacement for UI changes
+- **No special logic** - just a standard Vite dev server
 
-// From packages/configurator/src/services/ModelService.ts
-interface ModelLoadResult {
-  model: any;
-  metadata?: ModelMetadata;
-  isParametric?: boolean;
-  config?: ParametricConfig;
-  exports?: { objUrl: string; glbUrl: string };
-}
+#### 4. Configurator Library
+
+**Pure Library Architecture**: The configurator is now a library-only package (no standalone app) since development happens in user projects like `test-v3-development`.
+
+The configurator is composed of separate modules that communicate via events:
+
+**Core Modules:**
+
+1. **State Management for selected model** - Tracks current model selection
+2. **State Management for config UI** - Manages parameter values and UI state
+3. **Pipeline Execution** - Loads pipeline library and executes it to generate GLBs
+4. **GLB Renderer** - Wraps `<model-viewer>` for 3D visualization
+5. **Model List Renderer** - Displays available models from manifest
+6. **Config UI Renderer** - Generates parameter controls from model configurations
+
+**Supporting Modules:** 7. **Pipeline Loader/Manager** - Hot-reloads pipeline when it changes 8. **Export/Download Manager** - Handles GLB/STL downloads 9. **Error/Status Display** - Shows loading states and error messages 10. **URL State Sync** - Persists model selection and parameters in URL 11. **Theme/Styling System** - CSS and responsive layout 12. **Event System/Coordinator** - Inter-module communication
+
+**Module Communication:**
+
+```
+Pipeline Loader detects change → Event → State Management updates → UI re-renders
+Config UI change → Event → Pipeline Execution → GLB Renderer updates
+Model selection → Event → Config UI loads new parameters → Pipeline executes
 ```
 
-#### Parametric Model Detection
+## Current V3 Status
 
-```typescript
-// Perfect for V3 pipeline compilation
-function isParametricConfig(obj: any): obj is ParametricConfig {
-  return (
-    obj &&
-    typeof obj === "object" &&
-    "parameters" in obj &&
-    "generateModel" in obj &&
-    typeof obj.generateModel === "function"
-  );
-}
-```
+### ✅ **What's Working**
 
-### 🔄 **Adaptable for V3 (30%)**
+- **Pipeline Compiler** - Compiles models to `temp/pipeline.js`
+- **Dual Vite Architecture** - Pipeline build server + UI server
+- **Model Discovery** - Finds `main.ts` and `components/*.ts`
+- **Parameter Extraction** - Extracts configs from parametric models
+- **Basic V3 Configurator** - Test harness with pipeline integration
+- **NPM Link Development** - Auto-rebuild libraries + test project
 
-#### File Discovery Logic
+### 🔄 **What Needs Completion**
 
-```typescript
-// V1: Runtime discovery with import.meta.glob
-const modelModules = import.meta.glob([
-  "./main.{ts,js}",
-  "./components/**/*.{ts,js}",
-]);
+- **Clean Configurator Library** - Rebuild as pure library with `startConfigurator()`
+- **Manifest Generation** - Structured metadata in `temp/manifest.json`
+- **Full UI Integration** - 3D viewer, parameter panels, export functionality
+- **Create-App Templates** - Update with V3 dual-server setup
 
-// V3: Same patterns for pipeline compilation
-// But compile to functions instead of runtime imports
-```
+## Updated Implementation Plan
 
-#### Model Name Extraction
+Based on our current progress and refined architecture understanding:
 
-```typescript
-// Reusable for pipeline compilation
-function extractModelName(filePath: string): string {
-  const cleanPath = filePath.replace(/^\.\//, "").replace(/\.(ts|js)$/, "");
-  if (cleanPath === "main") return "main";
-  return cleanPath;
-}
-```
+### ✅ **Already Complete**
 
-### ❌ **Discard for V3 (30%)**
+- **Pipeline Compiler** - Working dual Vite architecture with model compilation
+- **Basic V3 Integration** - Test harness proves V3 pipeline system works
+- **Development Workflow** - Auto-rebuild libraries + hot reload pipeline
+- **Model Discovery & Compilation** - Finds and compiles `main.ts` + `components/*.ts`
 
-#### Complex HMR Logic
+### 🎯 **Immediate Priorities**
 
-```typescript
-// V1: Complex Vite HMR with cache busting
-import.meta.hot.on("vite:afterUpdate", async (data) => {
-  // Complex file change detection, cache invalidation
-});
-
-// V3: Simple pipeline replacement
-const newPipeline = await import(`./temp/pipeline.js?t=${timestamp}`);
-```
-
-#### Runtime Dynamic Imports
-
-```typescript
-// V1: Runtime imports with aggressive cache busting
-const timestamp = Date.now() + Math.random();
-modelModule = await import(`${path}?t=${timestamp}&r=${Math.random()}`);
-
-// V3: Pre-compiled pipeline functions
-const manifold = pipeline.generateModel(modelId, params);
-```
-
-## V3 Implementation Plan
-
-### Phase 1: Foundation & Code Salvage
-
-#### Step 1.1: Extract Reusable Types
-
-- **Goal**: Create clean type definitions for V3
-- **Action**: Move interfaces to `packages/configurator/src/types/`
-- **Files**:
-  - `types/model.ts` - ModelMetadata, ModelRegistryEntry
-  - `types/pipeline.ts` - New pipeline interfaces
-  - `types/service.ts` - Service interfaces
-
-#### Step 1.2: Create Pipeline Interfaces
-
-```typescript
-// New interfaces for V3
-export interface ModelPipeline {
-  getAvailableModels(): ModelConfig[];
-  generateModel(modelId: string, params?: any): Manifold;
-  getModelConfig(modelId: string): ParametricConfig | null;
-}
-
-export interface ModelConfig {
-  id: string;
-  name: string;
-  type: "static" | "parametric";
-  config?: ParametricConfig;
-}
-```
-
-#### Step 1.3: Extract Utility Functions
-
-- **Goal**: Salvage reusable logic from V1
-- **Action**: Create `packages/configurator/src/utils/`
-- **Files**:
-  - `utils/model-detection.ts` - `isParametricConfig()`, etc.
-  - `utils/path-utils.ts` - `extractModelName()`, etc.
-
-### Phase 2: Pipeline Compiler
-
-#### Step 2.1: Create Pipeline Build Server
-
-- **Goal**: Vite-based compiler that watches source files
-- **Architecture**: Separate Vite instance for pipeline compilation
-- **Output**: `temp/pipeline.js` - Self-contained pipeline functions
-
-#### Step 2.2: Adapt File Discovery
-
-- **Goal**: Use V1's glob patterns for pipeline compilation
-- **Action**: Modify `scanForUserModels()` logic for build-time compilation
-- **Output**: Compiled functions instead of runtime imports
-
-#### Step 2.3: Handle Parametric Models
-
-- **Goal**: Preserve parametric model functionality in compiled pipeline
-- **Action**: Adapt V1's parametric detection and config extraction
-- **Challenge**: Compile parametric configs into pipeline functions
-
-### Phase 3: UI Harness
-
-#### Step 3.1: Simple Pipeline Reload
-
-- **Goal**: Replace complex HMR with simple pipeline replacement
-- **Action**: Poll/watch for pipeline changes, reload entire pipeline
-- **Benefit**: Avoids V1's HMR complexity issues
-
-#### Step 3.2: State Preservation
-
-- **Goal**: UI state survives pipeline reloads
-- **Action**: Store model selection, parameters, camera position outside pipeline
-- **Implementation**: URL params for model selection + local storage for config parameters
-
-#### Step 3.3: Selective Re-rendering
-
-- **Goal**: Only update model viewer, preserve UI state
-- **Action**: Re-generate GLB with new pipeline + existing parameters
-- **Benefit**: No full page reloads, smooth development experience
-
-### Phase 4: Production Readiness
-
-#### Step 4.1: Worker Migration
-
-- **Goal**: Move pipeline execution to Web Workers
-- **Action**: Same pipeline interface, different execution context
-- **Benefit**: Non-blocking model generation
-
-#### Step 4.2: Static Hosting
-
-- **Goal**: Production builds work without servers
-- **Action**: Bundle pipeline functions for client-side execution
-- **Benefit**: Meets production hosting requirements
+1. **Clean Configurator Library** - Remove standalone app, implement `startConfigurator()`
+2. **Manifest Generation** - Add structured `temp/manifest.json` alongside pipeline
+3. **Full UI Integration** - 3D viewer, parameter panels, export functionality
+4. **Create-App Templates** - Update with working V3 setup
 
 ## Technical Implementation Details
 
-### Pipeline Compiler Architecture
-
-#### Dual Vite Setup
+### Dual Vite Architecture
 
 ```bash
 # Development workflow
 npm run dev  # Starts both servers concurrently
 
-# Pipeline Build Server (Port 3001)
+# Pipeline Build Server (Vite Process #1)
+├── Config: vite.pipeline.config.ts
 ├── Watches: main.ts, components/**/*.ts
 ├── Compiles: TypeScript → Pipeline Functions
 ├── Outputs: temp/pipeline.js, temp/manifest.json
-└── Serves: Pipeline artifacts via HTTP
+└── Mode: vite build --watch
 
-# UI Harness Server (Port 5173)
-├── Watches: temp/pipeline.js changes
-├── Imports: Pipeline dynamically with cache busting
-├── Renders: Parameter UI + Model Viewer
-└── Preserves: UI state across pipeline reloads
+# UI Server (Vite Process #2)
+├── Config: vite.config.ts
+├── Serves: User project HTML + configurator library + pipeline artifacts
+├── Provides: Standard Vite dev server with HMR
+└── Mode: vite (dev server)
+```
+
+### Pipeline Artifacts
+
+#### Pipeline Library (`temp/pipeline.js`)
+
+Self-contained JavaScript module that can execute models:
+
+```typescript
+export const pipeline = {
+  getAvailableModels(): ModelConfig[] {
+    return [
+      { id: "main", name: "V3 Test Hook", type: "parametric" },
+      { id: "components/wheel", name: "Wheel", type: "static" },
+    ];
+  },
+
+  generateModel(modelId: string, params: any = {}): Manifold {
+    // Execute the specific model with parameters
+    // Returns Manifold object for GLB conversion
+  },
+
+  getModelConfig(modelId: string): ParametricConfig | null {
+    // Return parameter schema for parametric models
+  },
+};
+```
+
+#### Manifest (`temp/manifest.json`)
+
+Structured metadata about available models:
+
+```json
+{
+  "models": [
+    {
+      "id": "main",
+      "name": "V3 Test Hook",
+      "type": "parametric",
+      "config": {
+        "parameters": {
+          "height": { "type": "number", "value": 10, "min": 1, "max": 50 }
+        }
+      }
+    }
+  ]
+}
 ```
 
 #### Pipeline Function Structure
@@ -333,7 +288,75 @@ function generateWheel(params) {
 }
 ```
 
-### UI Harness Implementation
+### Configurator Library Interface
+
+#### User Project Integration
+
+**Minimal User Code**: The configurator library handles all coordination logic internally, keeping user projects as simple as possible.
+
+```typescript
+// User project main.ts (minimal - just one function call)
+import { startConfigurator } from "@manifold-studio/configurator";
+
+// All coordination logic happens inside the library
+const configurator = await startConfigurator({
+  container: "#app",
+  pipelinePath: "/temp/pipeline.js",
+  manifestPath: "/temp/manifest.json",
+  defaultModel: "main",
+});
+```
+
+**What `startConfigurator()` Does Internally:**
+
+1. **Initialize Manifold** - Makes Manifold/CrossSection available globally
+2. **Set up V3 pipeline system** - Creates and initializes V3ModelService
+3. **Initialize services** - ModelService, ExportService, UrlService, etc.
+4. **Initialize state management** - Store, UI state, event system
+5. **Load pipeline** - Fetch and parse pipeline + manifest
+6. **Set up UI components** - Model viewer, parameter panels, etc.
+7. **Load default model** - Execute pipeline with default parameters
+8. **Error handling** - Graceful degradation for failures
+
+#### Configurator Options
+
+```typescript
+interface ConfiguratorOptions {
+  container: string | HTMLElement;
+  pipelinePath?: string; // Default: '/temp/pipeline.js'
+  manifestPath?: string; // Default: '/temp/manifest.json'
+  defaultModel?: string; // Default: first available model
+  onConfigChange?: (modelId: string, config: any) => void;
+  onModelLoad?: (modelId: string, glb: Blob) => void;
+  onError?: (error: Error) => void;
+}
+```
+
+#### Configurator Internal Architecture
+
+**Coordination Logic Location**: All complex initialization and coordination logic lives inside the configurator library, not in user projects.
+
+```
+packages/configurator/src/
+├── index.ts                    # Main export: startConfigurator()
+├── core/
+│   ├── coordinator.ts          # Main coordination logic (from old main.ts)
+│   ├── pipeline-loader.ts      # Pipeline loading and hot-reload
+│   └── model-renderer.ts       # GLB generation and rendering
+├── components/                 # UI components (model-viewer, panels)
+├── services/                   # Service initialization and management
+└── state/                      # State management and event system
+```
+
+**Benefits of This Design:**
+
+- ✅ **User projects stay minimal** - Just one `startConfigurator()` call
+- ✅ **Library owns complexity** - All coordination logic internal to configurator
+- ✅ **Easy maintenance** - Changes don't require user project updates
+- ✅ **Consistent behavior** - All user projects get same initialization
+- ✅ **Better testing** - Can unit test coordination logic in isolation
+
+### Hot Reload Implementation
 
 #### Pipeline Reload Logic
 
@@ -419,6 +442,39 @@ export class UIStateManager {
   }
 }
 ```
+
+## Complete Development Workflow
+
+### User Experience
+
+1. **Create Project**: `npx @manifold-studio/create-app my-project`
+2. **Start Development**: `cd my-project && npm run dev`
+3. **Edit Models**: Modify `main.ts` or `components/*.ts`
+4. **See Changes**: Pipeline rebuilds → UI reloads → GLB updates automatically
+
+### Behind the Scenes
+
+```
+File Change → Pipeline Compiler → Pipeline + Manifest → UI Detects Change → Reload Models → Execute Pipeline → Update GLB → Render in Viewer
+```
+
+**Step by Step:**
+
+1. **User edits** `main.ts` (changes parameter default value)
+2. **Pipeline Compiler** detects file change via Vite watcher
+3. **Pipeline rebuilds** `temp/pipeline.js` with new default
+4. **Configurator** detects pipeline change via polling/file watcher
+5. **Model list reloads** from new pipeline metadata
+6. **Current model re-executes** with existing UI parameters
+7. **New GLB generated** and sent to model-viewer
+8. **3D view updates** with new model, UI state preserved
+
+### Error Handling
+
+- **Pipeline compilation errors** → Show in status bar
+- **Model execution errors** → Show in viewer area
+- **Pipeline loading errors** → Graceful degradation
+- **Network errors** → Retry with exponential backoff
 
 ## Create-App Template Changes
 
@@ -547,11 +603,12 @@ export async function buildPipeline(): Promise<void> {
 
 #### 5. **Template File Changes**
 
+**User's Model Files (No Change):**
+
 ```typescript
-// main.ts (EXAMPLE - shows V3 compatibility)
+// main.ts - User's model code stays the same
 import { createConfig } from "@manifold-studio/wrapper";
 
-// V3: Same as V1/V2 - no changes needed for user code
 export default createConfig({
   name: "Parametric Hook",
   parameters: {
@@ -565,116 +622,124 @@ export default createConfig({
 });
 ```
 
-#### 6. **Updated README**
+**User's UI Entry Point (Minimal):**
 
-````markdown
-# V3 Development Workflow (NEW INSTRUCTIONS)
+```typescript
+// src/main.ts - Minimal coordination code
+import { startConfigurator } from "@manifold-studio/configurator";
 
-## Quick Start
+// All complexity handled by library
+await startConfigurator({
+  container: "#app",
+  pipelinePath: "/temp/pipeline.js",
+  defaultModel: "main",
+});
+```
+
+**User's HTML (Simple):**
+
+```html
+<!-- index.html - Just a container -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My 3D Models</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+```
+
+#### 6. **User Experience**
+
+**Simple Development Workflow:**
 
 ```bash
-npm run dev  # Starts both pipeline compiler + UI harness
-```
-````
+# User creates project
+npx @manifold-studio/create-app my-project
+cd my-project
 
-This starts:
+# User starts development
+npm run dev  # Starts pipeline compiler + UI server
 
-- **Pipeline Compiler** (Port 3001): Watches your models, compiles to functions
-- **UI Harness** (Port 5173): Loads pipeline, provides parameter controls
-
-## Development
-
-1. Edit `main.ts` or files in `components/`
-2. Pipeline automatically recompiles
-3. UI automatically reloads pipeline
-4. Model viewer updates with your changes
-5. **Parametric models work!** - Real-time parameter updates
-
-## What's Different from V2
-
-- ✅ **Parametric models work**: Real-time parameter updates
-- ✅ **Reliable updates**: No more cache/import issues
-- ✅ **State preservation**: UI state survives model changes
-- ✅ **Simple workflow**: Just `npm run dev`
-
+# User edits models
+# → Pipeline rebuilds → UI reloads → GLB updates automatically
 ```
 
-### Migration from V2 Templates
+**What Users Get:**
 
-#### Files to Add
-- `vite.pipeline.config.ts` - Pipeline build configuration
-- `scripts/pipeline-compiler.ts` - Replaces `model-watcher.ts`
-- `src/pipeline-compiler/` - Pipeline compilation logic
-
-#### Files to Modify
-- `vite.config.ts` - Add proxy configuration
-- `package.json` - Update scripts for dual server
-- `README.md` - Update instructions for V3 workflow
-
-#### Files to Remove
-- `scripts/model-watcher.ts` - Replaced by pipeline compiler
-- Any V2-specific GLB compilation scripts
-
-## File Structure
-
-```
-
-packages/
-├── configurator/
-│ ├── src/
-│ │ ├── types/ # Salvaged from V1
-│ │ │ ├── model.ts
-│ │ │ ├── pipeline.ts
-│ │ │ └── service.ts
-│ │ ├── utils/ # Salvaged from V1
-│ │ │ ├── model-detection.ts
-│ │ │ └── path-utils.ts
-│ │ ├── core/
-│ │ │ ├── pipeline-loader.ts # New
-│ │ │ └── model-renderer.ts # New
-│ │ ├── state/
-│ │ │ ├── ui-state.ts # New
-│ │ │ └── store.ts # Modified
-│ │ └── services/
-│ │ └── ModelService.ts # Simplified
-│ └── temp/ # Pipeline output
-│ ├── pipeline.js # Compiled functions
-│ └── manifest.json # Model metadata
-│
-└── create-app/
-├── templates/basic/
-│ ├── scripts/
-│ │ └── pipeline-compiler.ts # NEW (replaces model-watcher.ts)
-│ ├── vite.config.ts # MODIFIED (proxy config)
-│ ├── vite.pipeline.config.ts # NEW (pipeline build)
-│ ├── package.json # MODIFIED (dual server scripts)
-│ └── README.md # MODIFIED (V3 instructions)
-└── src/
-└── pipeline-compiler/ # NEW
-├── index.ts # Main compiler logic
-├── file-discovery.ts # Adapted from V1
-├── model-compiler.ts # Model → Function compilation
-└── function-generator.ts # Pipeline code generation
-
-```
-
-## Next Steps
-
-1. **Phase 1.1**: Extract V1 types and utilities
-2. **Phase 1.2**: Create pipeline interfaces
-3. **Phase 2.1**: Build pipeline compiler prototype
-4. **Phase 2.2**: Test with simple static model
-5. **Phase 2.3**: Add parametric model support
-6. **Phase 3.1**: Implement UI harness with pipeline reload
-7. **Phase 3.2**: Add state preservation
-8. **Phase 4**: Production optimization (workers, bundling)
+- ✅ **Parametric models work** - Real-time parameter updates
+- ✅ **Reliable hot reload** - No cache/import issues
+- ✅ **State preservation** - UI state survives model changes
+- ✅ **Simple workflow** - Just `npm run dev`
 
 ## Success Criteria
 
-- ✅ **Reliable HMR**: No more V1 cache/import issues
-- ✅ **Parametric models work**: Real-time parameter updates
-- ✅ **State preservation**: UI state survives pipeline reloads
-- ✅ **Production ready**: Static hosting compatible
-- ✅ **Developer experience**: Simple `npm run dev` workflow
-- ✅ **Code reuse**: 70% of V1 logic salvaged and improved
+### ✅ **Architecture Goals**
+
+- **Clean separation of concerns**: Pipeline compiler, configurator library, user project, UI server
+- **Reliable hot reload**: Pipeline watcher → rebuild → UI reload → GLB regeneration
+- **Library-based configurator**: User projects import and use configurator components
+- **Regular NPM projects**: Users can run standard `npm run dev` workflow
+
+### ✅ **Technical Requirements**
+
+- **Parametric models work**: Real-time parameter updates via pipeline execution
+- **State preservation**: UI state survives pipeline reloads (URL + localStorage)
+- **Error handling**: Graceful degradation for compilation and runtime errors
+- **Production ready**: Static hosting compatible, no server dependencies
+
+### ✅ **Developer Experience**
+
+- **Simple workflow**: `npx create-app` → `npm run dev` → edit models → see changes
+- **Familiar tools**: Standard Vite, TypeScript, NPM - no custom tooling
+- **Fast feedback**: Sub-second pipeline rebuilds and UI updates
+- **Debugging support**: Clear error messages and status indicators
+
+### ✅ **Implementation Quality**
+
+- **Modular configurator**: 12 separate modules communicating via events
+- **Clean interfaces**: Well-defined APIs between components
+- **Code reuse**: Salvage and improve 70% of V1 logic
+- **Test coverage**: Unit tests for pipeline compiler and configurator modules
+
+## Next Steps
+
+### Phase 1: Complete V3 Configurator Library ⚡ **PRIORITY**
+
+1. **Remove standalone app complexity** - Simplify to library-only build
+2. **Move coordination logic** from old `main.ts` to `core/coordinator.ts`
+3. **Implement `startConfigurator()`** - Single function that handles all initialization
+4. **Rebuild 12 modules** with clean event-based architecture:
+   - State management (model selection, config UI)
+   - Pipeline execution (GLB generation)
+   - UI renderers (model list, parameter panels, 3D viewer)
+   - Supporting modules (pipeline loader, export, error handling, etc.)
+5. **Test integration** with existing V3 pipeline in `test-v3-development`
+
+### Phase 2: Pipeline Enhancements
+
+1. **Generate `manifest.json`** - Structured metadata alongside `pipeline.js`
+2. **Improve error handling** - Better compilation and runtime error messages
+3. **Hot reload optimization** - Faster pipeline rebuilds and detection
+4. **Source maps** - Debug support for compiled pipeline
+
+### Phase 3: Create-App Integration
+
+1. **Update templates** with V3 dual-server setup and minimal user code
+2. **Copy working V3 configs** from `test-v3-development` to templates
+3. **Test scaffolding workflow** - `create-app` → `npm run dev` → edit models
+4. **Update documentation** - V3 workflow and development guide
+
+### Phase 4: Production & Polish
+
+1. **Web Worker support** - Non-blocking pipeline execution
+2. **Static hosting optimization** - Bundle for client-side execution
+3. **Performance monitoring** - Build times, GLB generation speed
+4. **Advanced features** - Export formats, debugging tools, analytics
+
+```
+
 ```
