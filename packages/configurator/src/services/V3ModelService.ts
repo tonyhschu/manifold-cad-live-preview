@@ -231,6 +231,20 @@ export class V3ModelService implements IModelService {
   }
 
   /**
+   * Force reload the pipeline module (for HMR)
+   */
+  async reloadPipeline(): Promise<void> {
+    console.log('🔄 V3ModelService: Force reloading pipeline...');
+    try {
+      await this.pipelineLoader.reloadPipeline();
+      console.log('✅ V3ModelService: Pipeline reloaded successfully');
+    } catch (error) {
+      console.error('❌ V3ModelService: Pipeline reload failed:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get cached model (V3 doesn't cache models, generates on demand)
    */
   getCachedModel(modelId: string): any | null {

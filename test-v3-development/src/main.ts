@@ -111,19 +111,37 @@ async function handlePipelineUpdate(data: any) {
 }
 
 async function handlePipelineCodeUpdate(data: any) {
-  console.log('🎯 Handling pipeline code update - regenerating current model GLB');
+  console.log('🎯 Handling pipeline code update - reloading pipeline and regenerating GLB');
 
   // Visual feedback
-  document.title = '🔄 Regenerating GLB...';
+  document.title = '🔄 Reloading pipeline...';
 
   try {
-    // Import store functions
-    const { store } = await import('@manifold-studio/configurator');
+    // Import configurator functions
+    const { store, getModelService } = await import('@manifold-studio/configurator');
 
-    // Regenerate current model GLB with new pipeline code
+    // FORCE RELOAD THE PIPELINE MODULE FIRST
+    console.log('🔄 Force reloading pipeline module...');
+    const modelService = getModelService();
+
+    console.log('🔍 Model service object:', modelService);
+    console.log('🔍 Model service type:', typeof modelService);
+    console.log('🔍 Available methods:', Object.keys(modelService || {}));
+    console.log('🔍 reloadPipeline method:', typeof modelService?.reloadPipeline);
+
+    if (modelService && typeof modelService.reloadPipeline === 'function') {
+      await modelService.reloadPipeline();
+      console.log('✅ Pipeline module reloaded successfully');
+    } else {
+      console.warn('⚠️ Could not access pipeline reload method on model service');
+    }
+
+    document.title = '🔄 Regenerating GLB...';
+
+    // Now regenerate current model with NEW pipeline
     const currentModel = store.currentModelId.value;
     if (currentModel) {
-      console.log(`🔄 Regenerating GLB for model: ${currentModel}`);
+      console.log(`🔄 Regenerating GLB for model: ${currentModel} with new pipeline`);
       await store.loadModel(currentModel);
       document.title = '✅ GLB Regenerated!';
 
@@ -140,7 +158,7 @@ async function handlePipelineCodeUpdate(data: any) {
     }
   } catch (error) {
     console.error('❌ Failed to handle pipeline code update:', error);
-    document.title = '❌ GLB regeneration failed';
+    document.title = '❌ Pipeline reload failed';
     setTimeout(() => {
       document.title = 'V3 Development Test';
     }, 3000);

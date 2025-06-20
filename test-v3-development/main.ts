@@ -7,7 +7,7 @@
 // Export parametric config directly (no imports needed)
 export default {
   name: "V3 Test Hook",
-  description: "A simple parametric hook for testing V3 architecture - No polling noise!",
+  description: "A simple parametric hook for testing V3 architecture - Fresh restart test!",
   parameters: {
     height: {
       value: 10,
@@ -20,7 +20,7 @@ export default {
       max: 20
     },
     thickness: {
-      value: 10,
+      value: 2,
       min: 0.5,
       max: 5
     }
@@ -39,6 +39,8 @@ export default {
     const horizontal = manifold.cube([width, thickness, thickness])
       .translate([0, 0, height - thickness]);
 
-    return manifold.union([vertical, horizontal]);
+    // return manifold.union([vertical, horizontal]);
+    return vertical;
+    // return horizontal;
   }
 };
