@@ -22,6 +22,11 @@ describe('Model Loader', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    // Reset model discovery configuration to prevent test pollution
+    configureModelDiscovery({ useDevelopmentModels: false, customModels: undefined });
+  });
+
   describe('getAvailableModels (sync)', () => {
     it('should return development models in development mode', () => {
       // Configure for development mode
@@ -99,11 +104,11 @@ describe('Model Loader', () => {
     });
 
     it('should use custom models when configured', async () => {
-      // Configure with custom models (simulates what would be discovered)
+      // Configure with custom models using test fixtures
       const customModels = [
-        { id: 'main', path: './main.ts', name: 'Test Box', type: 'parametric' as const },
-        { id: 'components/wheel', path: './components/wheel.ts', name: 'Wheel Component', type: 'static' as const },
-        { id: 'components/chassis', path: './components/chassis.ts', name: 'Chassis Component', type: 'static' as const }
+        { id: 'main', path: './tests/fixtures/main.ts', name: 'Test Box', type: 'parametric' as const },
+        { id: 'components/wheel', path: './tests/fixtures/components/wheel.ts', name: 'Wheel Component', type: 'static' as const },
+        { id: 'components/chassis', path: './tests/fixtures/components/chassis.ts', name: 'Chassis Component', type: 'static' as const }
       ];
 
       configureModelDiscovery({ customModels });
@@ -124,30 +129,20 @@ describe('Model Loader', () => {
       expect(mainModel?.name).toBe('Test Box');
     });
 
-    it('should discover models from actual files in test environment', async () => {
-      // This tests the real file discovery mechanism
-      // It will find actual TypeScript files in the test environment
-      const models = await getAvailableModelsAsync();
-
-      expect(models).toBeInstanceOf(Array);
-      // Should find some files (even if they're not model files)
-      expect(models.length).toBeGreaterThanOrEqual(0);
-
-      // Each discovered model should have the correct structure
-      models.forEach(model => {
-        expect(model).toHaveProperty('id');
-        expect(model).toHaveProperty('name');
-        expect(model).toHaveProperty('type');
-        expect(model).toHaveProperty('path');
-        expect(['static', 'parametric']).toContain(model.type);
-      });
+    it('should throw error when main.ts is not found', async () => {
+      // This tests the new philosophy: main.ts is required
+      // In test environment, there's no main.ts in configurator root, so it should throw
+      await expect(getAvailableModelsAsync()).rejects.toThrow('main.ts is required but not found');
     });
   });
 
   describe('loadDefaultModel', () => {
     it('should load the main model in development mode', async () => {
-      // Ensure we're in development mode
-      configureModelDiscovery({ useDevelopmentModels: true });
+      // Configure with test fixtures
+      const customModels = [
+        { id: 'main', path: './tests/fixtures/main.ts', name: 'Test Box', type: 'parametric' as const }
+      ];
+      configureModelDiscovery({ customModels });
 
       const result = await loadDefaultModel();
 
@@ -155,28 +150,34 @@ describe('Model Loader', () => {
       expect(result).toHaveProperty('metadata');
       expect(result).toHaveProperty('isParametric');
 
-      // In development mode, should load main model (parametric hook)
-      expect(result.metadata?.name).toBe('Parametric Hook');
+      // Should load main model (test box)
+      expect(result.metadata?.name).toBe('Test Box');
       expect(result.isParametric).toBe(true);
     });
   });
 
   describe('loadModelById', () => {
     it('should load a static model correctly', async () => {
-      // Ensure we're in development mode
-      configureModelDiscovery({ useDevelopmentModels: true });
+      // Configure with test fixtures
+      const customModels = [
+        { id: 'wheel', path: './tests/fixtures/components/wheel.ts', name: 'Wheel Component', type: 'static' as const }
+      ];
+      configureModelDiscovery({ customModels });
 
-      const result = await loadModelById('demo');
+      const result = await loadModelById('wheel');
 
       expect(result).toHaveProperty('model');
       expect(result).toHaveProperty('metadata');
       expect(result.isParametric).toBe(false);
-      expect(result.metadata?.name).toBe('Demo Model');
+      expect(result.metadata?.name).toBe('Wheel Component');
     });
 
     it('should load a parametric model correctly', async () => {
-      // Ensure we're in development mode
-      configureModelDiscovery({ useDevelopmentModels: true });
+      // Configure with test fixtures
+      const customModels = [
+        { id: 'main', path: './tests/fixtures/main.ts', name: 'Test Box', type: 'parametric' as const }
+      ];
+      configureModelDiscovery({ customModels });
 
       const result = await loadModelById('main');
 
@@ -188,6 +189,12 @@ describe('Model Loader', () => {
     });
 
     it('should throw error for non-existent model', async () => {
+      // Configure with test fixtures so model discovery works
+      const customModels = [
+        { id: 'main', path: './tests/fixtures/main.ts', name: 'Test Box', type: 'parametric' as const }
+      ];
+      configureModelDiscovery({ customModels });
+
       await expect(loadModelById('non-existent')).rejects.toThrow('Model with ID "non-existent" not found');
     });
   });

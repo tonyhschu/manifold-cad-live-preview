@@ -41,12 +41,12 @@ export type ParametricModel = ParametricConfig;
  */
 const developmentModels = [
   // Main model (follows user convention)
-  { id: "main", path: "../../examples/main.js", name: "Parametric Hook", type: "parametric" as const },
+  { id: "main", path: "./examples/main.js", name: "Parametric Hook", type: "parametric" as const },
 
   // Component models (in examples/components/ directory - follows user convention)
-  { id: "demo", path: "../../examples/components/demo.js", name: "Demo Model", type: "static" as const },
-  { id: "cube", path: "../../examples/components/cube.js", name: "Simple Cube", type: "static" as const },
-  { id: "simple-hook", path: "../../examples/components/simple-hook.js", name: "Simple Hook", type: "static" as const },
+  { id: "demo", path: "./examples/components/demo.js", name: "Demo Model", type: "static" as const },
+  { id: "cube", path: "./examples/components/cube.js", name: "Simple Cube", type: "static" as const },
+  { id: "simple-hook", path: "./examples/components/simple-hook.js", name: "Simple Hook", type: "static" as const },
 
   // Legacy models (still in models directory for backward compatibility)
   { id: "tracked-test", path: "../models/tracked-test", name: "Tracked Test", type: "static" as const },
@@ -189,32 +189,22 @@ export async function loadModelById(
       modelModule = await modelDef.loader();
     } else {
       // Use standard import for development models
-      console.log(`Loading model "${modelId}" using standard import from ${modelDef.path}`);
-
       // Add cache-busting for HMR during development
       let importPath = modelDef.path;
-      console.log(`🔍 DEBUG: Original modelDef.path: "${modelDef.path}"`);
-      console.log(`🔍 DEBUG: import.meta.env.DEV: ${import.meta.env.DEV}`);
 
       if (import.meta.env.DEV) {
         // ALWAYS use cache-busting in development, with unique timestamp
-        const timestamp = Date.now() + Math.random(); // Extra randomness
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000000); // Integer random
         const separator = importPath.includes('?') ? '&' : '?';
-        importPath = `${importPath}${separator}t=${timestamp}&r=${Math.random()}`;
-        console.log(`🔄 AGGRESSIVE cache-busting: ${importPath}`);
-      } else {
-        console.log(`🔍 DEBUG: Not in DEV mode, no cache-busting applied`);
+        importPath = `${importPath}${separator}t=${timestamp}&r=${random}`;
       }
 
-      console.log(`🔍 DEBUG: About to import from: ${importPath}`);
       modelModule = await import(importPath);
-      console.log(`🔍 DEBUG: Import successful, module keys:`, Object.keys(modelModule));
     }
 
     // Get the default export
     const defaultExport = modelModule.default;
-    console.log(`🔍 DEBUG: Default export type:`, typeof defaultExport);
-    console.log(`🔍 DEBUG: Default export:`, defaultExport);
 
     // Check if this is a parametric model
     if (isParametricConfig(defaultExport)) {
@@ -252,10 +242,7 @@ export async function loadModelById(
       const metadata = modelModule.modelMetadata as ModelMetadata | undefined;
 
       // Create the model
-      console.log(`🔍 DEBUG: About to call createModel()`);
       const model = createModel();
-      console.log(`🔍 DEBUG: createModel() returned:`, model);
-      console.log(`🔍 DEBUG: Model type:`, typeof model);
       console.log(`🔍 DEBUG: Model constructor:`, model?.constructor?.name);
 
       return {
@@ -300,20 +287,22 @@ async function scanForUserModels(): Promise<ModelRegistryEntry[]> {
   const models: ModelRegistryEntry[] = [];
 
   try {
-    // Use Vite's glob import to discover model files at build time
+    // Simplified model discovery: only look for main.ts and components/*.ts
+    // Philosophy: Be less clever, expect main.ts to exist, everything else in components/
     const modelModules = import.meta.glob([
       './main.{ts,js}',
-      './components/**/*.{ts,js}',
-      './assemblies/**/*.{ts,js}',
-      './**/*.{ts,js}',
-      '!./node_modules/**',
-      '!./dist/**',
-      '!./src/**'
+      './components/**/*.{ts,js}'
     ], {
       eager: false
     });
 
-    console.log('🔍 Model Discovery: Found files:', Object.keys(modelModules));
+
+
+    // Ensure main.ts exists - this is required
+    const mainFiles = Object.keys(modelModules).filter(path => path.match(/^\.\/main\.(ts|js)$/));
+    if (mainFiles.length === 0) {
+      throw new Error('main.ts is required but not found. Please create a main.ts file in your project root.');
+    }
 
     // Process each discovered file
     for (const [filePath, moduleLoader] of Object.entries(modelModules)) {
@@ -352,9 +341,13 @@ async function scanForUserModels(): Promise<ModelRegistryEntry[]> {
     }
   } catch (error) {
     console.warn('Error during model discovery:', error);
+    // Re-throw errors about missing main.ts since it's required
+    if (error instanceof Error && error.message.includes('main.ts is required')) {
+      throw error;
+    }
   }
 
-  console.log('🎯 Model Discovery: Final models:', models.map(m => m.id));
+
   return models;
 }
 

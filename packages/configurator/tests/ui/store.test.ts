@@ -46,7 +46,7 @@ describe('Store State Management', () => {
     status.value = { message: 'Ready', isError: false }
 
     // Setup default mock implementation
-    mockModelService.loadModel.mockImplementation(async (modelId, onProgress) => {
+    mockModelService.loadModel.mockImplementation(async (modelId, params, onProgress) => {
       // Simulate progress
       onProgress?.(25, 'Loading model...')
       onProgress?.(50, 'Processing...')
