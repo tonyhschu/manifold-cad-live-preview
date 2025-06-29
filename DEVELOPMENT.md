@@ -33,46 +33,58 @@ This guide covers the development workflow for the V3 pipeline-based architectur
 
 ## Development Workflows
 
-### � **Initial Setup (Required Once)**
+### 🔧 **Initial Setup (Required Once)**
 
-Since our packages aren't published to NPM yet, you need to set up npm linking first. This approach makes `test-v3-development` behave like a real user project that installs packages from npm:
+**Source-Based Development**: We use Vite aliases to import source files directly, eliminating build chain complexity and caching issues.
 
 ```bash
-# 1. Create global npm links for our packages
-cd packages/wrapper && npm link
-cd ../configurator && npm link
-cd ../..
-
-# 2. Link packages in test project
+# 1. Install dependencies in test project
 cd test-v3-development
-npm link @manifold-studio/wrapper @manifold-studio/configurator
+npm install
 cd ..
+
+# 2. Build wrapper package (only needed once, or when wrapper changes)
+cd packages/wrapper
+npm run build
+cd ../..
 ```
 
-**Note**: You only need to do this once, or when you clean your npm cache/node_modules.
+**Note**: The configurator is imported directly from source files - no build step needed during development!
 
-**Why npm links?** This setup makes `test-v3-development` behave exactly like an end user's project would - it resolves `@manifold-studio/wrapper` and `@manifold-studio/configurator` as if they were installed from npm, but gets the latest local development versions.
+**Why source-based?** This approach provides:
 
-### �🚀 **Quick Start (Most Common)**
+- ✅ **Immediate feedback**: Changes appear in <2 seconds
+- ✅ **No caching issues**: Direct source imports eliminate npm link complexity
+- ✅ **Native HMR**: Vite handles TypeScript compilation automatically
+- ✅ **Clear debugging**: Direct source file error messages
+
+### 🚀 **Quick Start (Most Common)**
 
 For day-to-day V3 development (after initial setup):
 
 ```bash
-# Terminal 1: Auto-rebuild libraries (wrapper + configurator)
-npm run dev:libs
-
-# Terminal 2: V3 test project
+# Single terminal: V3 test project with source-based development
 cd test-v3-development
 npm run dev
 ```
 
 This gives you:
 
-- ✅ **Wrapper auto-rebuild** on source changes
-- ✅ **Configurator auto-rebuild** on source changes
+- ✅ **Configurator source changes**: Immediate HMR updates (<2 seconds)
 - ✅ **Pipeline auto-rebuild** on model changes
-- ✅ **UI hot reload** on configurator changes
+- ✅ **UI hot reload** with native Vite HMR
 - ✅ **GLB regeneration** on config changes
+- ✅ **No build steps** for configurator during development
+
+**Optional**: If you're also developing the wrapper package:
+
+```bash
+# Terminal 1: Wrapper auto-rebuild (only if changing wrapper)
+cd packages/wrapper && npm run dev
+
+# Terminal 2: V3 test project
+cd test-v3-development && npm run dev
+```
 
 ### 🔧 **Individual Package Development**
 
@@ -81,7 +93,7 @@ This gives you:
 ```bash
 # Watch mode (auto-rebuild library)
 cd packages/wrapper
-npm run build:lib -- --watch
+npm run dev  # or npm run build:lib -- --watch
 
 # Test changes
 npm test
@@ -89,14 +101,15 @@ npm test
 
 #### Configurator Development
 
-```bash
-# Watch mode (auto-rebuild library)
-cd packages/configurator
-npm run build:lib -- --watch
+**Source-based development** - no build step needed! Changes are immediately visible.
 
-# Test changes in V3 project
+```bash
+# Just run the test project - configurator changes appear instantly
 cd test-v3-development
 npm run dev
+
+# Test configurator changes
+# Edit files in packages/configurator/src/ and see immediate results
 ```
 
 #### Create-App Development
@@ -208,10 +221,11 @@ npm run dev
 
 **Solutions**:
 
-1. **Check watchers are running**: `npm run dev:libs` for libraries
-2. **Check npm link**: Libraries should be symlinked to test project
+1. **For configurator changes**: Should appear immediately with source-based development
+2. **For wrapper changes**: Check if wrapper build is running (`npm run dev` in packages/wrapper)
 3. **Clear Vite cache**: `rm -rf node_modules/.vite` in test project
-4. **Restart dev servers**: Sometimes needed after major changes
+4. **Restart dev server**: `npm run dev` in test-v3-development
+5. **Check browser console**: Look for TypeScript compilation errors
 
 ### "Pipeline not loading"
 
@@ -230,10 +244,11 @@ npm run dev
 
 **Solutions**:
 
-1. **Check library rebuild**: `packages/configurator/dist/` should update
-2. **Check npm link**: Test project should use symlinked configurator
-3. **Hard refresh**: Browser cache might be stale
-4. **Restart UI server**: `npm run dev` in test project
+1. **Source-based development**: Changes should appear immediately (<2 seconds)
+2. **Check Vite HMR**: Look for HMR messages in browser console
+3. **Hard refresh**: Browser cache might be stale (Cmd+Shift+R / Ctrl+Shift+R)
+4. **Check TypeScript errors**: Compilation errors prevent updates
+5. **Restart dev server**: `npm run dev` in test-v3-development
 
 ## Best Practices
 
@@ -263,14 +278,16 @@ npm run dev
 ### Essential Commands
 
 ```bash
-# Start everything for V3 development
-npm run dev:libs                    # Libraries auto-rebuild
-cd test-v3-development && npm run dev  # V3 test project
+# Start V3 development (source-based)
+cd test-v3-development && npm run dev  # Single command for most development
+
+# If also developing wrapper
+cd packages/wrapper && npm run dev     # Terminal 1: Wrapper auto-rebuild
+cd test-v3-development && npm run dev  # Terminal 2: V3 test project
 
 # Individual package development
-cd packages/wrapper && npm run build:lib -- --watch
-cd packages/configurator && npm run build:lib -- --watch
-cd packages/create-app && npm run dev
+cd packages/wrapper && npm run build:lib -- --watch  # Only if changing wrapper
+cd packages/create-app && npm run dev                 # Create-app development
 
 # Testing
 npm test                           # All tests
@@ -278,14 +295,18 @@ cd test-v3-development && npm run build:pipeline  # Test pipeline
 cd packages/create-app && npm run test:scaffold   # Test scaffolding
 
 # Troubleshooting
-rm -rf node_modules/.vite          # Clear Vite cache
-npm run build                      # Full rebuild
+rm -rf node_modules/.vite          # Clear Vite cache (test-v3-development)
+cd packages/wrapper && npm run build  # Rebuild wrapper if needed
 ```
 
 ### File Locations
 
-- **Wrapper library**: `packages/wrapper/dist/`
-- **Configurator library**: `packages/configurator/dist/`
+- **Wrapper library**: `packages/wrapper/dist/` (built)
+- **Configurator source**: `packages/configurator/src/` (used directly via Vite aliases)
 - **V3 pipeline output**: `test-v3-development/temp/`
 - **Create-app templates**: `packages/create-app/templates/`
 - **Test projects**: `test-v3-development/`, `/tmp/test-project`
+
+### Architecture Notes
+
+**Source-Based Development**: The configurator is imported directly from `packages/configurator/src/` using Vite aliases, eliminating build steps and caching issues during development. Only the wrapper requires building since it contains WASM bindings.

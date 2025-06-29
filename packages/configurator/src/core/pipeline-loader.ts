@@ -82,6 +82,14 @@ export class PipelineLoaderImpl implements PipelineLoader {
   }
 
   /**
+   * Force reload the pipeline module
+   */
+  async reloadPipeline(): Promise<void> {
+    console.log('🔄 Force reloading pipeline module...');
+    await this.loadPipeline();
+  }
+
+  /**
    * Cleanup resources
    */
   destroy(): void {

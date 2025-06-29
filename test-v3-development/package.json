@@ -15,7 +15,6 @@
     "test:pipeline": "npm run build:pipeline"
   },
   "dependencies": {
-    "@manifold-studio/configurator": "^1.0.0",
     "@manifold-studio/wrapper": "^1.0.0",
     "manifold-3d": "^3.1.1"
   },

@@ -17,11 +17,12 @@ export default defineConfig({
       allow: ['..', '.']
     }
   },
-  // Resolve aliases for packages
+  // Resolve aliases for packages - SOURCE-BASED DEVELOPMENT
+  // Point directly to source files to avoid build chain complexity
   resolve: {
     alias: {
-      '@manifold-studio/configurator': resolve(__dirname, '../packages/configurator'),
-      '@manifold-studio/wrapper': resolve(__dirname, '../packages/wrapper')
+      '@manifold-studio/configurator': resolve(__dirname, '../packages/configurator/src'),
+      '@manifold-studio/wrapper': resolve(__dirname, '../packages/wrapper/src')
     }
   },
   // Build configuration
@@ -34,7 +35,8 @@ export default defineConfig({
   // Optimize deps configuration
   optimizeDeps: {
     exclude: ['manifold-3d'], // Exclude WASM module from pre-bundling
-    include: ['@manifold-studio/wrapper', '@manifold-studio/configurator'],
+    // Remove package includes since we're using source-based development
+    // Vite will handle TypeScript compilation directly from source
     esbuildOptions: {
       target: 'esnext' // Support top-level await in dependencies
     }

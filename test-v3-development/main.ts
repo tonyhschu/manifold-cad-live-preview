@@ -40,7 +40,7 @@ export default {
       .translate([0, 0, height - thickness]);
 
     // return manifold.union([vertical, horizontal]);
-    return vertical;
-    // return horizontal;
+    // return vertical;
+    return horizontal;
   }
 };

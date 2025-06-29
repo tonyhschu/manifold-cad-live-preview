@@ -45,6 +45,12 @@ export interface PipelineLoader {
    * @returns Current pipeline or null if not loaded
    */
   getPipeline(): ModelPipeline | null;
+
+  /**
+   * Force reload the pipeline module
+   * @returns Promise that resolves when pipeline is reloaded
+   */
+  reloadPipeline(): Promise<void>;
 }
 
 /**
