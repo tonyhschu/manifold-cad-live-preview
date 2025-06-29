@@ -93,8 +93,8 @@ export async function loadModel(modelId: string) {
     // Get the model service
     const modelService = getModelService();
 
-    // Load model with progress tracking
-    const result = await modelService.loadModel(modelId, (progress, message) => {
+    // Load model with progress tracking (params optional, defaults to {})
+    const result = await modelService.loadModel(modelId, {}, (progress, message) => {
       status.value = {
         message: message || `Loading model: ${modelId}... (${Math.round(progress)}%)`,
         isError: false

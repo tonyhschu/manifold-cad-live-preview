@@ -39,6 +39,7 @@ export default {
     const horizontal = manifold.cube([width, thickness, thickness])
       .translate([0, 0, height - thickness]);
 
+    console.log('🔧 USER PIPELINE: Returning model - pre GLB');
     // return manifold.union([vertical, horizontal]);
     // return vertical;
     return horizontal;

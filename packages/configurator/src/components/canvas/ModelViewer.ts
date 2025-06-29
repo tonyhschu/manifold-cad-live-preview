@@ -37,19 +37,26 @@ export class ModelViewer extends HTMLElement {
     // Subscribe to modelUrls signal to update the src attribute
     this.unsubscribeUrls = modelUrls.subscribe((urls) => {
       if (this.viewerElement && urls.glbUrl) {
-        console.log("ModelViewer: Updating model source to", urls.glbUrl);
+        console.log("🔧 ModelViewer: Received new GLB URL:", urls.glbUrl);
+        console.log("🔧 ModelViewer: Current src:", this.viewerElement.src);
 
         // Check if this is an HMR update (different blob URL)
-        const isHMRUpdate = import.meta.env.DEV &&
-          (globalThis as any).__MODEL_REBUILD_TIMESTAMP__ &&
-          this.viewerElement.src &&
-          this.viewerElement.src !== urls.glbUrl;
+        const hasTimestamp = !!(globalThis as any).__MODEL_REBUILD_TIMESTAMP__;
+        const hasSrc = !!this.viewerElement.src;
+        const isDifferentUrl = this.viewerElement.src !== urls.glbUrl;
 
-        if (isHMRUpdate) {
-          console.log("🔄 HMR detected - trying setAttribute approach");
+        console.log("🔧 ModelViewer: HMR check - hasTimestamp:", hasTimestamp, "hasSrc:", hasSrc, "isDifferentUrl:", isDifferentUrl);
+
+        const isHMRUpdate = import.meta.env.DEV && hasTimestamp && hasSrc && isDifferentUrl;
+        const isDevUpdate = import.meta.env.DEV && hasTimestamp; // Any dev update with timestamp
+
+        if (isDevUpdate) {
+          console.log("🔄 Dev update detected - using advanced update method");
           this.updateModelViewerSrc(urls.glbUrl);
         } else {
+          console.log("🔧 ModelViewer: Setting src directly");
           this.viewerElement.src = urls.glbUrl;
+          console.log("🔧 ModelViewer: After setting src:", this.viewerElement.src);
         }
       }
     });

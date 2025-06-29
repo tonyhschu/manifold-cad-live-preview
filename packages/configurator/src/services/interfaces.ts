@@ -58,9 +58,9 @@ export interface ModelLoadResult {
  */
 export interface IModelService {
   /**
-   * Load a model by ID with progress tracking
+   * Load a model by ID with optional parameters and progress tracking
    */
-  loadModel(modelId: string, onProgress?: ProgressCallback): Promise<ModelLoadResult>;
+  loadModel(modelId: string, params?: any, onProgress?: ProgressCallback): Promise<ModelLoadResult>;
 
   /**
    * Get available models list

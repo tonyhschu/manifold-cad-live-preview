@@ -88,13 +88,16 @@ export class V3ModelService implements IModelService {
     try {
       // Generate the model using the pipeline
       const model = await pipeline.generateModel(modelId, params);
+      console.log('🔧 V3ModelService: Generated model from pipeline:', model);
 
       onProgress?.(75, 'Generating exports...');
 
       // Generate exports (GLB and OBJ)
       const exportService = getExportService();
       const objResult = await exportService.exportToOBJ(model, `${modelId}.obj`);
+      console.log('🔧 V3ModelService: Generated OBJ:', objResult.url);
       const glbResult = await exportService.exportToGLB(model, `${modelId}.glb`);
+      console.log('🔧 V3ModelService: Generated GLB:', glbResult.url);
 
       // Get parametric config if available
       const parametricConfig = pipeline.getModelConfig(modelId);

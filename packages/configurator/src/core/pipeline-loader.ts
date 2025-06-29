@@ -32,8 +32,10 @@ export class PipelineLoaderImpl implements PipelineLoader {
     try {
       console.log('� Loading pipeline...');
 
-      // Dynamic import
-      const module = await import(this.pipelinePath);
+      // Dynamic import with cache busting for HMR
+      const cacheBuster = `?t=${Date.now()}`;
+      const module = await import(this.pipelinePath + cacheBuster);
+      // const module = await import(this.pipelinePath);
       const pipeline = module.default || module.pipeline;
 
       if (!pipeline) {
