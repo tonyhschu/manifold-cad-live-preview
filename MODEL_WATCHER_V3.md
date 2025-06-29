@@ -1,5 +1,11 @@
 # Model Watcher V3: Pipeline-Based Architecture
 
+## 🎯 **Current Status (June 2025)**
+
+**✅ V3 Core System: COMPLETE** - Pipeline compilation, manifest generation, source-based development, cache-busting HMR, and ModelViewer integration all working reliably.
+
+**🔄 Next Priority: Create-App Integration** - Port the working V3 setup to create-app templates so users can scaffold projects with the complete V3 workflow.
+
 ## Overview
 
 V3 represents a fundamental shift from dynamic model imports to **compiled pipeline functions**. The architecture separates concerns cleanly: pipeline compilation, configurator library, user project orchestration, and UI serving.
@@ -75,6 +81,30 @@ TypeScript → Static GLB (default params) → UI displays GLB
 3. **Separate compilation from execution**: Build functions, execute with parameters
 4. **State lives outside pipeline**: UI state survives pipeline reloads
 
+### V3 Development Challenges: The "Perfect Storm" (June 2025)
+
+**The Problem**: After implementing V3 architecture, HMR appeared to work (logs showed pipeline reloading, new GLB files generated) but 3D models weren't updating visually.
+
+**Root Cause Analysis**: A "perfect storm" of 5 different caching/interface issues that masked each other:
+
+1. **NPM Link Caching** - Built configurator packages served stale code despite source changes
+2. **Dynamic Import Caching** - Browser cached pipeline modules even with HMR events
+3. **Interface Mismatch** - `IModelService.loadModel()` signature didn't match `V3ModelService` implementation
+4. **Parameter Order Bug** - Store called `loadModel(modelId, callback, params)` instead of `loadModel(modelId, params, callback)`
+5. **ModelViewer Web Component** - Didn't respond to programmatic `src` changes without forced reload
+
+**Why This Was So Hard to Debug**: Each issue masked the others. Fixing any single issue still left the system broken, making it appear that fixes weren't working. Only when all 5 issues were resolved simultaneously did HMR start working.
+
+**The Solution**:
+
+- **Source-Based Development** - Vite aliases to import configurator source directly
+- **Cache-Busting** - Timestamp query parameters on dynamic imports
+- **Interface Alignment** - Updated `IModelService` to match implementation
+- **Parameter Fix** - Corrected argument order in store calls
+- **Forced ModelViewer Reload** - Advanced update method for programmatic changes
+
+**Key Learning**: Complex systems can have multiple simultaneous failures that mask each other. When debugging appears ineffective, step back and look for systemic issues rather than continuing to debug individual components.
+
 ## Core Architecture
 
 ```
@@ -136,115 +166,81 @@ Model selection → Event → Config UI loads new parameters → Pipeline execut
 
 ## Current V3 Status
 
-### ✅ **What's Working**
+### ✅ **What's Working (Completed June 2025)**
 
 - **Pipeline Compiler** - Compiles models to `temp/pipeline.js` with full TypeScript support
 - **Dual Vite Architecture** - Pipeline build server + UI server working seamlessly
 - **Model Discovery** - Finds `main.ts` and `components/*.ts` automatically
 - **Parameter Extraction** - Extracts configs from parametric models with type safety
-- **Manifest Generation** - ✅ **NEW!** Structured `temp/manifest.json` generated automatically
-- **Hot Reload Pipeline** - ✅ **NEW!** File changes → pipeline rebuild → manifest regeneration
-- **Basic V3 Configurator** - Test harness with pipeline integration
-- **NPM Link Development** - Auto-rebuild libraries + test project
-- **Type Safety** - ✅ **NEW!** Full TypeScript types for pipeline compilation
+- **Manifest Generation** - Structured `temp/manifest.json` generated automatically
+- **Hot Reload Pipeline** - File changes → pipeline rebuild → manifest regeneration → UI updates
+- **Source-Based Development** - Direct source imports eliminate npm link caching issues
+- **Cache-Busting HMR** - Dynamic imports with timestamps prevent module caching
+- **ModelViewer Integration** - Forced reload ensures visual updates work reliably
+- **Production-Ready Code** - Clean, minimal implementation without debug artifacts
 
-### 🔄 **What Needs Completion**
+### 🎯 **Current Priority: Create-App Integration**
 
-- **Clean Configurator Library** - Rebuild as pure library with `startConfigurator()`
-- **Full UI Integration** - 3D viewer, parameter panels, export functionality
-- **Create-App Templates** - Update with V3 dual-server setup
+- **Update Templates** - Port working V3 setup to create-app templates
+- **Simplify User Experience** - Minimal user code with `startConfigurator()` API
+- **End-to-End Testing** - Verify complete scaffolding → development workflow
 
-## Updated Implementation Plan
+## Implementation Status & Next Steps
 
-Based on our current progress and refined architecture understanding:
-
-### ✅ **Already Complete**
+### ✅ **V3 Core System: COMPLETE (June 2025)**
 
 - **Pipeline Compiler** - Working dual Vite architecture with model compilation
-- **Basic V3 Integration** - Test harness proves V3 pipeline system works
-- **Development Workflow** - Auto-rebuild libraries + hot reload pipeline
-- **Model Discovery & Compilation** - Finds and compiles `main.ts` + `components/*.ts`
-- **✅ Manifest Generation** - ✅ **COMPLETED!** Structured `temp/manifest.json` with Vite plugin
-- **✅ Hot Reload System** - ✅ **COMPLETED!** File changes trigger pipeline + manifest updates
-- **✅ Type Safety** - ✅ **COMPLETED!** Full TypeScript support in pipeline compilation
+- **Manifest Generation** - Structured `temp/manifest.json` with Vite plugin integration
+- **Hot Reload System** - File changes trigger pipeline + manifest updates + UI refresh
+- **Source-Based Development** - Direct source imports eliminate build chain complexity
+- **Cache-Busting HMR** - Reliable pipeline reloading with timestamp-based cache invalidation
+- **ModelViewer Integration** - Forced reload ensures visual updates work correctly
+- **Production-Ready Code** - Clean implementation without debug artifacts
+- **Type Safety** - Full TypeScript support throughout pipeline compilation
 
-### 🎯 **Next Immediate Priorities**
+### 🎯 **Current Priority: Create-App Integration**
 
-1. **Clean Configurator Library** - Remove standalone app, implement pure library `startConfigurator()`
-2. **Full UI Integration** - Test 3D viewer, parameter panels, export functionality with manifest
-3. **Create-App Templates** - Update with working V3 setup
-4. **End-to-End Testing** - Verify complete source → pipeline → manifest → UI flow
+**Goal**: Port the working V3 setup from `test-v3-development` to `create-app` templates so users can scaffold projects with the complete V3 workflow.
 
-## ✅ Recent Progress: Manifest Generation Implementation
+**Success Criteria**:
 
-### **What Was Completed (June 2025)**
+- `npx @manifold-studio/create-app my-project` → `cd my-project` → `npm run dev` → edit models → see changes immediately
+- No manual setup required - everything works out of the box
+- Same reliable HMR experience as `test-v3-development`
 
-**✅ Manifest Generation System:**
+### **Create-App Integration Plan**
 
-- Created `scripts/generate-manifest.ts` that dynamically imports compiled pipeline
-- Extracts complete model metadata including parameters, types, descriptions
-- Generates structured `temp/manifest.json` alongside `temp/pipeline.js`
+#### **Phase 1: Copy Working V3 Setup**
 
-**✅ Vite Plugin Integration:**
+1. **Examine Current Templates** - Understand existing `create-app` structure and identify what needs updating
+2. **Copy Essential V3 Files** from `test-v3-development`:
+   - `vite.config.ts` - Source-based development with configurator aliases
+   - `vite-plugins/pipeline-hmr.ts` - Custom HMR plugin for pipeline changes
+   - `package.json` - Updated scripts for dual-server development
+   - `src/main.ts` - Minimal configurator initialization
+3. **Update Template Structure** - Organize files to match V3 architecture requirements
+4. **Remove V1/V2 Artifacts** - Clean out outdated model-watcher scripts and configurations
 
-- Built `vite-plugins/manifest-generator.ts` for seamless integration
-- Runs manifest generation after every pipeline build (single build + watch mode)
-- Eliminated external dependencies (removed chokidar-cli, 41 packages)
+#### **Phase 2: Simplify User Experience**
 
-**✅ Hot Reload Architecture:**
+1. **Minimal User Code** - Reduce user project to just `startConfigurator()` call
+2. **Standard NPM Workflow** - Ensure `npm run dev` works out of the box
+3. **Clean Dependencies** - Include only necessary packages, remove development artifacts
+4. **Clear Documentation** - Update README with V3 workflow and development guide
 
-```
-Source Change → Vite Rebuild → Plugin Triggers → Manifest Updated
-```
+#### **Phase 3: Test End-to-End Workflow**
 
-**✅ Type Safety:**
+1. **Scaffold New Project** - Test `npx create-app` with updated templates
+2. **Verify Complete Pipeline** - Source → pipeline → manifest → UI → HMR
+3. **Test HMR Reliability** - File changes → automatic updates without manual intervention
+4. **Cross-Platform Testing** - Ensure workflow works on different operating systems
 
-- Added proper TypeScript interfaces for `ParametricModel`, `StaticModel`
-- Fixed union type issues with type guards and assertions
-- Full type safety throughout pipeline compilation
+#### **Phase 4: Production Readiness**
 
-**✅ Simplified Development Workflow:**
-
-```bash
-# Before: Complex chokidar setup
-npm run dev:pipeline  # concurrently + chokidar + multiple watchers
-
-# After: Clean Vite integration
-npm run dev:pipeline  # vite build --watch (plugin handles manifest)
-```
-
-**✅ Generated Manifest Structure:**
-
-```json
-{
-  "version": "1750356501089",
-  "generatedAt": "2025-06-17T18:10:04.506Z",
-  "models": [
-    {
-      "id": "main",
-      "name": "V3 Test Hook",
-      "type": "parametric",
-      "config": {
-        "parameters": {
-          "height": { "value": 25, "min": 1, "max": 50 },
-          "width": { "value": 10, "min": 1, "max": 20 },
-          "thickness": { "value": 2, "min": 0.5, "max": 5 }
-        },
-        "description": "A simple parametric hook for testing V3 architecture - updated!"
-      }
-    }
-  ]
-}
-```
-
-### **Impact**
-
-The UI now has reliable access to structured model metadata, which is the critical missing piece for:
-
-- Model list rendering (knows what models are available)
-- Parameter panel generation (knows parameter schemas)
-- Model type handling (static vs parametric)
-- Cache invalidation (version tracking)
+1. **Build Process** - Ensure `npm run build` creates production-ready artifacts
+2. **Static Hosting** - Verify built projects work on static hosting platforms
+3. **Error Handling** - Graceful degradation for common development issues
+4. **Performance** - Optimize build times and HMR responsiveness
 
 ## Technical Implementation Details
 
@@ -783,42 +779,25 @@ npm run dev  # Starts pipeline compiler + UI server
 
 ## Next Steps
 
-### Phase 1: Complete V3 Configurator Library ⚡ **CURRENT PRIORITY**
+### ⚡ **CURRENT PRIORITY: Create-App Integration**
 
-**Goal**: Clean up configurator to be pure library with `startConfigurator()` API
+**Immediate Actions**:
 
-1. **Remove standalone app complexity** - Simplify to library-only build
-2. **Move coordination logic** from old `main.ts` to `core/coordinator.ts`
-3. **Implement clean `startConfigurator()`** - Single function that handles all initialization
-4. **Test manifest consumption** - Verify configurator can read and use `temp/manifest.json`
-5. **Rebuild 12 modules** with clean event-based architecture:
-   - State management (model selection, config UI)
-   - Pipeline execution (GLB generation)
-   - UI renderers (model list, parameter panels, 3D viewer)
-   - Supporting modules (pipeline loader, export, error handling, etc.)
-6. **End-to-end testing** - Complete source → pipeline → manifest → UI flow
+1. **Examine Current Templates** - Understand `packages/create-app/templates/` structure
+2. **Copy Working V3 Setup** - Port essential files from `test-v3-development`:
+   - Vite configurations with source-based development
+   - HMR plugins and pipeline compilation setup
+   - Package.json scripts for dual-server workflow
+   - Minimal user code with `startConfigurator()` API
+3. **Test Scaffolding** - Verify `npx create-app` → `npm run dev` → edit models workflow
+4. **Update Documentation** - V3 development guide and user instructions
 
-### ✅ Phase 2: Pipeline Enhancements **COMPLETED**
+### **Future Enhancements**
 
-1. ✅ **Generate `manifest.json`** - Structured metadata alongside `pipeline.js`
-2. ✅ **Hot reload optimization** - Vite plugin integration, eliminated chokidar
-3. ✅ **Type safety** - Full TypeScript support in pipeline compilation
-4. **Improve error handling** - Better compilation and runtime error messages
-5. **Source maps** - Debug support for compiled pipeline
-
-### Phase 3: Create-App Integration
-
-1. **Update templates** with V3 dual-server setup and minimal user code
-2. **Copy working V3 configs** from `test-v3-development` to templates
-3. **Test scaffolding workflow** - `create-app` → `npm run dev` → edit models
-4. **Update documentation** - V3 workflow and development guide
-
-### Phase 4: Production & Polish
-
-1. **Web Worker support** - Non-blocking pipeline execution
-2. **Static hosting optimization** - Bundle for client-side execution
-3. **Performance monitoring** - Build times, GLB generation speed
-4. **Advanced features** - Export formats, debugging tools, analytics
+1. **Production Optimization** - Static hosting, build performance, error handling
+2. **Advanced Features** - Web Workers, export formats, debugging tools
+3. **Developer Experience** - Better error messages, development tooling
+4. **Performance Monitoring** - Build times, HMR responsiveness, GLB generation speed
 
 ```
 

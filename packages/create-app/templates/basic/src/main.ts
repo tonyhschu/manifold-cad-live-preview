@@ -49,5 +49,76 @@ async function main() {
   }
 }
 
+// Set up custom Pipeline HMR
+if (import.meta.hot) {
+  // Listen for our custom pipeline events
+  import.meta.hot.on('pipeline:updated', (data) => {
+    handlePipelineUpdate(data);
+  });
+
+  import.meta.hot.on('pipeline:code-updated', (data) => {
+    handlePipelineCodeUpdate(data);
+  });
+
+  import.meta.hot.on('pipeline:manifest-updated', (data) => {
+    handleManifestUpdate(data);
+  });
+}
+
+// HMR event handlers
+async function handlePipelineUpdate(data: any) {
+  try {
+    // Import store functions dynamically to avoid circular dependencies
+    const { store } = await import('@manifold-studio/configurator');
+
+    // Refresh available models list
+    await store.refreshAvailableModels();
+
+    // Regenerate current model if one is selected
+    const currentModel = store.currentModelId.value;
+    if (currentModel) {
+      await store.loadModel(currentModel);
+    }
+  } catch (error) {
+    console.error('Failed to handle pipeline update:', error);
+  }
+}
+
+async function handlePipelineCodeUpdate(_data: any) {
+  // Set global timestamp to trigger HMR detection in ModelViewer
+  (globalThis as any).__MODEL_REBUILD_TIMESTAMP__ = Date.now();
+
+  try {
+    // Import configurator functions
+    const { store, getModelService } = await import('@manifold-studio/configurator');
+
+    // Force reload the pipeline module first
+    const modelService = getModelService();
+    if (modelService && typeof modelService.reloadPipeline === 'function') {
+      await modelService.reloadPipeline();
+    }
+
+    // Regenerate current model with new pipeline
+    const currentModel = store.currentModelId.value;
+    if (currentModel) {
+      await store.loadModel(currentModel);
+    }
+  } catch (error) {
+    console.error('Failed to handle pipeline code update:', error);
+  }
+}
+
+async function handleManifestUpdate(_data: any) {
+  try {
+    // Import store functions
+    const { store } = await import('@manifold-studio/configurator');
+
+    // Refresh available models list
+    await store.refreshAvailableModels();
+  } catch (error) {
+    console.error('Failed to handle manifest update:', error);
+  }
+}
+
 // Start the application
 main();

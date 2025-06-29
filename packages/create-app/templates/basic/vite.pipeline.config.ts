@@ -5,6 +5,7 @@ import { manifestGenerator } from './vite-plugins/manifest-generator';
 export default defineConfig({
   // Pipeline Build Server configuration
   build: {
+    target: 'esnext', // Support top-level await
     // Build as a library that exports pipeline functions
     lib: {
       entry: './pipeline-entry.ts',
