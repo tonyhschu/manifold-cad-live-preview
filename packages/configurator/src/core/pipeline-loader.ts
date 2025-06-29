@@ -30,12 +30,9 @@ export class PipelineLoaderImpl implements PipelineLoader {
    */
   private async loadPipeline(): Promise<void> {
     try {
-      console.log('� Loading pipeline...');
-
       // Dynamic import with cache busting for HMR
       const cacheBuster = `?t=${Date.now()}`;
       const module = await import(this.pipelinePath + cacheBuster);
-      // const module = await import(this.pipelinePath);
       const pipeline = module.default || module.pipeline;
 
       if (!pipeline) {
@@ -50,16 +47,9 @@ export class PipelineLoaderImpl implements PipelineLoader {
       }
 
       this.currentPipeline = pipeline;
-      console.log('✅ Pipeline loaded successfully');
-
-      // Log pipeline info
-      const info = pipeline.getPipelineInfo?.();
-      if (info) {
-        console.log(`📊 Pipeline info: ${info.modelCount} models, version ${info.version}`);
-      }
 
     } catch (error) {
-      console.error('❌ Failed to load pipeline:', error);
+      console.error('Failed to load pipeline:', error);
       throw error;
     }
   }
@@ -69,16 +59,11 @@ export class PipelineLoaderImpl implements PipelineLoader {
    * Just loads the pipeline once, no polling
    */
   async initialize(): Promise<boolean> {
-    console.log('🚀 Initializing pipeline loader...');
-
     try {
-      // Try to load pipeline immediately
       await this.loadPipeline();
-      console.log('✅ Pipeline loader initialized');
       return true;
-
     } catch (error) {
-      console.log('⚠️ Initial pipeline load failed:', error);
+      console.error('Initial pipeline load failed:', error);
       return false;
     }
   }
@@ -87,7 +72,6 @@ export class PipelineLoaderImpl implements PipelineLoader {
    * Force reload the pipeline module
    */
   async reloadPipeline(): Promise<void> {
-    console.log('🔄 Force reloading pipeline module...');
     await this.loadPipeline();
   }
 
@@ -96,7 +80,6 @@ export class PipelineLoaderImpl implements PipelineLoader {
    */
   destroy(): void {
     this.currentPipeline = null;
-    console.log('🧹 Pipeline loader destroyed');
   }
 }
 

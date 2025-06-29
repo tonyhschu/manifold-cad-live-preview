@@ -88,16 +88,13 @@ export class V3ModelService implements IModelService {
     try {
       // Generate the model using the pipeline
       const model = await pipeline.generateModel(modelId, params);
-      console.log('🔧 V3ModelService: Generated model from pipeline:', model);
 
       onProgress?.(75, 'Generating exports...');
 
       // Generate exports (GLB and OBJ)
       const exportService = getExportService();
       const objResult = await exportService.exportToOBJ(model, `${modelId}.obj`);
-      console.log('🔧 V3ModelService: Generated OBJ:', objResult.url);
       const glbResult = await exportService.exportToGLB(model, `${modelId}.glb`);
-      console.log('🔧 V3ModelService: Generated GLB:', glbResult.url);
 
       // Get parametric config if available
       const parametricConfig = pipeline.getModelConfig(modelId);
@@ -174,8 +171,7 @@ export class V3ModelService implements IModelService {
    * Set the pipeline to use for model operations
    * (This method is for interface compatibility, but V3 manages pipeline automatically)
    */
-  setPipeline(pipeline: ModelPipeline): void {
-    console.warn('⚠️ setPipeline() called on V3ModelService. V3 manages pipeline automatically.');
+  setPipeline(_pipeline: ModelPipeline): void {
     // In V3, we don't manually set pipelines - they're loaded automatically
   }
 
@@ -219,8 +215,7 @@ export class V3ModelService implements IModelService {
    * Add listener for pipeline changes
    * Note: In V3, pipeline changes are handled by custom HMR events
    */
-  onPipelineChange(callback: () => void): () => void {
-    console.log('ℹ️ V3 pipeline changes handled by HMR events, not polling');
+  onPipelineChange(_callback: () => void): () => void {
     // Return no-op cleanup function
     return () => {};
   }
@@ -230,19 +225,16 @@ export class V3ModelService implements IModelService {
    */
   refreshAvailableModels(): void {
     // In V3, pipeline refresh is handled by HMR events
-    console.log('ℹ️ V3 pipeline refresh handled by HMR events');
   }
 
   /**
    * Force reload the pipeline module (for HMR)
    */
   async reloadPipeline(): Promise<void> {
-    console.log('🔄 V3ModelService: Force reloading pipeline...');
     try {
       await this.pipelineLoader.reloadPipeline();
-      console.log('✅ V3ModelService: Pipeline reloaded successfully');
     } catch (error) {
-      console.error('❌ V3ModelService: Pipeline reload failed:', error);
+      console.error('Pipeline reload failed:', error);
       throw error;
     }
   }
@@ -250,7 +242,7 @@ export class V3ModelService implements IModelService {
   /**
    * Get cached model (V3 doesn't cache models, generates on demand)
    */
-  getCachedModel(modelId: string): any | null {
+  getCachedModel(_modelId: string): any | null {
     // V3 doesn't cache models - they're generated on demand from pipeline
     return null;
   }
@@ -260,7 +252,6 @@ export class V3ModelService implements IModelService {
    */
   clearCache(): void {
     // V3 doesn't cache models, so this is a no-op
-    console.log('V3 Model Service: clearCache() called (no-op)');
   }
 
   /**
