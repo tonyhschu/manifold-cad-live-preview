@@ -61,13 +61,14 @@ export async function manifoldToGLB(manifoldObject: ManifoldType): Promise<Blob>
   // Add a buffer to the document
   document.createBuffer();
 
-  // Create a default material
+  // Create a default material optimized for CAD rendering
   const material = document
     .createMaterial()
-    .setName("Default Material")
+    .setName("CAD Material")
     .setBaseColorFactor([0.8, 0.8, 0.8, 1.0])
-    .setMetallicFactor(0.1)
-    .setRoughnessFactor(0.9);
+    .setMetallicFactor(0.0)  // Non-metallic for clearer face definition
+    .setRoughnessFactor(0.8) // Higher roughness for less reflective, more matte appearance
+    .setDoubleSided(false);  // Single-sided for better performance and clearer edges
 
   // Get mesh data from the manifold object
   const mesh = manifoldObject.getMesh();
@@ -89,29 +90,66 @@ export async function manifoldToGLB(manifoldObject: ManifoldType): Promise<Blob>
     .setType(Accessor.Type.SCALAR)
     .setArray(indicesArray);
 
-  // Create position attribute
+  // Create attributes following the reference implementation pattern
+  const attributes = ['POSITION', 'NORMAL'];
+  const primitive = document.createPrimitive().setIndices(indices);
+
+  // Create vertex data with positions and calculated flat normals
   const positionsArray = extractPositions(mesh);
-  const positions = document
-    .createAccessor("POSITION")
-    .setBuffer(buffer)
-    .setType(Accessor.Type.VEC3)
-    .setArray(positionsArray);
+  const normalsArray = calculateFlatNormals(positionsArray, indicesArray);
 
-  // Create normals
-  const normalsArray = calculateNormals(positionsArray, indicesArray);
-  const normals = document
-    .createAccessor("NORMAL")
-    .setBuffer(buffer)
-    .setType(Accessor.Type.VEC3)
-    .setArray(normalsArray);
+  // Create interleaved vertex properties (position + normal per vertex)
+  const numVert = positionsArray.length / 3;
+  const vertProperties = new Float32Array(numVert * 6); // 3 for position + 3 for normal
 
-  // Create the primitive
-  const primitive = document
-    .createPrimitive()
-    .setIndices(indices)
-    .setAttribute("POSITION", positions)
-    .setAttribute("NORMAL", normals)
-    .setMaterial(material);
+  for (let v = 0; v < numVert; v++) {
+    // Position (offset 0-2)
+    vertProperties[v * 6 + 0] = positionsArray[v * 3 + 0];
+    vertProperties[v * 6 + 1] = positionsArray[v * 3 + 1];
+    vertProperties[v * 6 + 2] = positionsArray[v * 3 + 2];
+
+    // Normal (offset 3-5)
+    vertProperties[v * 6 + 3] = normalsArray[v * 3 + 0];
+    vertProperties[v * 6 + 4] = normalsArray[v * 3 + 1];
+    vertProperties[v * 6 + 5] = normalsArray[v * 3 + 2];
+  }
+
+  // Create attributes following reference pattern
+  let offset = 0;
+  for (const attribute of attributes) {
+    let components: number;
+    let accessorType: any;
+
+    if (attribute === 'POSITION') {
+      components = 3;
+      accessorType = Accessor.Type.VEC3;
+    } else if (attribute === 'NORMAL') {
+      components = 3;
+      accessorType = Accessor.Type.VEC3;
+    } else {
+      continue;
+    }
+
+    // Extract attribute data from interleaved vertProperties
+    const array = new Float32Array(components * numVert);
+    for (let v = 0; v < numVert; v++) {
+      for (let i = 0; i < components; i++) {
+        array[components * v + i] = vertProperties[6 * v + offset + i];
+      }
+    }
+
+    // Create accessor and assign to primitive
+    const accessor = document
+      .createAccessor(attribute)
+      .setBuffer(buffer)
+      .setType(accessorType)
+      .setArray(array);
+
+    primitive.setAttribute(attribute, accessor);
+    offset += components;
+  }
+
+  primitive.setMaterial(material);
 
   // Add the primitive to the mesh
   gltfMesh.addPrimitive(primitive);
@@ -161,21 +199,17 @@ function extractPositions(mesh: { vertProperties: Float32Array; numProp: number 
 }
 
 /**
- * Calculate normals for a mesh
+ * Calculate flat normals for CAD-style rendering
+ * Each triangle gets its own face normal, creating sharp edges between faces
  */
-function calculateNormals(
+function calculateFlatNormals(
   positions: Float32Array,
   indices: Uint32Array
 ): Float32Array {
   const numVerts = positions.length / 3;
   const normals = new Float32Array(numVerts * 3);
 
-  // Initialize normals to zero
-  for (let i = 0; i < normals.length; i++) {
-    normals[i] = 0;
-  }
-
-  // Calculate face normals and accumulate
+  // For flat shading, we assign the same face normal to all vertices of each triangle
   for (let i = 0; i < indices.length; i += 3) {
     const i0 = indices[i];
     const i1 = indices[i + 1];
@@ -208,33 +242,24 @@ function calculateNormals(
     const ny = e1z * e2x - e1x * e2z;
     const nz = e1x * e2y - e1y * e2x;
 
-    // Accumulate normals for each vertex
-    normals[i0 * 3] += nx;
-    normals[i0 * 3 + 1] += ny;
-    normals[i0 * 3 + 2] += nz;
-
-    normals[i1 * 3] += nx;
-    normals[i1 * 3 + 1] += ny;
-    normals[i1 * 3 + 2] += nz;
-
-    normals[i2 * 3] += nx;
-    normals[i2 * 3 + 1] += ny;
-    normals[i2 * 3 + 2] += nz;
-  }
-
-  // Normalize
-  for (let i = 0; i < numVerts; i++) {
-    const nx = normals[i * 3];
-    const ny = normals[i * 3 + 1];
-    const nz = normals[i * 3 + 2];
-
+    // Normalize the face normal
     const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+    const fnx = len > 0 ? nx / len : 0;
+    const fny = len > 0 ? ny / len : 0;
+    const fnz = len > 0 ? nz / len : 0;
 
-    if (len > 0) {
-      normals[i * 3] = nx / len;
-      normals[i * 3 + 1] = ny / len;
-      normals[i * 3 + 2] = nz / len;
-    }
+    // Assign the same face normal to all three vertices of this triangle
+    normals[i0 * 3] = fnx;
+    normals[i0 * 3 + 1] = fny;
+    normals[i0 * 3 + 2] = fnz;
+
+    normals[i1 * 3] = fnx;
+    normals[i1 * 3 + 1] = fny;
+    normals[i1 * 3 + 2] = fnz;
+
+    normals[i2 * 3] = fnx;
+    normals[i2 * 3 + 1] = fny;
+    normals[i2 * 3 + 2] = fnz;
   }
 
   return normals;
