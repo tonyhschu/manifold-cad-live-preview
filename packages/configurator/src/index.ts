@@ -55,6 +55,10 @@ function createConfiguratorHTML(): string {
           <model-viewer-wrapper>
             <model-viewer id="viewer"
               camera-controls
+              shadow-intensity="1"
+              tone-mapping="neutral"
+              environment-image="neutral"
+              skybox-image=""
               interaction-prompt="none"
               rotations-per-second="0rad"
               auto-rotate-delay="Infinity"
