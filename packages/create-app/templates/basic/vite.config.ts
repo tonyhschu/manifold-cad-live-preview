@@ -10,13 +10,6 @@ export default defineConfig({
     })
   ],
   // UI Server configuration
-  // Enable top-level await for Manifold WASM loading
-  esbuild: {
-    target: 'es2022'
-  },
-  optimizeDeps: {
-    exclude: ['manifold-3d']
-  },
   server: {
     port: 5173,
     open: true,
@@ -37,9 +30,21 @@ export default defineConfig({
   // Build configuration
   build: {
     target: 'esnext', // Support top-level await
+    outDir: 'dist',
   },
-  // Pass REPO_HMR flag to the browser
-  define: {
-    'import.meta.env.VITE_REPO_HMR': JSON.stringify(process.env.REPO_HMR === 'true')
+  // Allow serving files from temp directory
+  publicDir: false,
+  // Optimize deps configuration
+  optimizeDeps: {
+    exclude: ['manifold-3d'], // Exclude WASM module from pre-bundling
+    // Remove package includes since we're using source-based development
+    // Vite will handle TypeScript compilation directly from source
+    esbuildOptions: {
+      target: 'esnext' // Support top-level await in dependencies
+    }
+  },
+  // Enable top-level await support
+  esbuild: {
+    target: 'esnext'
   }
 });

@@ -16,6 +16,19 @@ async function main() {
     (globalThis as any).CrossSection = CrossSection;
     console.log('✅ Manifold initialized and available globally');
 
+    // Test pipeline availability first
+    console.log('🔍 Testing pipeline availability...');
+    try {
+      const pipelineResponse = await fetch('/temp/pipeline.js');
+      console.log('📦 Pipeline response status:', pipelineResponse.status);
+      if (!pipelineResponse.ok) {
+        throw new Error(`Pipeline not available: ${pipelineResponse.status}`);
+      }
+    } catch (pipelineError) {
+      console.error('❌ Pipeline test failed:', pipelineError);
+      throw new Error(`Pipeline not available: ${pipelineError.message}`);
+    }
+
     // Start the configurator with V3 pipeline support
     console.log('🎯 Starting V3 Configurator...');
 
