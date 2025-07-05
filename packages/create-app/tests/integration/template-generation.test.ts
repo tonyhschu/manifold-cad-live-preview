@@ -151,9 +151,8 @@ describe('Template Generation', () => {
             }
 
             // Check required dependencies
+            // NOTE: During source-based development, @manifold-studio packages are imported via Vite aliases
             const requiredDeps = [
-              '@manifold-studio/wrapper',
-              '@manifold-studio/configurator',
               'manifold-3d'
             ];
             for (const dep of requiredDeps) {

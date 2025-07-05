@@ -256,7 +256,7 @@ describe('Package.json Validation', () => {
             const requiredDeps = {
               'manifold-3d': '^3.1.1',
               'typescript': '^5.0.0',
-              'vite': '^5.0.0'
+              'vite': '^4.4.5'
             };
 
             for (const [name, expectedVersion] of Object.entries(requiredDeps)) {

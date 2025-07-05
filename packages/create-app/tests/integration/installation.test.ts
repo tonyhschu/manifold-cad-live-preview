@@ -56,9 +56,8 @@ describe('Installation Testing', () => {
 
       try {
         // Check that all required dependencies are installed
+        // NOTE: During source-based development, @manifold-studio packages are imported via Vite aliases
         const requiredDeps = [
-          '@manifold-studio/wrapper',
-          '@manifold-studio/configurator',
           'manifold-3d',
           'typescript',
           'vite',

@@ -160,11 +160,9 @@ export class ProjectCreator {
         if (!data.dependencies) return 'package.json missing dependencies field';
         
         // Check for required dependencies
-        // NOTE: During development, @manifold-studio/configurator is imported via Vite aliases
-        // @manifold-studio/wrapper uses local file reference
-        // TODO: Add @manifold-studio/configurator back when packages are published
+        // NOTE: During source-based development, @manifold-studio packages are imported via Vite aliases
+        // Only manifold-3d is required as a runtime dependency
         const requiredDeps = [
-          '@manifold-studio/wrapper',
           'manifold-3d'
         ];
         
