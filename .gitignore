@@ -5,10 +5,11 @@ package-lock.json
 # Build outputs
 dist/
 temp/
+packages/create-app/bin/
 
 # Generated test projects
 test-*-project/
-test-local-project/
+packages/create-app/test-*/
 
 # Source maps
 *.js.map

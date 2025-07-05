@@ -12,6 +12,11 @@
     "build": "node build.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:verbose": "vitest run --reporter=verbose",
+    "test:template": "vitest run tests/integration/template-generation.test.ts",
+    "test:package": "vitest run tests/integration/package-validation.test.ts",
+    "test:install": "vitest run tests/integration/installation.test.ts",
+    "test:build": "vitest run tests/integration/build-system.test.ts",
     "test:scaffold": "./test-local.sh",
     "dev": "node build.js --watch"
   },

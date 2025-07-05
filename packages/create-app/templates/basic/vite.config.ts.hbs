@@ -23,8 +23,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
-      '@manifold-studio/configurator': resolve(__dirname, './node_modules/@manifold-studio/configurator/src'),
-      '@manifold-studio/wrapper': resolve(__dirname, './node_modules/@manifold-studio/wrapper/src')
+      // SOURCE-BASED DEVELOPMENT: Point to source files directly
+      // TODO: Update paths when packages are published and installed via npm
+      '@manifold-studio/configurator': '{{packagesPath}}/configurator/src/index.ts',
+      '@manifold-studio/wrapper': '{{packagesPath}}/wrapper/src/index.ts'
     }
   },
   // Build configuration

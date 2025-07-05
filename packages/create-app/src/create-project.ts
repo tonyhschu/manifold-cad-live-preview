@@ -1,6 +1,10 @@
 import { TemplateProcessor, TemplateContext } from './template-processor';
 import { runCommand, getPackageManager } from './utils';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface CreateProjectOptions {
   template: string;
@@ -19,15 +23,20 @@ export async function createProject(
   
   // Create template processor
   const processor = new TemplateProcessor();
-  
+
+  // Get target directory (relative to current working directory)
+  const targetDir = path.resolve(process.cwd(), projectName);
+
+  // Calculate packages path relative to the target project directory
+  const packagesAbsolutePath = path.resolve(__dirname, '..', '..');
+  const packagesPath = path.relative(targetDir, packagesAbsolutePath);
+
   // Create template context
   const context: TemplateContext = TemplateProcessor.createContext(projectName, {
     description,
-    author
+    author,
+    packagesPath
   });
-  
-  // Get target directory (relative to current working directory)
-  const targetDir = path.resolve(process.cwd(), projectName);
   
   try {
     // Process template

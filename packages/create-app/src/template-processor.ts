@@ -12,6 +12,7 @@ export interface TemplateContext {
   projectNamePascalCase: string;
   description?: string;
   author?: string;
+  packagesPath?: string;
 }
 
 export class TemplateProcessor {
@@ -26,12 +27,12 @@ export class TemplateProcessor {
    * Process a template directory and create project files
    */
   async processTemplate(
-    templateName: string, 
-    targetDir: string, 
+    templateName: string,
+    targetDir: string,
     context: TemplateContext
   ): Promise<void> {
     const templateDir = path.join(this.templatesDir, templateName);
-    
+
     if (!this.directoryExists(templateDir)) {
       throw new Error(`Template "${templateName}" not found`);
     }
@@ -71,17 +72,17 @@ export class TemplateProcessor {
    * Process a single file
    */
   private async processFile(
-    sourcePath: string, 
-    targetPath: string, 
+    sourcePath: string,
+    targetPath: string,
     context: TemplateContext
   ): Promise<void> {
     const content = readFileSync(sourcePath, 'utf8');
-    
+
     // Check if file should be processed with Handlebars (has .hbs extension)
     if (sourcePath.endsWith('.hbs')) {
       const template = Handlebars.compile(content);
       const processedContent = template(context);
-      
+
       // Remove .hbs extension from target path
       const finalTargetPath = targetPath.replace(/\.hbs$/, '');
       writeFileSync(finalTargetPath, processedContent, 'utf8');
@@ -97,13 +98,15 @@ export class TemplateProcessor {
   static createContext(projectName: string, options: {
     description?: string;
     author?: string;
+    packagesPath?: string;
   } = {}): TemplateContext {
     return {
       projectName,
       projectNameCamelCase: this.toCamelCase(projectName),
       projectNamePascalCase: this.toPascalCase(projectName),
       description: options.description || `A Manifold Studio project`,
-      author: options.author || 'Your Name'
+      author: options.author || 'Your Name',
+      packagesPath: options.packagesPath
     };
   }
 

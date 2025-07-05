@@ -66,7 +66,8 @@ var TemplateProcessor = class {
       projectNameCamelCase: this.toCamelCase(projectName),
       projectNamePascalCase: this.toPascalCase(projectName),
       description: options.description || `A Manifold Studio project`,
-      author: options.author || "Your Name"
+      author: options.author || "Your Name",
+      packagesPath: options.packagesPath
     };
   }
   /**
@@ -140,15 +141,21 @@ function getPackageManager() {
 
 // src/create-project.ts
 import path2 from "path";
+import { fileURLToPath as fileURLToPath2 } from "url";
+var __filename2 = fileURLToPath2(import.meta.url);
+var __dirname2 = path2.dirname(__filename2);
 async function createProject(projectName, options) {
   const { template, install, description, author } = options;
   console.log(`Creating project "${projectName}" with template "${template}"...`);
   const processor = new TemplateProcessor();
+  const targetDir = path2.resolve(process.cwd(), projectName);
+  const packagesAbsolutePath = path2.resolve(__dirname2, "..", "..");
+  const packagesPath = path2.relative(targetDir, packagesAbsolutePath);
   const context = TemplateProcessor.createContext(projectName, {
     description,
-    author
+    author,
+    packagesPath
   });
-  const targetDir = path2.resolve(process.cwd(), projectName);
   try {
     console.log("\u{1F4C1} Creating project structure...");
     await processor.processTemplate(template, targetDir, context);
