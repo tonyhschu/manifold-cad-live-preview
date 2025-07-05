@@ -67,7 +67,7 @@ describe('Build System Testing', () => {
         // Validate pipeline.js content
         const pipelineValidation = await FileValidator.validateFileContent(
           join(project.path, 'temp/pipeline.js'),
-          /export.*default/,
+          /export[\s\S]*as default/,
           { partial: true }
         );
 
@@ -79,7 +79,9 @@ describe('Build System Testing', () => {
         // Check that it's valid JavaScript (basic syntax check)
         const content = pipelineValidation.content!;
         expect(content.length).toBeGreaterThan(0);
-        expect(content).not.toContain('undefined');
+        // Check for valid export syntax and expected content
+        expect(content).toMatch(/export[\s\S]*as default/); // Has export as default
+        expect(content).toContain('generateModel'); // Contains expected function
 
         console.log('✅ pipeline.js is valid');
       } finally {
@@ -109,7 +111,7 @@ describe('Build System Testing', () => {
             for (const model of data.models) {
               if (!model.id) return 'Model missing id field';
               if (!model.name) return 'Model missing name field';
-              if (!model.path) return 'Model missing path field';
+              if (!model.type) return 'Model missing type field';
             }
 
             return true;

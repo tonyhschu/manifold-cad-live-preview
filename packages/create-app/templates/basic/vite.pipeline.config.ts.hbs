@@ -38,7 +38,11 @@ export default defineConfig({
   // Resolve configuration for TypeScript
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src')
+      '@': resolve(__dirname, './src'),
+      // SOURCE-BASED DEVELOPMENT: Point to source files directly
+      // TODO: Update paths when packages are published and installed via npm
+      '@manifold-studio/configurator': '{{packagesPath}}/configurator/src/index.ts',
+      '@manifold-studio/wrapper': '{{packagesPath}}/wrapper/src/index.ts'
     }
   }
 });
