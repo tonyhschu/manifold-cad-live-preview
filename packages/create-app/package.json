@@ -20,6 +20,10 @@
     "test:build-pipeline": "vitest run tests/integration/build-system.test.ts -t 'Pipeline Build' --reporter=verbose",
     "test:build-ui": "vitest run tests/integration/build-system.test.ts -t 'UI Build' --reporter=verbose",
     "test:build-combined": "vitest run tests/integration/build-system.test.ts -t 'Combined Build' --reporter=verbose",
+    "test:hmr": "vitest run tests/integration/hmr-system.test.ts --reporter=verbose",
+    "test:pipeline": "vitest run tests/integration/hmr-system.test.ts -t 'Pipeline System' --reporter=verbose",
+    "test:v3-validation": "vitest run tests/integration/hmr-system.test.ts --reporter=verbose",
+    "test:integration": "vitest run tests/integration/ --reporter=verbose",
     "dev": "node build.js --watch"
   },
   "dependencies": {

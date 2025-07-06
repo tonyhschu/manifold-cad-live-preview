@@ -242,33 +242,56 @@ export class FileValidator {
    */
   static async validateJsonFile(
     filePath: string,
-    validator?: (data: any) => boolean | string
-  ): Promise<{ valid: boolean; data?: any; error?: string }> {
+    validator?: (data: any) => boolean | string | null
+  ): Promise<{ isValid: boolean; data?: any; error?: string }> {
     const result = await this.validateFileContent(filePath);
-    
+
     if (!result.valid) {
-      return { valid: false, error: result.error };
+      return { isValid: false, error: result.error };
     }
 
     try {
       const data = JSON.parse(result.content!);
-      
+
       if (validator) {
         const validationResult = validator(data);
-        if (validationResult === true) {
-          return { valid: true, data };
+        if (validationResult === true || validationResult === null) {
+          return { isValid: true, data };
         } else {
-          return { 
-            valid: false, 
-            data, 
+          return {
+            isValid: false,
+            data,
             error: typeof validationResult === 'string' ? validationResult : 'JSON validation failed'
           };
         }
       }
 
-      return { valid: true, data };
+      return { isValid: true, data };
     } catch (error) {
-      return { valid: false, error: `Invalid JSON: ${error}` };
+      return { isValid: false, error: `Invalid JSON: ${error}` };
+    }
+  }
+
+  /**
+   * Simple file existence check
+   */
+  static async fileExists(filePath: string): Promise<boolean> {
+    const result = await this.validate(filePath);
+    return result.exists && !!result.isFile;
+  }
+
+  /**
+   * Get file stats
+   */
+  static async getFileStats(filePath: string): Promise<{ mtime: Date; size: number }> {
+    try {
+      const stats = await stat(filePath);
+      return {
+        mtime: stats.mtime,
+        size: stats.size
+      };
+    } catch (error) {
+      throw new Error(`Failed to get file stats for ${filePath}: ${error}`);
     }
   }
 }
