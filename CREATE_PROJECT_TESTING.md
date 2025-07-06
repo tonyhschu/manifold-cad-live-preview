@@ -171,40 +171,111 @@ This document outlines the comprehensive testing strategy for `@manifold-studio/
 - ✅ Maintained 100% test reliability (11/11 passing)
 ```
 
-### Phase 3: End-to-End User Experience (Critical)
+### Phase 3: End-to-End Integration Testing (Revised)
 
-#### 3.1 Complete Workflow Tests
+**Status**: Not Started
+**Target**: True end-to-end user workflow validation with minimal redundancy
 
-```
-✅ Full Development Cycle
-1. npx @manifold-studio/create-app test-project
-2. cd test-project && npm install
-3. npm run dev (both servers start)
-4. Browser opens to working configurator
-5. Edit main.ts → see changes in browser
-6. Add new component → appears in model list
-7. Change parameters → GLB updates
-8. Export model → download works
+#### Redundancy Analysis Results
 
-✅ Error Handling Validation
-- Pipeline compilation errors show in UI
-- Missing dependencies are reported clearly
-- Network issues are handled gracefully
-- Recovery from error states works
-```
+After analyzing configurator and wrapper package tests:
 
-#### 3.2 Cross-Platform Testing
+- **Phase 1 overlap**: ~5% (minimal - different testing levels)
+- **Phase 2 overlap**: ~15% (some pipeline/model loading overlap at different integration levels)
+- **Phase 3 potential overlap**: ~25% (significant unit test coverage exists)
+
+**Key Finding**: Configurator and wrapper packages have comprehensive unit/service-level test coverage (1,400+ lines across 12 test files) that complement rather than duplicate the create-app integration tests.
+
+#### 3.1 Cross-Package Integration Tests (Priority 1)
 
 ```
-✅ Operating System Compatibility
-- macOS (primary development environment)
-- Windows (common user environment)
-- Linux (CI/CD environments)
+🔄 Full Pipeline Integration
+- Test complete flow: user project → pipeline compilation → UI rendering
+- Validate configurator ↔ wrapper ↔ UI server communication patterns
+- Test parameter changes propagating through entire system
+- Test error propagation: wrapper → configurator → UI
 
-✅ Node.js Version Matrix
-- Node 18 (LTS)
-- Node 20 (Current LTS)
-- Node 21+ (Latest)
+🔄 Service Communication Validation
+- Test service injection and dependency resolution across packages
+- Validate event-driven communication between modules
+- Test state synchronization between pipeline and UI servers
+- Verify cleanup and resource management across package boundaries
+```
+
+#### 3.2 True User Journey Tests (Priority 1)
+
+```
+🔄 Cold Start Workflow
+- Fresh project creation → first model load → parameter modification → export
+- Test initial WASM loading and module initialization
+- Validate first-time user experience and onboarding flow
+
+🔄 Model Switching Journey
+- Load model A → modify parameters → switch to model B → verify state isolation
+- Test model discovery and loading across different model types
+- Validate parameter state management during model transitions
+
+🔄 Export Workflow Integration
+- Parameter modification → real-time preview → export to multiple formats → file validation
+- Test export service integration with UI state management
+- Validate progress tracking and error handling during exports
+
+🔄 Development Workflow
+- Code changes → HMR trigger → UI update → state preservation
+- Test hot reload with complex parameter configurations
+- Validate development server coordination and error recovery
+```
+
+#### 3.3 Browser Environment Integration (Priority 2)
+
+```
+🔄 WebAssembly Loading
+- Test Manifold WASM initialization across browsers (Chrome, Firefox, Safari)
+- Validate WASM module loading performance and error handling
+- Test memory management and cleanup for long-running sessions
+
+🔄 File System Integration
+- Test file downloads and blob URL handling across browsers
+- Validate export file integrity and format compliance
+- Test browser-specific file handling limitations
+
+🔄 Performance Thresholds
+- Test acceptable response times for key operations (<2s model load, <500ms parameter change)
+- Validate memory usage patterns during extended sessions
+- Test performance with large models and complex parameter sets
+```
+
+#### 3.4 Edge Cases & Recovery (Priority 2)
+
+```
+🔄 Network Interruption Recovery
+- Test HMR reconnection and state recovery after network issues
+- Validate graceful degradation when pipeline server is unavailable
+- Test UI state preservation during server restarts
+
+🔄 Invalid Model Recovery
+- Test graceful degradation when models fail to load or compile
+- Validate error messaging and recovery suggestions
+- Test fallback behavior for corrupted or invalid model files
+
+🔄 Resource Exhaustion Handling
+- Test behavior with large models or many parameters
+- Validate memory cleanup and garbage collection
+- Test concurrent operations and race condition handling
+```
+
+#### Leveraging Existing Test Infrastructure
+
+```
+✅ Reuse Service Mocking Patterns
+- Adopt configurator's service injection and mocking architecture
+- Extend wrapper's operation tracking for integration validation
+- Utilize existing MockBlob, test fixtures, and helper functions
+
+✅ Performance Testing Patterns
+- Use configurator's progress tracking patterns for E2E validation
+- Leverage wrapper's pipeline testing utilities for integration tests
+- Adopt existing timeout and error handling patterns
 ```
 
 ### Phase 4: Advanced Testing (Future)
@@ -339,12 +410,13 @@ tests/
 - ✅ Error handling validation (2 tests)
 - ✅ Performance optimization implementation
 
-### Phase 3: E2E Testing (Week 5-6)
+### Phase 3: E2E Integration Testing (Week 5-6) - REVISED
 
-- Complete workflow automation
-- Browser-based testing
-- Cross-platform validation
-- Error handling scenarios
+- Cross-package integration validation
+- True user journey automation
+- Browser environment testing
+- Edge case and recovery scenarios
+- Leveraging existing unit test infrastructure
 
 ### Phase 4: Advanced Testing (Ongoing)
 
@@ -409,10 +481,12 @@ npm run test:verbose -- tests/integration/template-generation.test.ts
 
 1. ✅ **Phase 1 Complete**: Foundation testing infrastructure is fully operational with 100% test success rate (35/35 tests)
 2. ✅ **Phase 2 Complete**: V3 architecture validation is fully implemented with 100% test success rate (11/11 tests)
-3. **Phase 3: E2E Testing**: Add browser automation and complete workflow testing for comprehensive user experience validation
+3. **Phase 3: E2E Integration Testing**: Focus on cross-package integration, true user journeys, and edge cases not covered by existing unit tests (reduced scope based on redundancy analysis)
 4. **Performance Optimization**: Continue improving test execution speed and resource efficiency
 5. **CI/CD Integration**: Set up automated testing when ready for first release
 
 **Current Status**: The `@manifold-studio/create-app` package now has a comprehensive test suite covering both foundation functionality and V3 architecture validation. With 46 total tests passing (46/46), the package demonstrates robust functionality across project creation, installation, building, pipeline compilation, dual-server architecture, and HMR system validation. The optimized test suite runs efficiently with shared dependency caching and dynamic port management.
+
+**Phase 3 Revision**: After analyzing configurator and wrapper package tests (1,400+ lines across 12 test files), Phase 3 has been revised to focus on true integration gaps rather than duplicating existing unit test coverage. The revised plan prioritizes cross-package integration, user journey validation, and edge cases not covered by the comprehensive unit test suites already in place.
 
 This approach follows industry best practices while being tailored to the unique challenges of testing a complex, multi-server, HMR-enabled development environment.
