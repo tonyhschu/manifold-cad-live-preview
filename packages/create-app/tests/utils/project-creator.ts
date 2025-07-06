@@ -1,10 +1,11 @@
 import { join } from 'path';
+import { cp } from 'fs/promises';
 import { TempDir } from './temp-dir.js';
 import { ProcessRunner } from './process-runner.js';
 import { FileValidator } from './file-validator.js';
 
 export interface ProjectCreationOptions {
-  projectName?: string;
+  name?: string;  // Changed from projectName for consistency
   template?: string;
   skipInstall?: boolean;
   timeout?: number;
@@ -29,7 +30,7 @@ export class ProjectCreator {
     options: ProjectCreationOptions = {}
   ): Promise<CreatedProject> {
     const {
-      projectName = 'test-project',
+      name: projectName = 'test-project',
       template = 'basic',
       skipInstall = false,
       timeout = 120000 // 2 minutes
@@ -109,6 +110,45 @@ export class ProjectCreator {
     } catch (error) {
       // Clean up on failure
       await project.cleanup();
+      throw error;
+    }
+  }
+
+  /**
+   * Copy an existing project for test isolation (much faster than creating + installing)
+   */
+  static async copyProject(
+    sourceProject: CreatedProject,
+    options: { name: string }
+  ): Promise<CreatedProject> {
+    const { name } = options;
+
+    // Create temporary directory for the copy
+    const tempDir = await TempDir.create('create-app-test-');
+    const projectPath = join(tempDir, name);
+
+    try {
+      console.log(`📋 Copying project from ${sourceProject.path} to ${projectPath}`);
+
+      // Copy the entire project directory
+      await cp(sourceProject.path, projectPath, {
+        recursive: true,
+        force: true
+      });
+
+      console.log(`✅ Project "${name}" copied successfully`);
+
+      return {
+        name,
+        path: projectPath,
+        cleanup: async () => {
+          await TempDir.cleanup(tempDir);
+        }
+      };
+
+    } catch (error) {
+      // Clean up on failure
+      await TempDir.cleanup(tempDir);
       throw error;
     }
   }

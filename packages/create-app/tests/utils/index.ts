@@ -16,3 +16,4 @@ export {
   type ServerInstance,
   type ServerManagerOptions
 } from './server-manager.js';
+export { PortManager } from './port-manager.js';

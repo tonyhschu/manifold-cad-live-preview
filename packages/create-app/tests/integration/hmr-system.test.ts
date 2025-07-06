@@ -1,44 +1,72 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import { join } from 'path';
 import { writeFileSync, readFileSync } from 'fs';
-import { 
-  ProjectCreator, 
-  ServerManager, 
+import {
+  ProjectCreator,
+  ServerManager,
   FileValidator,
   ProcessRunner,
-  type CreatedProject 
+  PortManager,
+  type CreatedProject
 } from '../utils/index.js';
 
 describe('HMR System Tests', () => {
+  let sharedProject: CreatedProject;
   let project: CreatedProject;
   let serverManager: ServerManager;
+  let ports: { pipelinePort: number; uiPort: number };
 
-  beforeEach(async () => {
-    // Create a test project for HMR testing
-    project = await ProjectCreator.createProject({
-      name: 'test-hmr-project',
+  // Create shared project once for all tests
+  beforeAll(async () => {
+    console.log('🏗️ Creating shared test project with dependencies...');
+    sharedProject = await ProjectCreator.createProject({
+      name: 'shared-hmr-project',
       template: 'basic'
     });
 
-    // Install dependencies
-    console.log('📦 Installing dependencies for HMR testing...');
-    const installResult = await ProcessRunner.npmInstall(project.path, { timeout: 120000 });
+    // Install dependencies once
+    console.log('📦 Installing dependencies for shared project...');
+    const installResult = await ProcessRunner.npmInstall(sharedProject.path, { timeout: 120000 });
     expect(installResult.success).toBe(true);
+    console.log('✅ Shared project ready for all tests');
+  }, 180000); // 3 minute timeout for shared setup
 
-    // Initialize server manager
+  // Clean up shared project after all tests
+  afterAll(async () => {
+    if (sharedProject) {
+      await sharedProject.cleanup();
+    }
+  });
+
+  beforeEach(async () => {
+    // Allocate unique ports for this test to avoid conflicts
+    ports = PortManager.allocatePortPair();
+
+    // Copy shared project for each test (much faster than npm install)
+    console.log('📋 Copying shared project for test isolation...');
+    project = await ProjectCreator.copyProject(sharedProject, {
+      name: `test-hmr-${Date.now()}`
+    });
+
+    // Initialize server manager with unique ports
     serverManager = new ServerManager({
       projectPath: project.path,
-      pipelinePort: 3001,
-      uiPort: 5173,
+      pipelinePort: ports.pipelinePort,
+      uiPort: ports.uiPort,
       timeout: 45000,
       silent: false
     });
-  }, 150000); // 2.5 minute timeout for setup
+  }, 30000); // Much shorter timeout since no npm install
 
   afterEach(async () => {
-    // Cleanup servers and project
-    await serverManager.cleanup();
-    await project.cleanup();
+    // Cleanup servers and project copy
+    await serverManager?.cleanup();
+    await project?.cleanup();
+
+    // Release ports back to the pool
+    if (ports) {
+      PortManager.releasePortPair(ports.pipelinePort, ports.uiPort);
+    }
   });
 
   describe('Pipeline System Tests', () => {
