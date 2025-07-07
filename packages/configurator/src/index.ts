@@ -1,6 +1,7 @@
 // Main library entry point for @manifold-studio/configurator
 // This file exports the public API for use in generated projects
 
+import './style.css'; // Import CSS for HMR support
 import './components'; // Register all web components
 import { initializeServices } from './services';
 import { loadDefaultModel } from './core/model-loader';

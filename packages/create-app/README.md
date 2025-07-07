@@ -26,6 +26,43 @@ This opens a browser with:
 - **Export Tools**: Download STL, OBJ, GLB files instantly
 - **Hot Reloading**: Edit code and see changes immediately
 
+## 🔧 Configurator Development Environment
+
+This package also serves as the **development environment for the configurator library**. The configurator package cannot be developed standalone and requires the dual-server setup provided here.
+
+### Developing the Configurator
+
+To work on the configurator library:
+
+1. **Start the development environment**:
+
+   ```bash
+   cd packages/create-app
+   npm run dev
+   ```
+
+2. **Edit configurator source files**:
+
+   - Make changes to files in `packages/configurator/src/`
+   - Changes are reflected immediately via HMR
+   - No build step required during development
+
+3. **View changes**:
+   - Open http://localhost:5173
+   - The configurator is imported directly from source files
+   - TypeScript compilation happens on-the-fly
+
+### Why This Architecture?
+
+The V3 architecture requires:
+
+- **Dual servers**: Pipeline compiler + UI server
+- **Source-based imports**: Direct import from TypeScript source files
+- **Cross-package HMR**: Hot reloading across package boundaries
+- **Pipeline coordination**: Manifest generation and model discovery
+
+This environment provides all of these capabilities in a single, coordinated development setup.
+
 ## ✨ What You Get
 
 Every scaffolded project includes:

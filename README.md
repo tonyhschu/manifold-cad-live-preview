@@ -364,9 +364,40 @@ manifold-studio/
 
 ## 🔧 Development Workflow
 
-### Cross-Package Development
+### V3 Architecture - Source-Based Development
 
-When working with the monorepo, changes in the wrapper package need to propagate to the configurator:
+The V3 architecture uses **source-based development** to eliminate build chain complexity during development:
+
+#### Configurator Development
+
+The configurator package **cannot be developed standalone**. Use the create-app development environment:
+
+```bash
+# Navigate to create-app package
+cd packages/create-app
+
+# Start dual-server development environment
+npm run dev
+
+# Edit configurator source files
+# Changes in packages/configurator/src/ are reflected immediately
+```
+
+#### Why Source-Based Development?
+
+- **No build step during development**: TypeScript files are compiled on-the-fly by Vite
+- **Cross-package HMR**: Hot module replacement works across package boundaries
+- **Immediate feedback**: Changes are visible instantly in the browser
+- **Simplified workflow**: No need to rebuild packages during development
+
+#### Publishing vs Development
+
+- **Development**: Import directly from source files using Vite aliases
+- **Publishing**: Build packages and import from npm packages
+
+### Cross-Package Development (Legacy)
+
+For packages still using traditional build workflows:
 
 1. **Wrapper changes** → TypeScript watch rebuilds automatically (~1-2 seconds)
 2. **Configurator detects change** → Vite HMR updates the browser

@@ -1,6 +1,6 @@
 /**
  * V3 Configurator Component
- * 
+ *
  * Simple configurator that demonstrates the complete V3 architecture:
  * - Pipeline loading and reloading
  * - State preservation across pipeline updates

@@ -6,11 +6,7 @@
   "types": "dist/lib/index.d.ts",
   "files": ["dist/lib"],
   "scripts": {
-    "dev": "vite",
-    "build": "npm run build:lib && npm run build:app",
-    "build:lib": "vite build --config vite.config.lib.ts",
-    "build:app": "tsc && vite build",
-    "preview": "vite preview",
+    "build": "vite build --config vite.config.lib.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
