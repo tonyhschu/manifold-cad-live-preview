@@ -83,81 +83,7 @@ function createConfiguratorHTML(): string {
   `;
 }
 
-/**
- * Inject CSS styles into the document head
- */
-function injectCSS() {
-  // Check if styles are already injected
-  if (document.querySelector('#manifold-configurator-styles')) {
-    return;
-  }
 
-  const style = document.createElement('style');
-  style.id = 'manifold-configurator-styles';
-  style.textContent = `
-    :root {
-      font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-      line-height: 1.5;
-      font-weight: 400;
-    }
-
-    body {
-      margin: 0;
-      min-width: 320px;
-      min-height: 100vh;
-    }
-
-    #app {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      display: grid;
-      grid-template-columns: 20rem 1fr 20rem;
-      grid-template-rows: 100vh;
-      gap: 1rem;
-    }
-
-    #context,
-    #canvas,
-    #config {
-      padding: 1rem;
-      overflow-y: auto;
-    }
-
-    #context {
-      border-right: 1px solid #eaeaea;
-    }
-
-    #config {
-      border-left: 1px solid #eaeaea;
-    }
-
-    #viewer-container {
-      width: 100%;
-      height: calc(100vh - 100px);
-      margin-top: 0;
-      margin-bottom: 0;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    model-viewer {
-      width: 100%;
-      height: 100%;
-      background-color: #f5f5f5;
-    }
-
-    /* Additional essential styles */
-    .manifold-configurator * {
-      box-sizing: border-box;
-    }
-  `;
-
-  document.head.appendChild(style);
-}
 
 /**
  * Load the model-viewer web component if not already loaded
@@ -285,8 +211,8 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
     containerElement = container;
   }
 
-  // Inject CSS styles first
-  injectCSS();
+  // CSS styles are now imported via CSS file (style.css) for HMR support
+  // No need to inject CSS - Vite handles CSS imports
 
   // Load model-viewer script
   await loadModelViewerScript();

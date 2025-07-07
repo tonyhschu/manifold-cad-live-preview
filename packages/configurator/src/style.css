@@ -14,15 +14,14 @@ body {
   margin: 0;
   padding: 0;
   width: 100%;
-
   display: grid;
   grid-template-columns: 20rem 1fr 20rem;
   grid-template-rows: 100vh;
-  gap: 1rem;
+  gap: 0.25rem;
 }
 
 #context,
-#viewer,
+#canvas,
 #config {
   padding: 1rem;
   overflow-y: auto;
@@ -223,4 +222,9 @@ model-viewer {
   border-radius: 2px;
   font-size: 0.8rem;
   overflow-x: auto;
+}
+
+/* Additional essential styles */
+.manifold-configurator * {
+  box-sizing: border-box;
 }
