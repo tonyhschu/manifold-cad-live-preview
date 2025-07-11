@@ -46,6 +46,11 @@ export class PipelineLoaderImpl implements PipelineLoader {
         throw new Error('Pipeline does not implement required ModelPipeline interface');
       }
 
+      // Attach manifestData if available
+      if (module.manifestData) {
+        (pipeline as any).manifestData = module.manifestData;
+      }
+
       this.currentPipeline = pipeline;
 
     } catch (error) {

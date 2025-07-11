@@ -31,6 +31,11 @@ interface StaticModel {
   name: string;
   type: 'static';
   createFunction: () => any;
+  metadata?: {
+    name?: string;
+    description?: string;
+    author?: string;
+  };
 }
 
 type ProcessedModel = ParametricModel | StaticModel;
@@ -77,12 +82,14 @@ const processedModels: ProcessedModel[] = modelDefinitions.map(({ id, path, modu
       defaultParams: extractDefaultParams(defaultExport)
     } as ParametricModel;
   } else if (typeof defaultExport === 'function') {
-    // Static model
+    // Static model - extract metadata if available
+    const metadata = module.modelMetadata || {};
     return {
       id,
-      name: id, // Could extract from metadata if available
+      name: metadata.name || id,
       type: 'static' as const,
-      createFunction: defaultExport
+      createFunction: defaultExport,
+      metadata: metadata
     } as StaticModel;
   } else {
     throw new Error(`Invalid model export in ${path}`);
@@ -152,9 +159,13 @@ export const manifestData = {
         }
       };
     } else {
+      // Static model - use metadata description if available
+      const staticModel = processedModels.find(m => m.id === model.id) as StaticModel;
+      // Use optional chaining for reliable metadata access
+      const description = staticModel?.metadata?.description || `Static model: ${model.name}`;
       return {
         ...baseModel,
-        description: `Static model: ${model.name}`
+        description: description
       };
     }
   })

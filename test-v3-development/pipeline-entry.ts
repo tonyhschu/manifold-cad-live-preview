@@ -1,13 +1,14 @@
 /**
  * Pipeline Entry Point
- * 
+ *
  * This file is built by Vite to create the pipeline.js output.
  * It discovers and compiles all models into a single pipeline object.
  */
 
 // Import model files directly - Vite will handle the bundling
+// Use namespace imports to get both default export and named exports (like modelMetadata)
 import mainModel from './main.ts';
-import simpleCube from './components/simple-cube.ts';
+import * as simpleCubeModule from './components/simple-cube.ts';
 import wheelModel from './components/wheel.ts';
 
 // Type definitions for better type safety
@@ -31,6 +32,11 @@ interface StaticModel {
   name: string;
   type: 'static';
   createFunction: () => any;
+  metadata?: {
+    name?: string;
+    description?: string;
+    author?: string;
+  };
 }
 
 type ProcessedModel = ParametricModel | StaticModel;
@@ -59,13 +65,14 @@ function extractDefaultParams(config: ParametricConfig): Record<string, any> {
 // Define the models that were discovered
 const modelDefinitions = [
   { id: 'main', path: './main.ts', module: mainModel },
-  { id: 'components/simple-cube', path: './components/simple-cube.ts', module: simpleCube },
+  { id: 'components/simple-cube', path: './components/simple-cube.ts', module: simpleCubeModule },
   { id: 'components/wheel', path: './components/wheel.ts', module: wheelModel }
 ];
 
 // Process each model and create the pipeline
 const processedModels: ProcessedModel[] = modelDefinitions.map(({ id, path, module }) => {
-  const defaultExport = module;
+  // Handle both default imports and namespace imports
+  const defaultExport = (module as any).default || module;
 
   if (isParametricConfig(defaultExport)) {
     // Parametric model
@@ -77,12 +84,14 @@ const processedModels: ProcessedModel[] = modelDefinitions.map(({ id, path, modu
       defaultParams: extractDefaultParams(defaultExport)
     } as ParametricModel;
   } else if (typeof defaultExport === 'function') {
-    // Static model
+    // Static model - extract metadata if available
+    const metadata = module.modelMetadata || {};
     return {
       id,
-      name: id, // Could extract from metadata if available
+      name: metadata.name || id,
       type: 'static' as const,
-      createFunction: defaultExport
+      createFunction: defaultExport,
+      metadata: metadata
     } as StaticModel;
   } else {
     throw new Error(`Invalid model export in ${path}`);
@@ -152,9 +161,13 @@ export const manifestData = {
         }
       };
     } else {
+      // Static model - use metadata description if available
+      const staticModel = processedModels.find(m => m.id === model.id) as StaticModel;
+      // Simplified test: always use the metadata description if it exists
+      const description = staticModel?.metadata?.description || `Static model: ${model.name}`;
       return {
         ...baseModel,
-        description: `Static model: ${model.name}`
+        description: description
       };
     }
   })

@@ -28,55 +28,56 @@ async function generateManifest() {
     // Dynamic import the pipeline
     const pipelineModule = await import(pipelinePath);
     const pipeline = pipelineModule.default || pipelineModule.pipeline;
-    
+    const manifestData = pipelineModule.manifestData;
+
     if (!pipeline) {
       throw new Error('Pipeline module does not export a pipeline object');
     }
 
-    // Validate pipeline interface
-    if (typeof pipeline.getAvailableModels !== 'function' ||
-        typeof pipeline.generateModel !== 'function' ||
-        typeof pipeline.getModelConfig !== 'function') {
-      throw new Error('Pipeline does not implement required interface');
-    }
+    console.log(`📊 Found ${pipeline.getAvailableModels().length} models`);
 
-    // Get pipeline info and models
-    const pipelineInfo = pipeline.getPipelineInfo?.() || {};
-    const availableModels = pipeline.getAvailableModels();
+    // Use the pre-built manifest data from the pipeline if available
+    let manifest;
+    if (manifestData) {
+      console.log('✅ Using pre-built manifest data from pipeline');
+      manifest = manifestData;
+    } else {
+      console.log('⚠️ Falling back to basic manifest generation');
+      // Fallback: Build manifest data from pipeline methods
+      const pipelineInfo = pipeline.getPipelineInfo?.() || {};
+      const availableModels = pipeline.getAvailableModels();
 
-    console.log(`📊 Found ${availableModels.length} models`);
+      manifest = {
+        version: pipelineInfo.version || Date.now().toString(),
+        generatedAt: pipelineInfo.generatedAt || new Date().toISOString(),
+        models: availableModels.map((model: any) => {
+          const baseModel = {
+            id: model.id,
+            name: model.name || model.id,
+            type: model.type || 'static'
+          };
 
-    // Build manifest data
-    const manifest = {
-      version: pipelineInfo.version || Date.now().toString(),
-      generatedAt: pipelineInfo.generatedAt || new Date().toISOString(),
-      models: availableModels.map((model: any) => {
-        const baseModel = {
-          id: model.id,
-          name: model.name || model.id,
-          type: model.type || 'static'
-        };
-
-        // Add parameter configuration for parametric models
-        if (model.type === 'parametric') {
-          const config = pipeline.getModelConfig(model.id);
-          if (config) {
-            return {
-              ...baseModel,
-              config: {
-                parameters: config.parameters || {},
-                description: config.description || `Parametric model: ${baseModel.name}`
-              }
-            };
+          // Add parameter configuration for parametric models
+          if (model.type === 'parametric') {
+            const config = pipeline.getModelConfig(model.id);
+            if (config) {
+              return {
+                ...baseModel,
+                config: {
+                  parameters: config.parameters || {},
+                  description: config.description || `Parametric model: ${baseModel.name}`
+                }
+              };
+            }
           }
-        }
 
-        return {
-          ...baseModel,
-          description: `${model.type === 'static' ? 'Static' : 'Parametric'} model: ${baseModel.name}`
-        };
-      })
-    };
+          return {
+            ...baseModel,
+            description: `${model.type === 'static' ? 'Static' : 'Parametric'} model: ${baseModel.name}`
+          };
+        })
+      };
+    }
 
     // Write manifest file
     const manifestPath = resolve('./temp/manifest.json');
