@@ -43,6 +43,22 @@ export function createPipeline() {
   };
 }
 
+// Generate manifest data (matches V3 structure)
+export const manifestData = {
+  version: Date.now().toString(),
+  generatedAt: new Date().toISOString(),
+  models: modelDefinitions.map(model => {
+    // For now, we'll generate basic metadata
+    // TODO: Extract actual parameter schemas and descriptions from model modules
+    return {
+      id: model.id,
+      name: model.id.replace(/^components\//, '').replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+      type: 'static', // Default to static for now
+      description: \`Model: \${model.id}\`
+    };
+  })
+};
+
 // Default export for compatibility
 export default createPipeline;
 `;
@@ -80,16 +96,42 @@ export function validatePipelineEntry(pipelineCode: string): { valid: boolean; e
     if (!pipelineCode.includes('export const modelDefinitions')) {
       return { valid: false, error: 'Missing modelDefinitions export' };
     }
-    
+
     if (!pipelineCode.includes('export function createPipeline')) {
       return { valid: false, error: 'Missing createPipeline export' };
     }
-    
+
+    if (!pipelineCode.includes('export const manifestData')) {
+      return { valid: false, error: 'Missing manifestData export' };
+    }
+
     return { valid: true };
   } catch (error) {
-    return { 
-      valid: false, 
-      error: error instanceof Error ? error.message : 'Unknown validation error' 
+    return {
+      valid: false,
+      error: error instanceof Error ? error.message : 'Unknown validation error'
     };
   }
+}
+
+/**
+ * Generates manifest.json content from discovered models
+ */
+export function generateManifest(models: ModelFile[]): string {
+  const manifest = {
+    version: Date.now().toString(),
+    generatedAt: new Date().toISOString(),
+    models: models.map(model => {
+      // For now, we'll generate basic metadata
+      // TODO: Extract actual parameter schemas and descriptions from model modules
+      return {
+        id: model.id,
+        name: model.id.replace(/^components\//, '').replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+        type: 'static', // Default to static for now
+        description: `Model: ${model.id}`
+      };
+    })
+  };
+
+  return JSON.stringify(manifest, null, 2);
 }

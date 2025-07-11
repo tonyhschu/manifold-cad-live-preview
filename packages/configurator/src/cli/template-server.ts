@@ -1,0 +1,218 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { createServer } from 'vite';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export interface TemplateServerOptions {
+  userProjectPath: string;
+  port: number;
+  pipelinePath: string;
+  manifestPath: string;
+  configuratorDevMode: boolean;
+  verbose?: boolean;
+}
+
+export interface TemplateServerInstance {
+  port: number;
+  close: () => Promise<void>;
+}
+
+/**
+ * Create and start the template-serving UI server
+ */
+export async function createTemplateServer(options: TemplateServerOptions): Promise<TemplateServerInstance> {
+  const {
+    userProjectPath,
+    port,
+    pipelinePath,
+    manifestPath,
+    configuratorDevMode,
+    verbose = false
+  } = options;
+
+  if (verbose) {
+    console.log('🎨 Template server options:', {
+      userProjectPath,
+      port,
+      pipelinePath,
+      manifestPath,
+      configuratorDevMode
+    });
+  }
+
+  // Get template directory path
+  const templatesDir = path.resolve(__dirname, '../../templates');
+  
+  if (verbose) {
+    console.log('📁 Templates directory:', templatesDir);
+  }
+
+  // Verify templates exist
+  const indexTemplatePath = path.join(templatesDir, 'index.html');
+  const mainTemplatePath = path.join(templatesDir, 'main.js');
+  
+  if (!fs.existsSync(indexTemplatePath) || !fs.existsSync(mainTemplatePath)) {
+    throw new Error(`Template files not found in ${templatesDir}`);
+  }
+
+  // Generate dynamic Vite config if in dev mode
+  let viteConfig: any = {
+    root: userProjectPath,
+    server: {
+      port,
+      fs: {
+        allow: ['..', '.'] // Allow serving files from parent directories
+      }
+    },
+    publicDir: false, // Don't serve public directory
+    // Build configuration
+    build: {
+      target: 'esnext', // Support top-level await
+      outDir: 'dist',
+    },
+    // Optimize deps configuration
+    optimizeDeps: {
+      exclude: ['manifold-3d'], // Exclude WASM module from pre-bundling
+      esbuildOptions: {
+        target: 'esnext' // Support top-level await in dependencies
+      }
+    },
+    // Enable top-level await support
+    esbuild: {
+      target: 'esnext'
+    }
+  };
+
+  // Add source aliases in configurator dev mode
+  if (configuratorDevMode) {
+    // Calculate paths relative to user project (like the working V3 config)
+    const configuratorSrcPath = path.resolve(userProjectPath, '../packages/configurator/src');
+    const wrapperSrcPath = path.resolve(userProjectPath, '../packages/wrapper/src');
+
+    console.log('🔧 Configurator dev mode enabled with aliases:', {
+      '@manifold-studio/configurator': configuratorSrcPath,
+      '@manifold-studio/wrapper': wrapperSrcPath
+    });
+
+    viteConfig.resolve = {
+      alias: {
+        '@manifold-studio/configurator': configuratorSrcPath,
+        '@manifold-studio/wrapper': wrapperSrcPath
+      }
+    };
+
+    if (verbose) {
+      console.log('🔧 Configurator dev mode enabled with aliases:', viteConfig.resolve.alias);
+    }
+  }
+
+  // Create Vite server with custom middleware for template serving
+  const server = await createServer({
+    ...viteConfig,
+    plugins: [
+      {
+        name: 'manifold-template-server',
+        configureServer(server) {
+          // Serve our templates for the root routes
+          server.middlewares.use('/', (req, res, next) => {
+            if (req.url === '/' || req.url === '/index.html') {
+              // Serve processed index.html template
+              const htmlContent = processTemplate(indexTemplatePath, {
+                configuratorDevMode,
+                pipelinePath,
+                manifestPath,
+                userProjectPath
+              });
+              
+              res.setHeader('Content-Type', 'text/html');
+              res.end(htmlContent);
+              return;
+            }
+            
+            if (req.url === '/main.js') {
+              // Process template and let Vite transform it
+              const jsContent = processTemplate(mainTemplatePath, {
+                configuratorDevMode,
+                pipelinePath,
+                manifestPath,
+                userProjectPath
+              });
+
+              // Create a virtual module that Vite can transform
+              const virtualId = 'virtual:main-template';
+
+              // Let Vite handle the transformation
+              res.setHeader('Content-Type', 'application/javascript');
+              res.end(jsContent);
+              return;
+            }
+
+            if (req.url === '/diagnostic') {
+              // Diagnostic endpoint for debugging
+              const diagnostic = {
+                aliases: viteConfig.resolve?.alias || {},
+                configuratorDevMode,
+                pipelinePath,
+                manifestPath,
+                timestamp: new Date().toISOString(),
+                templatesDir: path.dirname(indexTemplatePath)
+              };
+
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify(diagnostic, null, 2));
+              return;
+            }
+
+            next();
+          });
+        }
+      }
+    ]
+  });
+
+  await server.listen();
+  
+  const actualPort = server.config.server.port || port;
+  
+  if (verbose) {
+    console.log(`✅ Template server started on port ${actualPort}`);
+  }
+
+  return {
+    port: actualPort,
+    close: async () => {
+      await server.close();
+    }
+  };
+}
+
+/**
+ * Process template files by replacing placeholders with actual values
+ */
+function processTemplate(templatePath: string, context: {
+  configuratorDevMode: boolean;
+  pipelinePath: string;
+  manifestPath: string;
+  userProjectPath: string;
+}): string {
+  const template = fs.readFileSync(templatePath, 'utf-8');
+
+  // Define import paths based on dev mode
+  const configuratorImport = context.configuratorDevMode
+    ? `/@fs${path.resolve(context.userProjectPath, '../packages/configurator/src/index.ts')}` // Direct file path for dev
+    : '@manifold-studio/configurator'; // Package import (when published)
+
+  const wrapperImport = context.configuratorDevMode
+    ? `/@fs${path.resolve(context.userProjectPath, '../packages/wrapper/src/index.ts')}` // Direct file path for dev
+    : '@manifold-studio/wrapper'; // Package import (when published)
+
+  // Replace template placeholders
+  return template
+    .replace(/\{\{CONFIGURATOR_IMPORT\}\}/g, configuratorImport)
+    .replace(/\{\{WRAPPER_IMPORT\}\}/g, wrapperImport)
+    .replace(/\{\{PIPELINE_PATH\}\}/g, context.pipelinePath)
+    .replace(/\{\{MANIFEST_PATH\}\}/g, context.manifestPath);
+}

@@ -9,6 +9,7 @@ export interface DevCommandOptions {
   port: string;
   pipelinePort: string;
   verbose?: boolean;
+  configuratorDevMode?: boolean;
 }
 
 export interface DevModeContext {

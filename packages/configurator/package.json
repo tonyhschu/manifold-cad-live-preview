@@ -9,7 +9,8 @@
   },
   "files": [
     "dist/lib",
-    "dist/cli"
+    "dist/cli",
+    "templates"
   ],
   "scripts": {
     "build": "npm run build:lib && npm run build:cli",
@@ -25,14 +26,14 @@
     "chokidar": "^3.5.3",
     "commander": "^11.1.0",
     "glob": "^10.3.10",
-    "tweakpane": "^4.0.5"
+    "tweakpane": "^4.0.5",
+    "vite": "^4.4.5"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@vitest/ui": "^1.0.0",
     "happy-dom": "^12.0.0",
     "typescript": "^5.0.2",
-    "vite": "^4.4.5",
     "vitest": "^1.0.0"
   }
 }

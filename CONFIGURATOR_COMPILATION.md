@@ -122,6 +122,33 @@ async function detectConfiguratorDevelopment(): Promise<boolean> {
 
 ### 2. Built-in HTML Generation and Development Mode
 
+**Architecture Decision**: Instead of "embedding HTML in CLI", we make the CLI serve the configurator as a library - exactly like the current V3 setup, but without requiring users to have any HTML/JS files.
+
+**Key Insights**:
+
+- ✅ The configurator is already designed as a library with no build step required
+- ✅ Current V3 setup uses `startConfigurator()` function with perfect HMR
+- ✅ CSS/JS work directly from source with Vite handling TypeScript compilation
+- ✅ TweakPane integration and web components are complete UX differentiators
+
+**Template Strategy**:
+
+- **Location**: `packages/configurator/templates/` (outside src for clean separation)
+- **Content**: Minimal HTML template + configurator initialization script
+- **Serving**: CLI reads templates and serves via Vite with dynamic configuration
+
+**Development Mode Detection**:
+
+- **Flag**: `--configurator-dev-mode` enables source-based development
+- **Without flag**: Uses published configurator package (when available)
+- **With flag**: Uses source-based Vite aliases (like current V3 setup)
+
+**Vite Configuration Strategy**:
+
+- **Dynamic Config Generation**: CLI generates temporary `vite.config.js` in user project
+- **Source Aliases**: When in dev mode, points to configurator source directory
+- **Avoids Publishing**: No need to publish configurator library initially
+
 The CLI serves a built-in HTML page that automatically initializes the configurator, eliminating the need for users to create any HTML or JavaScript files:
 
 ```typescript
@@ -462,19 +489,47 @@ Automatically:
 
 ## Migration Strategy
 
-### Phase 1: Implement Compilation Service
+### Phase 1: CLI Infrastructure ✅
 
-- Build the CLI and compilation service in configurator package
-- Create model discovery and pipeline generation logic
-- Test with existing V3 development setup
+- [x] Build the CLI and compilation service in configurator package
+- [x] Create model discovery and pipeline generation logic
+- [x] Implement manifest generation with model metadata
+- [x] Test with existing V3 development setup
 
-### Phase 2: Update create-app Templates
+### Phase 2: Built-in HTML Generation (Current)
+
+**Step 3 Implementation Plan**:
+
+1. **Create Template Files** (`packages/configurator/templates/`)
+
+   - `index.html` - Minimal HTML template based on current V3 setup
+   - `main.js` - Configurator initialization script
+   - Reuse entire existing UI (TweakPane, web components, everything)
+
+2. **Add Template Serving to CLI**
+
+   - Read template files at runtime
+   - Inject dynamic paths (`/temp/pipeline.js`, `/temp/manifest.json`)
+   - Serve via Vite with appropriate configuration
+
+3. **Implement `--configurator-dev-mode` Flag**
+
+   - Development mode detection for source-based development
+   - Generate dynamic `vite.config.js` with source aliases when in dev mode
+   - Preserve current HMR workflow (no departure from Vite strategy)
+
+4. **Test Integration**
+   - Verify HMR still works with template serving
+   - Ensure configurator development workflow is preserved
+   - Test both dev mode and production mode scenarios
+
+### Phase 3: Update create-app Templates
 
 - Remove pipeline infrastructure from templates
 - Add configurator as dev dependency
 - Update package.json scripts to use `manifold-dev`
 
-### Phase 3: Backward Compatibility
+### Phase 4: Backward Compatibility
 
 - Support both old and new project structures during transition
 - Provide migration guide for existing projects
