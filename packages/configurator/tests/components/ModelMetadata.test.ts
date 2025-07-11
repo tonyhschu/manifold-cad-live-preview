@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { modelMetadata, currentParametricConfig } from '../../src/state/store';
+import { modelMetadata } from '../../src/state/store';
 import '../../src/components/context/ModelMetadata';
 
 describe('ModelMetadata Component', () => {
@@ -16,7 +16,6 @@ describe('ModelMetadata Component', () => {
     
     // Reset store state
     modelMetadata.value = null;
-    currentParametricConfig.value = null;
   });
 
   afterEach(() => {
@@ -50,14 +49,14 @@ describe('ModelMetadata Component', () => {
     expect(element.textContent).toContain('Tags: test, example');
   });
 
-  it('should display parametric model metadata from config', async () => {
-    // Set parametric config
-    currentParametricConfig.value = {
+  it('should display parametric model metadata from modelMetadata signal', async () => {
+    // Set parametric model metadata (now comes through single source of truth)
+    modelMetadata.value = {
       name: 'Parametric Test',
       description: 'A parametric test model',
       author: 'Parametric Author',
-      generateModel: () => ({}),
-      parameters: {}
+      version: '2.0.0',
+      tags: ['parametric', 'test']
     };
 
     // Wait for component to update
@@ -65,6 +64,9 @@ describe('ModelMetadata Component', () => {
 
     expect(element.textContent).toContain('Parametric Test');
     expect(element.textContent).toContain('A parametric test model');
+    expect(element.textContent).toContain('Author: Parametric Author');
+    expect(element.textContent).toContain('Version: 2.0.0');
+    expect(element.textContent).toContain('Tags: parametric, test');
   });
 
   it('should handle missing metadata gracefully', async () => {

@@ -5,12 +5,11 @@
  * Subscribes to the global modelMetadata signal to show information for all model types.
  */
 
-import { modelMetadata, currentParametricConfig } from '../../state/store';
+import { modelMetadata } from '../../state/store';
 import type { ModelMetadata as ModelMetadataType } from '../../core/model-loader';
 
 export class ModelMetadata extends HTMLElement {
   private unsubscribeMetadata: (() => void) | null = null;
-  private unsubscribeParametricConfig: (() => void) | null = null;
 
   connectedCallback() {
     this.className = 'model-metadata';
@@ -20,14 +19,9 @@ export class ModelMetadata extends HTMLElement {
       </div>
     `;
 
-    // Subscribe to model metadata changes
+    // Subscribe to model metadata changes (single source of truth)
     this.unsubscribeMetadata = modelMetadata.subscribe(metadata => {
       this.handleMetadataChange(metadata);
-    });
-
-    // Subscribe to parametric config changes (for parametric model metadata)
-    this.unsubscribeParametricConfig = currentParametricConfig.subscribe(config => {
-      this.handleParametricConfigChange(config);
     });
   }
 
@@ -36,34 +30,13 @@ export class ModelMetadata extends HTMLElement {
       this.unsubscribeMetadata();
       this.unsubscribeMetadata = null;
     }
-    if (this.unsubscribeParametricConfig) {
-      this.unsubscribeParametricConfig();
-      this.unsubscribeParametricConfig = null;
-    }
   }
 
   private handleMetadataChange(metadata: ModelMetadataType | null) {
-    // For static models, use the metadata directly
-    // For parametric models, this might be null, so we rely on parametric config
-    if (metadata && !currentParametricConfig.value) {
+    // Single source of truth: modelMetadata signal contains metadata for all model types
+    if (metadata) {
       this.renderMetadata(metadata);
-    } else if (!metadata && !currentParametricConfig.value) {
-      this.showNoModelMessage();
-    }
-  }
-
-  private handleParametricConfigChange(config: any) {
-    // For parametric models, extract metadata from the config
-    if (config && (config.name || config.description)) {
-      const metadata: ModelMetadataType = {
-        name: config.name || 'Parametric Model',
-        description: config.description || '',
-        author: config.author,
-        version: config.version,
-        tags: config.tags
-      };
-      this.renderMetadata(metadata);
-    } else if (!config && !modelMetadata.value) {
+    } else {
       this.showNoModelMessage();
     }
   }

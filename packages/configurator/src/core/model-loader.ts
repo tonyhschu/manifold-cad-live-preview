@@ -19,6 +19,8 @@ export interface ModelMetadata {
   author?: string;
   /** Optional version information */
   version?: string;
+  /** Optional tags for categorization */
+  tags?: string[];
 }
 
 import type { ParametricConfig } from '@manifold-studio/wrapper';
@@ -214,16 +216,22 @@ export async function loadModelById(
       // Generate initial model with default parameters
       const initialParams: Record<string, any> = {};
       for (const [key, paramConfig] of Object.entries(config.parameters)) {
-        initialParams[key] = paramConfig.value;
+        initialParams[key] = (paramConfig as any).value;
       }
       const initialModel = config.generateModel(initialParams);
 
+      // Always create metadata for parametric models to ensure single source of truth
+      const metadata: ModelMetadata = {
+        name: config.name || 'Parametric Model',
+        description: config.description || '',
+        author: config.author,
+        version: config.version,
+        tags: config.tags
+      };
+
       return {
         model: initialModel,
-        metadata: config.name ? {
-          name: config.name,
-          description: config.description || ""
-        } : undefined,
+        metadata: metadata,
         isParametric: true,
         config: config
       };
