@@ -32,7 +32,17 @@ export interface ConfiguratorOptions {
  */
 function createConfiguratorHTML(): string {
   return `
-      <section id="context">
+      <header id="toolbar">
+        Hello
+
+        <!-- Download Panel Component -->
+        <download-panel></download-panel>
+      </header>
+
+      <section id="sidebar">
+        <!-- Model Selector Component -->
+        <model-selector></model-selector>
+
         <section aria-label="metadata">
           <h1>Module Name</h1>
           <div>
@@ -40,18 +50,12 @@ function createConfiguratorHTML(): string {
           </div>
         </section>
 
-        <!-- Model Selector Component -->
-        <model-selector></model-selector>
+        
 
-        <!-- Download Panel Component -->
-        <download-panel></download-panel>
-
-        <section id="layers">
-          Array of layers and/or model structure goes here.
-        </section>
+        <parametric-panel></parametric-panel>
       </section>
 
-      <section id="canvas">
+      <section id="main">
         <div id="viewer-container">
           <model-viewer-wrapper>
             <model-viewer id="viewer"
@@ -74,11 +78,6 @@ function createConfiguratorHTML(): string {
         <status-bar>
           <div id="status">Loading...</div>
         </status-bar>
-      </section>
-
-      <section id="config">
-        <!-- Parametric Controls Panel -->
-        <parametric-panel></parametric-panel>
       </section>
   `;
 }

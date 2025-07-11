@@ -72,7 +72,7 @@ export class DownloadPanel extends HTMLElement {
       const objDownloadLink = document.createElement("a");
       objDownloadLink.href = objUrl;
       objDownloadLink.download = "manifold-model.obj";
-      objDownloadLink.textContent = "Download OBJ Model";
+      objDownloadLink.textContent = "Download OBJ";
       objDownloadLink.className = "download-btn";
       this.containerElement.appendChild(objDownloadLink);
       
@@ -87,7 +87,7 @@ export class DownloadPanel extends HTMLElement {
       const glbDownloadLink = document.createElement("a");
       glbDownloadLink.href = glbUrl;
       glbDownloadLink.download = "manifold-model.glb";
-      glbDownloadLink.textContent = "Download GLB Model";
+      glbDownloadLink.textContent = "Download GLB";
       glbDownloadLink.className = "download-btn";
       this.containerElement.appendChild(glbDownloadLink);
       

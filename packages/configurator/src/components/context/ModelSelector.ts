@@ -80,7 +80,7 @@ export class ModelSelector extends HTMLElement {
     
     // Create label
     const label = document.createElement('label');
-    label.textContent = 'Select model: ';
+    label.textContent = 'Model';
     label.htmlFor = 'model-select';
     this.containerElement.appendChild(label);
     
