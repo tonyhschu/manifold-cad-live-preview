@@ -24,6 +24,9 @@
   --tp-label-foreground-color: hsla(230, 10%, 30%, 0.70);
   --tp-monitor-background-color: hsla(230, 15%, 30%, 0.10);
   --tp-monitor-foreground-color: hsla(230, 10%, 30%, 0.50);
+
+  --secondary-header-font-size: 0.675rem;
+  --sidebar-padding: 1rem;
 }
 
 body {
@@ -87,11 +90,12 @@ model-viewer {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+.model-selector {
+  padding: 0 var(--sidebar-padding);
+}
+
 .model-selector label {
-  font-size: 0.625rem;
-  font-weight: bold;
-  text-transform: uppercase;
-  color: #666;
+  font-size: var(--secondary-header-font-size);
 }
 
 .model-selector select,
@@ -101,12 +105,12 @@ model-viewer {
 
 .model-selector select {
   display: block;
-  height: 2rem;
+  height: calc(var(--secondary-header-font-size) * 2.5);
   width: 100%;
   padding:  0.25rem 0.5rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 0.875rem;
+  font-size: var(--secondary-header-font-size);
   cursor: pointer;
 }
 
@@ -186,10 +190,56 @@ model-viewer {
   width: 100%;
 }
 
+.parametric-panel-header {
+  padding: 1rem var(--sidebar-padding) 0 var(--sidebar-padding);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tweakpane-container {
+  padding: 0.5rem;
+}
+
+.no-parameters-message {
+  padding: 0 var(--sidebar-padding);
+  font-size: 0.75rem;
+  color: #999;
+  font-style: italic;
+  margin: 0;
+}
+
+.no-parameters-message p {
+  margin: 0.5rem 0;
+}
+
 .parametric-panel-header h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.2rem;
+  font-size: var(--secondary-header-font-size);
+  line-height: 1;
+  margin: 0;
+  padding: 0;
   color: #333;
+}
+
+.reset-button {
+  background: transparent;
+  border: none;
+  text-decoration: underline;
+  font-size: 0.675rem;
+  color: #aaa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.reset-button:hover {
+  color: #333;
+  text-decoration: none;
+}
+
+.reset-button:active {
+  background: #ddd;
+  transform: translateY(1px);
 }
 
 .parametric-panel-content {
@@ -215,9 +265,14 @@ model-viewer {
   border-bottom: 1px solid #eee;
 }
 
+.model-info p {
+  font-size: 0.875rem;
+}
+
 .model-title {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.1rem;
+  margin: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
   color: #333;
 }
 
@@ -243,10 +298,6 @@ model-viewer {
   font-style: italic;
   text-align: center;
   margin: 0;
-}
-
-.tweakpane-container {
-  padding: 0.5rem;
 }
 
 .custom-parameter-container {

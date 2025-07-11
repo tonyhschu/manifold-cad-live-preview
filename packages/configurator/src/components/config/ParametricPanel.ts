@@ -13,11 +13,20 @@ export class ParametricPanel extends HTMLElement {
     this.innerHTML = `
       <div class="parametric-panel-header">
         <h3>Parameters</h3>
+        <button class="reset-button" id="reset-parameters-btn" style="display: none;">Reset</button>
       </div>
       <div class="parametric-panel-content" id="tweakpane-container">
         <p>Select a parametric model to configure</p>
       </div>
     `;
+
+    // Add event listener for reset button
+    const resetButton = this.querySelector('#reset-parameters-btn') as HTMLButtonElement;
+    if (resetButton) {
+      resetButton.addEventListener('click', () => {
+        this.resetParameters();
+      });
+    }
 
     // Subscribe to parametric config changes
     this.unsubscribe = currentParametricConfig.subscribe(config => {
@@ -33,11 +42,21 @@ export class ParametricPanel extends HTMLElement {
   }
 
   private handleConfigChange(config: ParametricConfig | null) {
+    const resetButton = this.querySelector('#reset-parameters-btn') as HTMLButtonElement;
+
     if (config) {
       this.setupParametricUI(config);
+      // Show reset button for parametric models
+      if (resetButton) {
+        resetButton.style.display = 'inline-block';
+      }
     } else {
       this.cleanup();
       this.showNoParametersMessage();
+      // Hide reset button for non-parametric models
+      if (resetButton) {
+        resetButton.style.display = 'none';
+      }
     }
   }
 
@@ -149,7 +168,7 @@ export class ParametricPanel extends HTMLElement {
   private showNoParametersMessage() {
     const container = this.querySelector('#tweakpane-container') as HTMLElement;
     if (container) {
-      container.innerHTML = '<p>This model has no tweakable parameters</p>';
+      container.innerHTML = '<div class="no-parameters-message"><p>This model has no tweakable parameters.</p></div>';
     }
   }
 
@@ -169,6 +188,12 @@ export class ParametricPanel extends HTMLElement {
   // Public API for external control
   public loadParametricModel(config: ParametricConfig) {
     this.setupParametricUI(config);
+
+    // Show reset button for parametric models
+    const resetButton = this.querySelector('#reset-parameters-btn') as HTMLButtonElement;
+    if (resetButton) {
+      resetButton.style.display = 'inline-block';
+    }
   }
 
   public getCurrentParameters(): Record<string, any> | null {
@@ -178,6 +203,12 @@ export class ParametricPanel extends HTMLElement {
   public setParameter(key: string, value: any): void {
     if (this.parameterManager) {
       this.parameterManager.setParameter(key, value);
+    }
+  }
+
+  public resetParameters(): void {
+    if (this.parameterManager) {
+      this.parameterManager.resetToDefaults();
     }
   }
 }

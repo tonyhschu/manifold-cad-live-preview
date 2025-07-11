@@ -148,6 +148,19 @@ export class ParameterManager {
     return this.config.generateModel(this.params);
   }
 
+  resetToDefaults(): void {
+    // Reset all parameters to their default values
+    for (const [key, paramConfig] of Object.entries(this.config.parameters)) {
+      this.params[key] = paramConfig.value;
+    }
+
+    // Refresh the UI to show the reset values
+    this.pane.refresh();
+
+    // Regenerate the model with default parameters
+    this.renderModel();
+  }
+
   destroy(): void {
     // Clean up custom components (when Issue #14 is implemented)
     // this.customCleanupFunctions.forEach(cleanup => {
