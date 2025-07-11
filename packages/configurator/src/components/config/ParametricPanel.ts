@@ -52,27 +52,6 @@ export class ParametricPanel extends HTMLElement {
     // Clear container
     container.innerHTML = '';
 
-    // Show model name and description
-    if (config.name || config.description) {
-      const header = document.createElement('div');
-      header.className = 'parametric-model-info';
-
-      if (config.name) {
-        const title = document.createElement('h4');
-        title.textContent = config.name;
-        header.appendChild(title);
-      }
-
-      if (config.description) {
-        const desc = document.createElement('p');
-        desc.textContent = config.description;
-        desc.className = 'model-description';
-        header.appendChild(desc);
-      }
-
-      container.appendChild(header);
-    }
-
     // Create Tweakpane container
     const tweakpaneContainer = document.createElement('div');
     tweakpaneContainer.className = 'tweakpane-container';
@@ -170,7 +149,7 @@ export class ParametricPanel extends HTMLElement {
   private showNoParametersMessage() {
     const container = this.querySelector('#tweakpane-container') as HTMLElement;
     if (container) {
-      container.innerHTML = '<p>Select a parametric model to configure</p>';
+      container.innerHTML = '<p>This model has no tweakable parameters</p>';
     }
   }
 

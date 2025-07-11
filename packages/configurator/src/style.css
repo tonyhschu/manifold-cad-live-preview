@@ -198,22 +198,51 @@ model-viewer {
   padding: 0;
 }
 
-.parametric-model-info {
-  padding: 1rem;
-  border-bottom: 1px solid #eee;
+/* Model Metadata Styles */
+.model-metadata {
+  width: 100%;
   margin-bottom: 1rem;
 }
 
-.parametric-model-info h4 {
+.model-metadata-content {
+  background-color: #fff;
+  border-radius: 4px;
+  padding: 0;
+}
+
+.model-info {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.model-title {
   margin: 0 0 0.5rem 0;
   font-size: 1.1rem;
   color: #333;
 }
 
 .model-description {
-  margin: 0;
+  margin: 0 0 0.5rem 0;
   color: #666;
   font-size: 0.9rem;
+}
+
+.model-additional-info {
+  margin-top: 0.5rem;
+}
+
+.model-info-item {
+  margin: 0.25rem 0;
+  color: #777;
+  font-size: 0.8rem;
+}
+
+.no-model-message {
+  padding: 1rem;
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  margin: 0;
 }
 
 .tweakpane-container {

@@ -10,6 +10,7 @@ import './canvas/StatusBar';
 import './canvas/ModelViewer';
 import './context/DownloadPanel';
 import './context/ModelSelector';
+import './context/ModelMetadata';
 import './config/ParametricPanel';
 
 // Log initialization
