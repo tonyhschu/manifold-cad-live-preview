@@ -43,14 +43,8 @@ function createConfiguratorHTML(): string {
         <!-- Model Selector Component -->
         <model-selector></model-selector>
 
-        <section aria-label="metadata">
-          <h1>Module Name</h1>
-          <div>
-            <p>Module Description</p>
-          </div>
-        </section>
-
-        
+        <!-- Model Metadata Component -->
+        <model-metadata></model-metadata>
 
         <parametric-panel></parametric-panel>
       </section>
