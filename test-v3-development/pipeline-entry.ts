@@ -163,7 +163,6 @@ export const manifestData = {
     } else {
       // Static model - use metadata description if available
       const staticModel = processedModels.find(m => m.id === model.id) as StaticModel;
-      // Simplified test: always use the metadata description if it exists
       const description = staticModel?.metadata?.description || `Static model: ${model.name}`;
       return {
         ...baseModel,

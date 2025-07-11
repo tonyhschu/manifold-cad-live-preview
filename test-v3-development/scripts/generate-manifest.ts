@@ -36,48 +36,12 @@ async function generateManifest() {
 
     console.log(`📊 Found ${pipeline.getAvailableModels().length} models`);
 
-    // Use the pre-built manifest data from the pipeline if available
-    let manifest;
-    if (manifestData) {
-      console.log('✅ Using pre-built manifest data from pipeline');
-      manifest = manifestData;
-    } else {
-      console.log('⚠️ Falling back to basic manifest generation');
-      // Fallback: Build manifest data from pipeline methods
-      const pipelineInfo = pipeline.getPipelineInfo?.() || {};
-      const availableModels = pipeline.getAvailableModels();
-
-      manifest = {
-        version: pipelineInfo.version || Date.now().toString(),
-        generatedAt: pipelineInfo.generatedAt || new Date().toISOString(),
-        models: availableModels.map((model: any) => {
-          const baseModel = {
-            id: model.id,
-            name: model.name || model.id,
-            type: model.type || 'static'
-          };
-
-          // Add parameter configuration for parametric models
-          if (model.type === 'parametric') {
-            const config = pipeline.getModelConfig(model.id);
-            if (config) {
-              return {
-                ...baseModel,
-                config: {
-                  parameters: config.parameters || {},
-                  description: config.description || `Parametric model: ${baseModel.name}`
-                }
-              };
-            }
-          }
-
-          return {
-            ...baseModel,
-            description: `${model.type === 'static' ? 'Static' : 'Parametric'} model: ${baseModel.name}`
-          };
-        })
-      };
+    // Use the pre-built manifest data from the pipeline
+    if (!manifestData) {
+      throw new Error('Pipeline does not export manifestData - this should not happen with V3 pipelines');
     }
+
+    const manifest = manifestData;
 
     // Write manifest file
     const manifestPath = resolve('./temp/manifest.json');
