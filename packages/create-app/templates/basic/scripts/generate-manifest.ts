@@ -46,43 +46,52 @@ async function generateManifest() {
       throw new Error('Pipeline does not implement required interface');
     }
 
-    // Get pipeline info and models
-    const pipelineInfo = pipeline.getPipelineInfo?.() || {};
-    const availableModels = pipeline.getAvailableModels();
-    
-    console.log(`📊 Found ${availableModels.length} models`);
+    // Check if pipeline has pre-built manifest data (V3 approach)
+    const manifestData = (pipelineModule as any).manifestData;
 
-    // Build manifest data
-    const manifest = {
-      version: pipelineInfo.version || Date.now().toString(),
-      generatedAt: pipelineInfo.generatedAt || new Date().toISOString(),
-      models: availableModels.map((model: any) => {
-        const baseModel = {
-          id: model.id,
-          name: model.name || model.id,
-          type: model.type || 'static'
-        };
+    let manifest;
+    if (manifestData) {
+      console.log('📦 Using pre-built manifest data from pipeline');
+      manifest = manifestData;
+    } else {
+      console.log('🔧 Building manifest data from pipeline methods (fallback)');
+      // Fallback to building manifest from pipeline methods
+      const pipelineInfo = pipeline.getPipelineInfo?.() || {};
+      const availableModels = pipeline.getAvailableModels();
 
-        // Add parameter configuration for parametric models
-        if (model.type === 'parametric') {
-          const config = pipeline.getModelConfig(model.id);
-          if (config) {
-            return {
-              ...baseModel,
-              config: {
-                parameters: config.parameters || {},
-                description: config.description || `Parametric model: ${baseModel.name}`
-              }
-            };
+      console.log(`📊 Found ${availableModels.length} models`);
+
+      manifest = {
+        version: pipelineInfo.version || Date.now().toString(),
+        generatedAt: pipelineInfo.generatedAt || new Date().toISOString(),
+        models: availableModels.map((model: any) => {
+          const baseModel = {
+            id: model.id,
+            name: model.name || model.id,
+            type: model.type || 'static'
+          };
+
+          // Add parameter configuration for parametric models
+          if (model.type === 'parametric') {
+            const config = pipeline.getModelConfig(model.id);
+            if (config) {
+              return {
+                ...baseModel,
+                config: {
+                  parameters: config.parameters || {},
+                  description: config.description || `Parametric model: ${baseModel.name}`
+                }
+              };
+            }
           }
-        }
 
-        return {
-          ...baseModel,
-          description: `${model.type === 'static' ? 'Static' : 'Parametric'} model: ${baseModel.name}`
-        };
-      })
-    };
+          return {
+            ...baseModel,
+            description: `${model.type === 'static' ? 'Static' : 'Parametric'} model: ${baseModel.name}`
+          };
+        })
+      };
+    }
 
     // Write manifest file
     const manifestPath = resolve('./temp/manifest.json');

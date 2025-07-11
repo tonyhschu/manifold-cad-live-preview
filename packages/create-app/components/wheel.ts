@@ -28,3 +28,9 @@ export const wheelConfig = createConfig(
 
 // Also export the pure function by name
 export { createWheel };
+
+// Export metadata for static model usage
+export const modelMetadata = {
+  name: "Wheel Component",
+  description: "A customizable wheel with tire and rim (5 unit radius, 2 unit width)"
+};

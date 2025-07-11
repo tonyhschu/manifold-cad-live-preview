@@ -6,9 +6,10 @@
  */
 
 // Import model files directly - Vite will handle the bundling
-import mainModel from './main.ts';
-import exampleModel from './components/example.ts';
-import wheelModel from './components/wheel.ts';
+// Use namespace imports to access both default exports and named exports like modelMetadata
+import * as mainModel from './main.ts';
+import * as exampleModel from './components/example.ts';
+import * as wheelModel from './components/wheel.ts';
 
 // Type definitions for better type safety
 interface ParametricConfig {
@@ -31,6 +32,10 @@ interface StaticModel {
   name: string;
   type: 'static';
   createFunction: () => any;
+  metadata?: {
+    description?: string;
+    [key: string]: any;
+  };
 }
 
 type ProcessedModel = ParametricModel | StaticModel;
@@ -65,8 +70,8 @@ const modelDefinitions = [
 
 // Process each model and create the pipeline
 const processedModels: ProcessedModel[] = modelDefinitions.map(({ id, path, module }) => {
-  const defaultExport = module;
-  
+  const defaultExport = module.default;
+
   if (isParametricConfig(defaultExport)) {
     // Parametric model
     return {
@@ -77,12 +82,14 @@ const processedModels: ProcessedModel[] = modelDefinitions.map(({ id, path, modu
       defaultParams: extractDefaultParams(defaultExport)
     } as ParametricModel;
   } else if (typeof defaultExport === 'function') {
-    // Static model
+    // Static model - extract metadata if available
+    const metadata = (module as any).modelMetadata;
     return {
       id,
-      name: id, // Could extract from metadata if available
+      name: metadata?.name || id,
       type: 'static' as const,
-      createFunction: defaultExport
+      createFunction: defaultExport,
+      metadata: metadata
     } as StaticModel;
   } else {
     throw new Error(`Invalid model export in ${path}`);
@@ -152,9 +159,12 @@ export const manifestData = {
         }
       };
     } else {
+      // Static model - use metadata description if available
+      const staticModel = processedModels.find(m => m.id === model.id) as StaticModel;
+      const description = staticModel?.metadata?.description || `Static model: ${model.name}`;
       return {
         ...baseModel,
-        description: `Static model: ${model.name}`
+        description: description
       };
     }
   })

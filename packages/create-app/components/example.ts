@@ -25,3 +25,9 @@ export const sphereConfig = createConfig(
 
 // Also export the pure function by name
 export { createSphere };
+
+// Export metadata for static model usage
+export const modelMetadata = {
+  name: "Simple Sphere",
+  description: "A basic sphere component with 10 unit radius"
+};
