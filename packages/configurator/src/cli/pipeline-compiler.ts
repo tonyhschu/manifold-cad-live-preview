@@ -121,6 +121,21 @@ function createPipelineCompilerPlugin(options: { verbose?: boolean }) {
       }
       
       // Add middleware to handle pipeline-specific routes
+      server.middlewares.use('/temp/pipeline.js', async (req, res, next) => {
+        try {
+          // Serve the compiled pipeline entry as JavaScript
+          const result = await server.transformRequest('/temp/user-pipeline-entry.ts');
+          if (result) {
+            res.setHeader('Content-Type', 'application/javascript');
+            res.end(result.code);
+            return;
+          }
+        } catch (error) {
+          console.error('❌ Error serving pipeline.js:', error);
+        }
+        next();
+      });
+
       server.middlewares.use('/api/pipeline', (req, res, next) => {
         if (req.url === '/health') {
           res.writeHead(200, { 'Content-Type': 'application/json' });

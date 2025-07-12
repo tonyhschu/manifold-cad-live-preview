@@ -119,6 +119,7 @@ export async function devCommand(options: DevCommandOptions) {
     const templateServer = await createTemplateServer({
       userProjectPath,
       port: parseInt(options.port),
+      pipelinePort: parseInt(options.pipelinePort),
       pipelinePath: '/temp/pipeline.js',
       manifestPath: '/temp/manifest.json',
       configuratorDevMode,

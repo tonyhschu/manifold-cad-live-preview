@@ -32,7 +32,117 @@ ${modelDefinitions}
 // Export individual models for compatibility
 ${models.map(model => `export { ${model.exportName} };`).join('\n')}
 
-// Pipeline interface (matches existing V3 structure)
+// ============================================================================
+// PIPELINE RUNTIME - Reusable logic (auto-generated, do not edit manually)
+// ============================================================================
+
+// Type definitions
+interface ParametricConfig {
+  name: string;
+  description?: string;
+  parameters: Record<string, { value: any; min?: any; max?: any; }>;
+  generateModel: (params: any) => any;
+}
+
+interface ParametricModel {
+  id: string;
+  name: string;
+  type: 'parametric';
+  config: ParametricConfig;
+  defaultParams: Record<string, any>;
+}
+
+interface StaticModel {
+  id: string;
+  name: string;
+  type: 'static';
+  createFunction: () => any;
+  metadata?: any;
+}
+
+type ProcessedModel = ParametricModel | StaticModel;
+
+// Helper functions
+function isParametricConfig(obj: any): obj is ParametricConfig {
+  return (
+    obj &&
+    typeof obj === 'object' &&
+    'parameters' in obj &&
+    'generateModel' in obj &&
+    typeof obj.generateModel === 'function'
+  );
+}
+
+function extractDefaultParams(config: ParametricConfig): Record<string, any> {
+  const defaultParams: Record<string, any> = {};
+  for (const [key, paramConfig] of Object.entries(config.parameters)) {
+    defaultParams[key] = paramConfig.value;
+  }
+  return defaultParams;
+}
+
+// Process models using proven working logic
+const processedModels: ProcessedModel[] = modelDefinitions.map(({ id, module }) => {
+  const defaultExport = (module as any).default || module;
+
+  if (isParametricConfig(defaultExport)) {
+    return {
+      id,
+      name: defaultExport.name || id,
+      type: 'parametric' as const,
+      config: defaultExport,
+      defaultParams: extractDefaultParams(defaultExport)
+    } as ParametricModel;
+  } else if (typeof defaultExport === 'function') {
+    const metadata = module.modelMetadata || {};
+    return {
+      id,
+      name: metadata.name || id,
+      type: 'static' as const,
+      createFunction: defaultExport,
+      metadata: metadata
+    } as StaticModel;
+  } else {
+    throw new Error(\`Invalid model export in \${id}\`);
+  }
+});
+
+// Create pipeline using proven working logic
+const pipeline = {
+  getAvailableModels() {
+    return processedModels.map(model => ({
+      id: model.id,
+      name: model.name,
+      type: model.type
+    }));
+  },
+
+  async generateModel(modelId: string, params: any = {}) {
+    const model = processedModels.find(m => m.id === modelId);
+    if (!model) {
+      throw new Error(\`Unknown model: \${modelId}\`);
+    }
+
+    if (model.type === 'parametric') {
+      const parametricModel = model as ParametricModel;
+      const finalParams = { ...parametricModel.defaultParams, ...params };
+      return parametricModel.config.generateModel(finalParams);
+    } else {
+      const staticModel = model as StaticModel;
+      return staticModel.createFunction();
+    }
+  },
+
+  getModelConfig(modelId: string) {
+    const model = processedModels.find(m => m.id === modelId);
+    if (!model || model.type !== 'parametric') {
+      return null;
+    }
+    return (model as ParametricModel).config;
+  }
+};
+
+// Legacy createPipeline function for compatibility
 export function createPipeline() {
   return {
     models: modelDefinitions,
@@ -43,24 +153,20 @@ export function createPipeline() {
   };
 }
 
-// Generate manifest data (matches V3 structure)
+// Generate manifest data
 export const manifestData = {
   version: Date.now().toString(),
   generatedAt: new Date().toISOString(),
-  models: modelDefinitions.map(model => {
-    // For now, we'll generate basic metadata
-    // TODO: Extract actual parameter schemas and descriptions from model modules
-    return {
-      id: model.id,
-      name: model.id.replace(/^components\//, '').replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
-      type: 'static', // Default to static for now
-      description: \`Model: \${model.id}\`
-    };
-  })
+  models: modelDefinitions.map(model => ({
+    id: model.id,
+    name: model.id.replace(/^components\\//, '').replace(/[-_]/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+    type: 'static',
+    description: \`Model: \${model.id}\`
+  }))
 };
 
-// Default export for compatibility
-export default createPipeline;
+// Export the pipeline as default (ModelPipeline interface)
+export default pipeline;
 `;
 }
 
@@ -126,7 +232,7 @@ export function generateManifest(models: ModelFile[]): string {
       // TODO: Extract actual parameter schemas and descriptions from model modules
       return {
         id: model.id,
-        name: model.id.replace(/^components\//, '').replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+        name: model.id.replace(/^components\//, '').replace(/[-_]/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
         type: 'static', // Default to static for now
         description: `Model: ${model.id}`
       };

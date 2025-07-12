@@ -27,7 +27,7 @@ export async function discoverUserModels(projectPath: string): Promise<ModelFile
     models.push({
       id: 'main',
       filePath: fullPath,
-      importPath: `./${mainFile}`,
+      importPath: `../${mainFile}`,
       exportName: 'mainModel'
     });
     
@@ -54,7 +54,7 @@ export async function discoverUserModels(projectPath: string): Promise<ModelFile
     models.push({
       id: relativePath,
       filePath: fullPath,
-      importPath: `./${file}`,
+      importPath: `../${file}`,
       exportName
     });
     

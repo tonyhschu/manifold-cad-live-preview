@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 export interface TemplateServerOptions {
   userProjectPath: string;
   port: number;
+  pipelinePort: number;
   pipelinePath: string;
   manifestPath: string;
   configuratorDevMode: boolean;
@@ -27,6 +28,7 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
   const {
     userProjectPath,
     port,
+    pipelinePort,
     pipelinePath,
     manifestPath,
     configuratorDevMode,
@@ -65,6 +67,11 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
       port,
       fs: {
         allow: ['..', '.'] // Allow serving files from parent directories
+      },
+      proxy: {
+        // Proxy pipeline requests to the pipeline server
+        '/temp/pipeline.js': `http://localhost:${pipelinePort}`,
+        '/temp/manifest.json': `http://localhost:${pipelinePort}`
       }
     },
     publicDir: false, // Don't serve public directory
