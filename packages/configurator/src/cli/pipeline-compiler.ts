@@ -7,6 +7,7 @@ export interface PipelineCompilerOptions {
   pipelineEntryPath: string;
   port: number;
   verbose?: boolean;
+  configuratorDevMode?: boolean;
 }
 
 export interface PipelineCompilerInstance {
@@ -20,7 +21,7 @@ export interface PipelineCompilerInstance {
  * This server compiles user model files into a bundle that can be consumed by the configurator
  */
 export async function createPipelineCompiler(options: PipelineCompilerOptions): Promise<PipelineCompilerInstance> {
-  const { userProjectPath, pipelineEntryPath, port, verbose } = options;
+  const { userProjectPath, pipelineEntryPath, port, verbose, configuratorDevMode } = options;
   
   // Create a temporary Vite config for the pipeline compiler
   const viteConfig: InlineConfig = {
@@ -69,6 +70,11 @@ export async function createPipelineCompiler(options: PipelineCompilerOptions): 
       alias: {
         // Allow relative imports in user model files
         '@': path.join(userProjectPath, 'src'),
+        // Add configurator aliases in dev mode (same as UI server)
+        ...(configuratorDevMode && {
+          '@manifold-studio/configurator': path.resolve(userProjectPath, '../packages/configurator/src'),
+          '@manifold-studio/wrapper': path.resolve(userProjectPath, '../packages/wrapper/src')
+        })
       }
     },
     

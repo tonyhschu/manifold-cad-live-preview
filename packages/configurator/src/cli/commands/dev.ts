@@ -97,7 +97,8 @@ export async function devCommand(options: DevCommandOptions) {
       userProjectPath,
       pipelineEntryPath,
       port: parseInt(options.pipelinePort),
-      verbose: options.verbose
+      verbose: options.verbose,
+      configuratorDevMode
     });
 
     // Step 7: Set up file watching for model changes
