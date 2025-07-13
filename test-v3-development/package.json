@@ -5,6 +5,7 @@
   "description": "V3 Development Test Environment",
   "scripts": {
     "dev": "concurrently \"npm run dev:pipeline\" \"npm run dev:ui\"",
+    "dev:v3": "node ../packages/configurator/dist/cli/index.js dev --configurator-dev-mode",
     "dev:pipeline": "vite build --config vite.pipeline.config.ts --watch",
     "dev:ui": "vite",
     "build": "npm run build:pipeline && npm run build:ui",
