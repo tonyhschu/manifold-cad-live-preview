@@ -19,49 +19,54 @@ npm link @manifold-studio/wrapper @manifold-studio/configurator
 npm run dev
 ```
 
-This opens a browser with:
+This single command automatically:
+
+- **Discovers your models** (main.ts + components/)
+- **Starts dual servers** (UI server + pipeline compiler)
+- **Watches for changes** and regenerates pipeline entries
+- **Opens browser** with live 3D preview and parameter controls
+
+**What you get:**
 
 - **3D Canvas**: Real-time model preview with camera controls
 - **Parameter Panel**: Sliders and controls for your model parameters
 - **Export Tools**: Download STL, OBJ, GLB files instantly
 - **Hot Reloading**: Edit code and see changes immediately
+- **Automatic Model Discovery**: Add new .ts files and they appear instantly
 
-## 🔧 Configurator Development Environment
+## 🔧 CLI-Powered Development
 
-This package also serves as the **development environment for the configurator library**. The configurator package cannot be developed standalone and requires the dual-server setup provided here.
+Generated projects use the **Manifold Studio CLI** for development, which provides:
 
-### Developing the Configurator
+### Unified Development Experience
 
-To work on the configurator library:
+The `npm run dev` command in generated projects runs the Manifold Studio CLI, which:
 
-1. **Start the development environment**:
+1. **Automatically discovers models** in your project (main.ts + components/)
+2. **Generates pipeline entries** dynamically without manual management
+3. **Starts coordinated dual servers**:
+   - **UI Server** (port 3000): Configurator interface with HMR
+   - **Pipeline Compiler** (port 3001): Model compilation and manifest generation
+4. **Watches for file changes** and regenerates pipeline automatically
+5. **Provides source-based configurator imports** for immediate feedback
 
-   ```bash
-   cd packages/create-app
-   npm run dev
-   ```
+### Configurator Development Integration
 
-2. **Edit configurator source files**:
+For configurator library development, use the CLI in test projects:
 
-   - Make changes to files in `packages/configurator/src/`
-   - Changes are reflected immediately via HMR
-   - No build step required during development
+```bash
+# Navigate to test project (not create-app package)
+cd test-v3-development
+npm run dev:v3  # CLI with configurator development mode
+```
 
-3. **View changes**:
-   - Open http://localhost:5173
-   - The configurator is imported directly from source files
-   - TypeScript compilation happens on-the-fly
+**Benefits of CLI approach**:
 
-### Why This Architecture?
-
-The V3 architecture requires:
-
-- **Dual servers**: Pipeline compiler + UI server
-- **Source-based imports**: Direct import from TypeScript source files
-- **Cross-package HMR**: Hot reloading across package boundaries
-- **Pipeline coordination**: Manifest generation and model discovery
-
-This environment provides all of these capabilities in a single, coordinated development setup.
+- **No manual pipeline management**: CLI handles everything automatically
+- **Automatic model discovery**: New .ts files appear in UI instantly
+- **Unified configuration**: Consistent Vite aliases across both servers
+- **Better import resolution**: Package imports work in generated pipeline files
+- **Reduced generated code**: Shared types/functions moved to library
 
 ## ✨ What You Get
 
@@ -82,9 +87,8 @@ my-3d-project/
 ├── main.ts              # Your main 3D model with parametric controls
 ├── components/          # Additional model components
 │   └── example.ts       # Example component showing best practices
-├── package.json         # Dependencies and scripts
+├── package.json         # Dependencies and scripts (includes CLI integration)
 ├── tsconfig.json        # TypeScript configuration
-├── vite.config.ts       # Development server configuration
 ├── index.html           # HTML bootstrap for the browser interface
 └── README.md            # Project-specific documentation
 ```
@@ -132,9 +136,8 @@ npx @manifold-studio/create-app my-models --template basic
 
 ### Configuration Files
 
-- **`package.json`**: Configured with Manifold Studio dependencies and scripts
+- **`package.json`**: Configured with Manifold Studio dependencies and CLI integration
 - **`tsconfig.json`**: TypeScript configuration optimized for 3D modeling
-- **`vite.config.ts`**: Development server setup with HMR and proper module resolution
 - **`index.html`**: Bootstrap HTML that loads the Manifold Studio configurator
 
 ### Component Discovery System
@@ -187,15 +190,21 @@ For development with unpublished packages, the tool supports **npm link**:
 
 ### Working with Generated Projects
 
-1. **Start Development Server**:
+1. **Start CLI Development Server**:
 
    ```bash
-   npm run dev
+   npm run dev  # Runs Manifold Studio CLI automatically
    ```
 
 2. **Edit Models**: Modify `main.ts` or add files to `components/`
 
-3. **See Changes Instantly**: Hot module reloading updates the browser automatically
+   - **Automatic Discovery**: New .ts files appear in UI dropdown instantly
+   - **Pipeline Regeneration**: CLI detects changes and updates pipeline automatically
+
+3. **See Changes Instantly**:
+
+   - **Model Changes**: Pipeline rebuilds and GLB updates automatically
+   - **Configurator Changes**: HMR provides immediate feedback (if developing configurator)
 
 4. **Export Models**: Use the built-in export tools to download STL, OBJ, or GLB files
 
@@ -287,14 +296,16 @@ When developing Manifold Studio itself:
 ### Development Commands in Generated Projects
 
 ```bash
-# Start development server with HMR
-npm run dev
+# Start CLI development server (recommended)
+npm run dev  # Runs Manifold Studio CLI with automatic model discovery
 
-# Build for production (if needed)
-npm run build
+# Legacy commands (if available in project)
+npm run build:pipeline  # Manual pipeline compilation
+npm run dev:ui          # UI server only
+npm run dev:pipeline    # Pipeline compiler only
 
-# Type checking
-npm run type-check
+# Utility commands
+npm run type-check      # TypeScript type checking
 ```
 
 ## 🚨 Troubleshooting
@@ -341,13 +352,18 @@ Error: Cannot find type definitions
 #### Development server won't start
 
 ```bash
-Error: Port 5173 is already in use
+Error: Port 3000 is already in use
 ```
 
-**Solution**: Either stop other Vite servers or specify a different port:
+**Solution**: The CLI uses ports 3000 (UI) and 3001 (pipeline). Stop other servers or check for conflicts:
 
 ```bash
-npm run dev -- --port 3000
+# Check what's using the ports
+lsof -i :3000
+lsof -i :3001
+
+# Kill processes if needed
+kill -9 <PID>
 ```
 
 ### NPM Link Workflow Issues

@@ -4,25 +4,21 @@
   "type": "module",
   "description": "{{description}}",
   "scripts": {
-    "dev": "concurrently \"npm run dev:pipeline\" \"npm run dev:ui\"",
+    "dev": "manifold-dev --configurator-dev-mode",
+    "dev:legacy": "concurrently \"npm run dev:pipeline\" \"npm run dev:ui\"",
     "dev:pipeline": "vite build --config vite.pipeline.config.ts --watch",
     "dev:ui": "vite",
-    "build": "npm run build:pipeline && npm run build:ui",
-    "build:pipeline": "vite build --config vite.pipeline.config.ts && npm run generate:manifest",
+    "build": "npm run build:ui",
     "build:ui": "vite build",
-    "generate:manifest": "tsx scripts/generate-manifest.ts",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:pipeline": "npm run build:pipeline"
+    "test": "vitest"
   },
   "dependencies": {
     "manifold-3d": "^3.1.1"
   },
   "devDependencies": {
+    "@manifold-studio/configurator": "^1.0.0",
     "@types/node": "^20.0.0",
-    "concurrently": "^8.0.0",
-    "jsdom": "^24.0.0",
-    "tsx": "^4.0.0",
     "typescript": "^5.0.2",
     "vite": "^4.4.5",
     "vitest": "^1.0.0"

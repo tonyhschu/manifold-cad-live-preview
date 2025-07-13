@@ -15,25 +15,36 @@ cd my-3d-project
 npm install
 npm link @manifold-studio/wrapper @manifold-studio/configurator
 
-# Start developing
+# Start developing with the new CLI
 npm run dev
 ```
 
-This opens a browser with:
+This single command automatically:
+
+- **Discovers your models** (main.ts + components/)
+- **Starts dual servers** (UI server + pipeline compiler)
+- **Watches for changes** and regenerates pipeline entries
+- **Opens browser** with live 3D preview and parameter controls
+
+**What you get:**
 
 - **3D Canvas**: Real-time model preview with camera controls
 - **Parameter Panel**: Sliders and controls for your model parameters
 - **Export Tools**: Download STL, OBJ, GLB files instantly
 - **Hot Reloading**: Edit code and see changes immediately
+- **Automatic Model Discovery**: Add new .ts files and they appear instantly
 
 ## Overview
 
-Manifold Studio provides two complementary development modes:
+Manifold Studio provides a unified development experience powered by the **Manifold Studio CLI**:
 
-1. **Browser HMR Mode**: Live development environment with hot module reloading for rapid iteration
-2. **Pipeline Mode**: Command-line tools for batch processing and CI/CD integration
+- **Unified CLI**: Single `npm run dev` command handles everything automatically
+- **Automatic Model Discovery**: New model files are detected and integrated instantly
+- **Live Development**: Hot module reloading with real-time parameter adjustment
+- **Pipeline Integration**: Seamless compilation and manifest generation
+- **Export Capabilities**: Multiple format support (OBJ, GLB, STL)
 
-Both modes use the same underlying TypeScript API built on [ManifoldCAD](https://github.com/elalish/manifold), ensuring your models work consistently across development and production workflows.
+The CLI uses the same underlying TypeScript API built on [ManifoldCAD](https://github.com/elalish/manifold), ensuring consistency across development and production workflows.
 
 ## 📦 Project Scaffolding
 
@@ -68,9 +79,10 @@ my-project/
 
 ```bash
 cd my-project
-npm run dev          # Start development server
+npm run dev          # Start Manifold Studio CLI (handles everything)
 # Edit main.ts       # See changes instantly in browser
-# Add components/    # Automatically discovered by model selector
+# Add components/    # Automatically discovered and integrated
+# No pipeline management needed - CLI handles it all
 ```
 
 ## 🖥️ Developing 3D Models
@@ -364,36 +376,38 @@ manifold-studio/
 
 ## 🔧 Development Workflow
 
-### V3 Architecture - Source-Based Development
+### V3 Architecture - CLI-Based Development
 
-The V3 architecture uses **source-based development** to eliminate build chain complexity during development:
+The V3 architecture uses the **Manifold Studio CLI** to provide a unified development experience:
 
 #### Configurator Development
 
-The configurator package **cannot be developed standalone**. Use the create-app development environment:
+The configurator package **cannot be developed standalone**. Use the CLI development environment:
 
 ```bash
-# Navigate to create-app package
-cd packages/create-app
+# Navigate to test project
+cd test-v3-development
 
-# Start dual-server development environment
-npm run dev
+# Start CLI with configurator development mode
+npm run dev:v3
 
 # Edit configurator source files
-# Changes in packages/configurator/src/ are reflected immediately
+# Changes in packages/configurator/src/ are reflected immediately via HMR
 ```
 
-#### Why Source-Based Development?
+#### CLI Development Benefits
 
-- **No build step during development**: TypeScript files are compiled on-the-fly by Vite
+- **Single command**: `npm run dev` handles model discovery, pipeline generation, and dual servers
+- **Automatic model discovery**: New .ts files are detected and integrated instantly
+- **No manual pipeline management**: CLI generates pipeline entries automatically
 - **Cross-package HMR**: Hot module replacement works across package boundaries
 - **Immediate feedback**: Changes are visible instantly in the browser
-- **Simplified workflow**: No need to rebuild packages during development
+- **Simplified workflow**: No need to understand pipeline infrastructure
 
-#### Publishing vs Development
+#### Development vs Production
 
-- **Development**: Import directly from source files using Vite aliases
-- **Publishing**: Build packages and import from npm packages
+- **Development**: CLI uses `--configurator-dev-mode` flag for source-based imports
+- **Production**: CLI uses published configurator package (when available)
 
 ### Cross-Package Development (Legacy)
 
@@ -406,7 +420,11 @@ For packages still using traditional build workflows:
 ### Development Commands
 
 ```bash
-# Full development environment
+# V3 CLI Development (Recommended)
+cd test-v3-development
+npm run dev:v3                    # Start CLI with configurator dev mode
+
+# Legacy Development (for comparison)
 npm run devAll                    # Start both wrapper watch + configurator dev server
 
 # Individual packages
@@ -424,7 +442,15 @@ npm run test:create-app           # Test create-app package only
 
 ### Recommended Development Setup
 
-For the best development experience, run both packages in watch mode:
+**V3 CLI Approach (Preferred)**:
+
+```bash
+# Single terminal - CLI handles everything
+cd test-v3-development
+npm run dev:v3
+```
+
+**Legacy Approach (for reference)**:
 
 ```bash
 # Terminal 1: Wrapper watch mode
@@ -437,7 +463,7 @@ npm run dev:configurator
 npm run devAll
 ```
 
-This ensures that changes to the wrapper package automatically rebuild and propagate to the configurator's live preview.
+The V3 CLI approach provides the same functionality with a much simpler workflow.
 
 ### Testing Generated Projects
 

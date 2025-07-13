@@ -1,16 +1,21 @@
 # @manifold-studio/configurator
 
-A library for creating interactive CAD model configurators with V3 pipeline integration.
+A library for creating interactive CAD model configurators with CLI integration and automatic model discovery.
 
 ## Overview
 
-The configurator package provides a complete UI library for building interactive CAD model configurators. It integrates with the V3 pipeline architecture to provide real-time model generation, parameter adjustment, and hot module replacement (HMR) during development.
+The configurator package provides a complete UI library for building interactive CAD model configurators. It includes the **Manifold Studio CLI** that handles automatic model discovery, pipeline generation, and dual-server development setup.
 
 ## Architecture
 
-This package is designed as a **library-only** package. It does not provide standalone development capabilities. Instead, it should be developed and tested within the context of a user project using the `@manifold-studio/create-app` development environment.
+This package provides both a **library** and a **CLI tool**:
+
+- **Library**: UI components and configurator functionality for user projects
+- **CLI**: Development tool that handles model discovery, pipeline compilation, and server management
 
 ### Key Components
+
+**Library Components:**
 
 - **V3Configurator**: Main configurator class that orchestrates the entire system
 - **Model Services**: Handle pipeline loading, model generation, and state management
@@ -18,39 +23,50 @@ This package is designed as a **library-only** package. It does not provide stan
 - **HMR Integration**: Hot module replacement for development workflow
 - **State Management**: Reactive state system for UI updates
 
+**CLI Components:**
+
+- **Model Discovery**: Automatic detection of .ts model files
+- **Pipeline Generation**: Dynamic creation of pipeline entry files
+- **Dual Server Management**: Coordinates UI server and pipeline compiler
+- **File Watching**: Monitors model files for changes and regenerates pipeline
+
 ## Development Workflow
 
-### ⚠️ Important: Library-Only Development
+### CLI-Based Development
 
-This package **cannot be developed standalone**. Use the following workflow:
+This package **cannot be developed standalone**. Use the CLI development environment:
 
-1. **Navigate to create-app package**:
+1. **Navigate to test project**:
+
    ```bash
-   cd packages/create-app
+   cd test-v3-development
    ```
 
-2. **Start development environment**:
+2. **Start CLI with configurator development mode**:
+
    ```bash
-   npm run dev
+   npm run dev:v3
    ```
 
 3. **Make changes to configurator source files**:
+
    - Edit files in `packages/configurator/src/`
    - Changes will be reflected immediately via HMR
    - No build step required during development
 
 4. **View changes in browser**:
-   - Open http://localhost:5173
+   - CLI automatically opens browser to http://localhost:3000
    - Changes to configurator source files trigger automatic updates
 
-### Why Library-Only?
+### Why CLI-Based Development?
 
-The V3 architecture uses a dual-server setup (pipeline compiler + UI server) that requires coordination between multiple packages. The create-app environment provides:
+The V3 architecture uses the **Manifold Studio CLI** to coordinate:
 
-- Source-based imports (no build chain during development)
-- Proper Vite alias configuration for cross-package imports
-- Pipeline compilation and manifest generation
-- HMR integration across package boundaries
+- **Automatic model discovery**: Detects .ts files and generates pipeline entries
+- **Dual-server management**: Coordinates pipeline compiler (port 3001) + UI server (port 3000)
+- **Source-based imports**: No build chain during development with `--configurator-dev-mode`
+- **Cross-package HMR**: Hot module replacement works across package boundaries
+- **File watching**: Monitors model files and regenerates pipeline automatically
 
 ## Building
 
@@ -71,38 +87,52 @@ npm test          # Run all tests
 npm run test:watch # Watch mode
 ```
 
-## Usage
+## CLI Usage
+
+The configurator includes a CLI tool for development:
+
+```bash
+# In a user project directory
+node ../packages/configurator/dist/cli/index.js dev --configurator-dev-mode
+
+# Or via npm script (as set up by create-app)
+npm run dev
+```
+
+## Library Usage
 
 Once built, the configurator can be imported and used in user projects:
 
 ```typescript
-import { startConfigurator } from '@manifold-studio/configurator';
+import { startConfigurator } from "@manifold-studio/configurator";
 
-// Initialize configurator
-const container = document.getElementById('configurator');
-startConfigurator(container, {
-  pipelinePath: './temp/pipeline.js',
-  manifestPath: './temp/manifest.json'
+// Initialize configurator (typically handled by CLI-generated HTML)
+await startConfigurator({
+  pipelineUrl: "http://localhost:3001/temp/pipeline.js",
+  manifestUrl: "http://localhost:3001/temp/manifest.json",
 });
 ```
 
 ## Source-Based Development Notes
 
-During development, this package is imported directly from source files using Vite aliases:
+During development, this package is imported directly from source files using CLI-managed Vite aliases:
 
 ```typescript
-// In create-app vite.config.ts
+// CLI automatically configures aliases when using --configurator-dev-mode
 resolve: {
   alias: {
-    '@manifold-studio/configurator': resolve(__dirname, '../configurator/src')
+    '@manifold-studio/configurator': resolve(userProjectPath, '../packages/configurator/src'),
+    '@manifold-studio/wrapper': resolve(userProjectPath, '../packages/wrapper/src')
   }
 }
 ```
 
 This enables:
+
 - ✅ No build step during development
-- ✅ TypeScript compilation on-the-fly
+- ✅ TypeScript compilation on-the-fly by Vite
 - ✅ HMR across package boundaries
 - ✅ Immediate feedback loop
+- ✅ Automatic model discovery and pipeline generation
 
-When publishing packages, update the alias to point to the installed npm package instead.
+The CLI handles all alias configuration automatically - no manual Vite config needed.

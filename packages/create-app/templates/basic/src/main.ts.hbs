@@ -1,0 +1,45 @@
+/**
+ * {{projectName}} - Main Entry Point
+ *
+ * Simple CLI-compatible entry point that uses the configurator as a library.
+ * The CLI handles all pipeline management automatically.
+ */
+
+import { startConfigurator } from '@manifold-studio/configurator';
+
+console.log('🚀 {{projectName}} Starting...');
+
+async function main() {
+  try {
+    // Start the configurator with CLI-managed pipeline
+    const configurator = await startConfigurator({
+      container: '#app',
+      defaultModel: 'main',
+      useV3Pipeline: true,
+      pipelinePath: '/temp/pipeline.js'
+    });
+
+    console.log('✅ Configurator started successfully');
+    console.log('Configurator instance:', configurator);
+
+  } catch (error) {
+    console.error('❌ Failed to start configurator:', error);
+
+    // Show error in UI
+    const app = document.getElementById('app');
+    if (app) {
+      app.innerHTML = `
+        <div style="padding: 2rem; text-align: center; color: #d32f2f;">
+          <h2>❌ Failed to Start Configurator</h2>
+          <p>${error instanceof Error ? error.message : 'Unknown error'}</p>
+          <p><strong>Make sure you're running the development server:</strong></p>
+          <code>npm run dev</code>
+          <p>The CLI automatically manages the pipeline compilation.</p>
+        </div>
+      `;
+    }
+  }
+}
+
+// Start the application
+main();

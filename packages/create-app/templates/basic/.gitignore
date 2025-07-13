@@ -48,8 +48,5 @@ coverage/
 tmp/
 temp/
 
-# Model compilation artifacts
-temp/blobs/
-temp/core/
-temp/logs/
-temp/manifest.json
+# CLI-generated files (pipeline compilation artifacts)
+temp/
