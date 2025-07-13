@@ -10,12 +10,9 @@ Get started with a new 3D modeling project in seconds:
 # Create a new project
 npx @manifold-studio/create-app my-3d-project
 
-# Set up for local development (until packages are published)
+# Start developing
 cd my-3d-project
 npm install
-npm link @manifold-studio/wrapper @manifold-studio/configurator
-
-# Start developing with the new CLI
 npm run dev
 ```
 
@@ -409,9 +406,9 @@ npm run dev:v3
 - **Development**: CLI uses `--configurator-dev-mode` flag for source-based imports
 - **Production**: CLI uses published configurator package (when available)
 
-### Cross-Package Development (Legacy)
+### Cross-Package Development
 
-For packages still using traditional build workflows:
+For monorepo development when working on the framework itself:
 
 1. **Wrapper changes** → TypeScript watch rebuilds automatically (~1-2 seconds)
 2. **Configurator detects change** → Vite HMR updates the browser
@@ -424,7 +421,7 @@ For packages still using traditional build workflows:
 cd test-v3-development
 npm run dev:v3                    # Start CLI with configurator dev mode
 
-# Legacy Development (for comparison)
+# Monorepo Development (for framework development)
 npm run devAll                    # Start both wrapper watch + configurator dev server
 
 # Individual packages
@@ -450,7 +447,7 @@ cd test-v3-development
 npm run dev:v3
 ```
 
-**Legacy Approach (for reference)**:
+**Monorepo Development Approach** (for framework development):
 
 ```bash
 # Terminal 1: Wrapper watch mode

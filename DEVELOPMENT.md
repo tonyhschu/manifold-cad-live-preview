@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers the development workflow for the V3 pipeline-based architecture. We have multiple moving pieces that need to work together smoothly.
+This guide covers the development workflow for the V3 CLI-based architecture. The new unified CLI provides automatic model discovery, pipeline generation, and development server management.
 
 ## Architecture Components
 
@@ -14,22 +14,22 @@ This guide covers the development workflow for the V3 pipeline-based architectur
 
 ### 2. **Configurator Package** (`packages/configurator`)
 
-- **Purpose**: UI library for model visualization and parameter control
-- **Build**: TypeScript → ESM library only (no standalone app)
-- **Used by**: User projects (as library)
-- **Development**: Test in `test-v3-development`, not as standalone app
+- **Purpose**: UI library for model visualization and parameter control + CLI development server
+- **Build**: TypeScript → ESM library + CLI tool
+- **Used by**: User projects (as library), CLI (as development server)
+- **Development**: Test in user projects via CLI, not as standalone app
 
 ### 3. **Create-App Package** (`packages/create-app`)
 
 - **Purpose**: Scaffolding tool for new user projects
 - **Build**: TypeScript → CLI tool
-- **Creates**: User projects with V3 dual-server setup
+- **Creates**: Clean user projects with CLI-based development workflow
 
 ### 4. **User Projects** (e.g., `test-v3-development`)
 
 - **Purpose**: Regular NPM projects where users build models
-- **Architecture**: Dual Vite servers (pipeline compiler + UI server)
-- **Dependencies**: Wrapper (for models), Configurator (for UI)
+- **Architecture**: CLI-managed development (automatic model discovery + dual servers)
+- **Dependencies**: Configurator (for CLI + UI), Wrapper (for models)
 
 ## Development Workflows
 
@@ -60,10 +60,10 @@ cd ../..
 
 ### 🚀 **Quick Start (Most Common)**
 
-For day-to-day V3 development (after initial setup):
+For day-to-day development (after initial setup):
 
 ```bash
-# NEW V3 CLI approach (recommended)
+# V3 CLI approach (recommended)
 cd test-v3-development
 npm run dev:v3
 ```
@@ -78,12 +78,12 @@ This starts the **unified configurator CLI** which automatically:
 - ✅ **Model file changes**: Auto-regenerates pipeline + updates UI
 - ✅ **No manual pipeline management** required
 
-**Legacy approach** (still available):
+**For new projects created with create-app**:
 
 ```bash
-# Old dual-server approach (manual pipeline management)
-cd test-v3-development
-npm run dev  # Uses concurrently + manual Vite configs
+# Generated projects use the CLI by default
+cd my-new-project
+npm run dev  # Runs manifold-dev CLI automatically
 ```
 
 **Optional**: If you're also developing the wrapper package:
@@ -114,12 +114,9 @@ npm test
 **Source-based development** - no build step needed! Changes are immediately visible.
 
 ```bash
-# NEW: Use V3 CLI for best development experience
+# V3 CLI approach (recommended)
 cd test-v3-development
 npm run dev:v3
-
-# Legacy: Old approach still works
-npm run dev
 
 # Test configurator changes
 # Edit files in packages/configurator/src/ and see immediate results
@@ -130,20 +127,24 @@ npm run dev
 - ✅ **Automatic pipeline regeneration** when you add/remove model files
 - ✅ **Unified development server** with consistent Vite alias configuration
 - ✅ **Better import resolution** - package imports work in generated pipeline files
-- ✅ **Reduced generated code** - shared types/functions moved to library
+- ✅ **Reduced generated code** - shared types/functions moved to library (63% reduction)
 - ✅ **File watching** - no manual pipeline entry management
+- ✅ **Clean user projects** - no pipeline infrastructure in user code
 
 #### Create-App Development
 
 ```bash
 cd packages/create-app
-npm run dev  # Template development (if needed)
 
 # Test scaffolding (primary development workflow)
 npm run test:scaffold
+
+# Test generated project with CLI
+cd /tmp/test-project
+npm run dev  # Uses CLI automatically
 ```
 
-**Note**: Create-app is primarily a scaffolding tool. Most development happens in generated projects using the CLI.
+**Note**: Create-app generates clean projects that use the CLI by default. Templates are minimal (only model files + package.json).
 
 ### 🧪 **Testing Workflows**
 
@@ -167,12 +168,12 @@ cd test-v3-development
 npm run dev:v3
 # → Add/remove model files → Verify automatic pipeline regeneration → Verify UI updates
 
-# Test legacy pipeline compilation
-npm run build:pipeline
-
-# Test legacy dual-server workflow
-npm run dev
-# → Edit models → Verify pipeline rebuilds → Verify UI updates
+# Test generated project workflow
+cd packages/create-app
+npm run test:scaffold
+cd /tmp/test-project
+npm run dev  # Should use CLI automatically
+# → Add/remove model files → Verify automatic pipeline regeneration
 ```
 
 #### Create-App Testing
@@ -182,9 +183,9 @@ npm run dev
 cd packages/create-app
 npm run test:scaffold
 
-# Test scaffolded project works
+# Test scaffolded project works with CLI
 cd /tmp/test-project
-npm run dev
+npm run dev  # Should automatically use manifold-dev CLI
 ```
 
 ## File Watching & Hot Reload
@@ -214,27 +215,28 @@ The new configurator CLI (`npm run dev:v3`) provides unified file watching:
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Legacy Dual-Server Approach
+### Generated Project Architecture
 
-The old approach (`npm run dev`) uses separate Vite processes:
+New projects created with create-app use the CLI by default:
 
 ```
-┌─ Wrapper Source ────────────────┐    ┌─ Configurator Source ──────────┐
-│  packages/wrapper/src/          │    │  packages/configurator/src/    │
-│  ↓ (Vite --watch)               │    │  ↓ (Source imports via aliases)│
-│  packages/wrapper/dist/         │    │  test-v3-development/          │
-│  ↓ (npm link)                   │    │  ↓ (Vite HMR)                  │
-│  test-v3-development/           │    │  Browser Updates               │
-└─────────────────────────────────┘    └────────────────────────────────┘
-                                                        │
-┌─ Model Source ──────────────────┐                     │
-│  test-v3-development/main.ts    │                     │
-│  test-v3-development/components/│                     │
-│  ↓ (Vite pipeline --watch)      │                     │
-│  test-v3-development/temp/      │                     │
-│  ↓ (Configurator polls)         │ ←───────────────────┘
-│  Browser GLB Update             │
-└─────────────────────────────────┘
+┌─ User Project ──────────────────────────────────────────────────────────┐
+│  my-project/                                                            │
+│  ├── main.ts                    # User's main model                     │
+│  ├── components/                # User's component models               │
+│  │   ├── wheel.ts                                                       │
+│  │   └── example.ts                                                     │
+│  ├── package.json               # Single "dev" script                   │
+│  └── temp/                      # Generated by CLI (gitignored)         │
+│                                                                         │
+│  npm run dev → manifold-dev CLI                                         │
+│  ↓                                                                      │
+│  ┌─ CLI Auto-Discovery ─────────────────────────────────────────────────┐ │
+│  │  Scans: main.ts, components/*.ts                                    │ │
+│  │  Generates: temp/user-pipeline-entry.ts                             │ │
+│  │  Starts: UI Server (3000) + Pipeline Compiler (3001)               │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Hot Reload Chain
@@ -246,9 +248,9 @@ The old approach (`npm run dev`) uses separate Vite processes:
 3. **Edit model source** → Pipeline compiler rebuilds → Configurator detects change → GLB updates
 4. **Edit UI config** → Configurator executes pipeline → GLB updates
 
-**Legacy Approach**:
+**Development Project Approach** (test-v3-development):
 
-1. **Edit wrapper source** → Wrapper rebuilds → V3 project picks up changes
+1. **Edit wrapper source** → Wrapper rebuilds → Project picks up changes
 2. **Edit configurator source** → Source imports provide immediate HMR updates
 3. **Edit model source** → Pipeline rebuilds → Configurator detects change → GLB updates
 4. **Edit UI config** → Configurator executes pipeline → GLB updates
@@ -281,10 +283,10 @@ The old approach (`npm run dev`) uses separate Vite processes:
 4. **Configurator detects change** and reloads pipeline
 5. **GLB regenerates** with new model
 
-**Legacy Approach**:
+**Development Project Approach** (test-v3-development):
 
 1. **Edit model files** (`test-v3-development/main.ts` or `components/`)
-2. **Pipeline auto-rebuilds** (if V3 dev server is running)
+2. **Pipeline auto-rebuilds** (if CLI dev server is running)
 3. **Configurator detects change** and reloads pipeline
 4. **GLB regenerates** with new model
 
@@ -292,8 +294,8 @@ The old approach (`npm run dev`) uses separate Vite processes:
 
 1. **Edit create-app templates** (`packages/create-app/templates/`)
 2. **Test scaffolding** with `npm run test:scaffold`
-3. **Verify scaffolded project** works with `npm run dev`
-4. **Sync from V3** if needed: copy working configs from `test-v3-development`
+3. **Verify scaffolded project** works with `npm run dev` (should use CLI automatically)
+4. **Test CLI features**: Add/remove model files, verify automatic pipeline regeneration
 
 ## Troubleshooting
 
@@ -307,8 +309,8 @@ The old approach (`npm run dev`) uses separate Vite processes:
 2. **For wrapper changes**: Check if wrapper build is running (`npm run dev` in packages/wrapper)
 3. **Clear Vite cache**: `rm -rf node_modules/.vite` in test project
 4. **Restart dev server**:
-   - V3 CLI: `npm run dev:v3` in test-v3-development
-   - Legacy: `npm run dev` in test-v3-development
+   - Development project: `npm run dev:v3` in test-v3-development
+   - Generated project: `npm run dev` in user project
 5. **Check browser console**: Look for TypeScript compilation errors
 6. **Check Vite alias configuration**: If package imports fail, verify both UI server and pipeline compiler have the same aliases
 
@@ -363,15 +365,15 @@ The old approach (`npm run dev`) uses separate Vite processes:
 ### Essential Commands
 
 ```bash
-# Start V3 development (NEW CLI approach - recommended)
-cd test-v3-development && npm run dev:v3  # Unified CLI with automatic file watching
+# Start development (CLI approach - recommended)
+cd test-v3-development && npm run dev:v3  # Development project with source imports
 
-# Start V3 development (legacy dual-server approach)
-cd test-v3-development && npm run dev     # Manual pipeline management
+# Generated project development
+cd my-project && npm run dev              # Uses CLI automatically
 
 # If also developing wrapper
 cd packages/wrapper && npm run dev        # Terminal 1: Wrapper auto-rebuild
-cd test-v3-development && npm run dev:v3  # Terminal 2: V3 CLI approach
+cd test-v3-development && npm run dev:v3  # Terminal 2: CLI approach
 
 # Individual package development
 cd packages/wrapper && npm run build:lib -- --watch  # Only if changing wrapper
@@ -379,11 +381,10 @@ cd packages/create-app && npm run test:scaffold       # Create-app scaffolding t
 
 # Testing
 npm test                           # All tests
-cd test-v3-development && npm run build:pipeline  # Test legacy pipeline
 cd packages/create-app && npm run test:scaffold   # Test scaffolding
 
 # Troubleshooting
-rm -rf node_modules/.vite          # Clear Vite cache (test-v3-development)
+rm -rf node_modules/.vite          # Clear Vite cache
 cd packages/wrapper && npm run build  # Rebuild wrapper if needed
 ```
 
@@ -391,7 +392,8 @@ cd packages/wrapper && npm run build  # Rebuild wrapper if needed
 
 - **Wrapper library**: `packages/wrapper/dist/` (built)
 - **Configurator source**: `packages/configurator/src/` (used directly via Vite aliases)
-- **V3 pipeline output**: `test-v3-development/temp/`
+- **Configurator CLI**: `packages/configurator/dist/cli/` (built)
+- **Pipeline output**: `*/temp/` (generated by CLI, gitignored)
 - **Create-app templates**: `packages/create-app/templates/`
 - **Test projects**: `test-v3-development/`, `/tmp/test-project`
 
@@ -399,11 +401,13 @@ cd packages/wrapper && npm run build  # Rebuild wrapper if needed
 
 **Source-Based Development**: The configurator is imported directly from `packages/configurator/src/` using Vite aliases, eliminating build steps and caching issues during development. Only the wrapper requires building since it contains WASM bindings.
 
-**V3 CLI Benefits**: The new configurator CLI (`npm run dev:v3`) significantly improves the development experience by:
+**CLI-Based Architecture**: The new configurator CLI significantly improves the development experience by:
 
 - ✅ **Automatic model discovery** - no manual pipeline entry management
 - ✅ **Unified file watching** - detects model file additions/removals automatically
 - ✅ **Consistent Vite configuration** - both UI server and pipeline compiler use same aliases
 - ✅ **Package import support** - generated pipeline files can import from `@manifold-studio/configurator`
 - ✅ **Reduced generated code** - shared types/functions moved to library (63% size reduction)
+- ✅ **Clean user projects** - no pipeline infrastructure in user code
 - ✅ **Better error handling** - unified logging and error reporting
+- ✅ **Simplified templates** - create-app generates minimal, clean projects

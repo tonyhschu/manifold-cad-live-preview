@@ -4,23 +4,17 @@
   "type": "module",
   "description": "{{description}}",
   "scripts": {
-    "dev": "manifold-dev --configurator-dev-mode",
-    "dev:legacy": "concurrently \"npm run dev:pipeline\" \"npm run dev:ui\"",
-    "dev:pipeline": "vite build --config vite.pipeline.config.ts --watch",
-    "dev:ui": "vite",
-    "build": "npm run build:ui",
-    "build:ui": "vite build",
-    "preview": "vite preview",
+    "dev": "manifold-dev",
+    "build": "echo 'Build not needed - CLI handles compilation'",
     "test": "vitest"
   },
   "dependencies": {
     "manifold-3d": "^3.1.1"
   },
   "devDependencies": {
-    "@manifold-studio/configurator": "^1.0.0",
+    "@manifold-studio/configurator": "file:../packages/configurator",
     "@types/node": "^20.0.0",
     "typescript": "^5.0.2",
-    "vite": "^4.4.5",
     "vitest": "^1.0.0"
   }
 }
