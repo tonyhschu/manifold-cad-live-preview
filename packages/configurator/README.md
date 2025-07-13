@@ -13,6 +13,28 @@ This package provides both a **library** and a **CLI tool**:
 - **Library**: UI components and configurator functionality for user projects
 - **CLI**: Development tool that handles model discovery, pipeline compilation, and server management
 
+```mermaid
+graph TD
+    A[User runs: npm run dev] --> B[manifold-dev CLI]
+    B --> C[Model Discovery]
+    C --> D[Pipeline Generation]
+    D --> E[Pipeline Compiler Server :3003]
+    D --> F[UI Template Server :3002]
+    E --> G[Compiled Pipeline /temp/pipeline.js]
+    F --> H[Configurator UI]
+    H --> I[User Browser]
+
+    J[File Watcher] --> C
+    J --> K[HMR Updates]
+    K --> E
+    K --> F
+
+    style B fill:#e1f5fe
+    style E fill:#f3e5f5
+    style F fill:#e8f5e8
+    style I fill:#fff3e0
+```
+
 ### Key Components
 
 **Library Components:**
