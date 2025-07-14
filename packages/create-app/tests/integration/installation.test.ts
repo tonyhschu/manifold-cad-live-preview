@@ -60,18 +60,26 @@ describe('Installation Testing', () => {
         const requiredDeps = [
           'manifold-3d',
           'typescript',
-          'vite',
-          'concurrently'
+          'vitest'
         ];
 
+        // Check regular dependencies
         for (const dep of requiredDeps) {
           const depPath = join(project.path, 'node_modules', dep);
           const validation = await FileValidator.validate(depPath);
-          
+
           expect(validation.exists).toBe(true);
           if (!validation.exists) {
             expect.fail(`Required dependency not installed: ${dep}`);
           }
+        }
+
+        // Check file: dependency (scoped package with symlink)
+        const configuratorPath = join(project.path, 'node_modules', '@manifold-studio', 'configurator');
+        const configuratorValidation = await FileValidator.validate(configuratorPath);
+        expect(configuratorValidation.exists).toBe(true);
+        if (!configuratorValidation.exists) {
+          expect.fail('Required file: dependency not installed: @manifold-studio/configurator');
         }
 
         console.log('✅ All required dependencies installed');
@@ -102,8 +110,8 @@ describe('Installation Testing', () => {
           }
         );
 
-        expect(lockValidation.valid).toBe(true);
-        if (!lockValidation.valid) {
+        expect(lockValidation.isValid).toBe(true);
+        if (!lockValidation.isValid) {
           expect.fail(`package-lock.json validation failed: ${lockValidation.error}`);
         }
 
@@ -237,7 +245,7 @@ describe('Installation Testing', () => {
         
         // Check that our required scripts are listed
         const output = scriptListResult.stdout;
-        const requiredScripts = ['dev', 'build:pipeline', 'build:ui'];
+        const requiredScripts = ['dev', 'build', 'test'];
         
         for (const script of requiredScripts) {
           expect(output).toContain(script);

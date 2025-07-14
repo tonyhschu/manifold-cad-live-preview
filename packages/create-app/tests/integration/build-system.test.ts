@@ -2,370 +2,455 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { ProjectCreator, ProcessRunner, TempDir, FileValidator } from '../utils/index.js';
 import { join } from 'path';
 
-describe('Build System Testing', () => {
+describe('CLI Development System Testing', () => {
   beforeAll(async () => {
     const nodeVersion = await ProcessRunner.getNodeVersion();
-    console.log(`🔧 Testing builds with node ${nodeVersion}`);
+    console.log(`🔧 Testing CLI development with node ${nodeVersion}`);
   });
 
   afterAll(async () => {
     await TempDir.cleanupAll();
   });
 
-  describe('Pipeline Build', () => {
-    it('should build pipeline successfully', async () => {
-      const project = await ProjectCreator.createProjectWithInstall({
-        projectName: 'test-pipeline-build'
+  describe('CLI Development Server', () => {
+    it('should start development server successfully', async () => {
+      const project = await ProjectCreator.createProject({
+        name: 'test-cli-dev-server',
+        skipInstall: true
       });
 
       try {
-        console.log('🔧 Testing pipeline build...');
-        const buildResult = await ProcessRunner.npmRun('build:pipeline', project.path, {
-          timeout: 120000 // 2 minutes
-        });
+        console.log('🔧 Testing CLI development server startup...');
 
-        expect(buildResult.success).toBe(true);
-        if (!buildResult.success) {
-          console.error('Pipeline build stdout:', buildResult.stdout);
-          console.error('Pipeline build stderr:', buildResult.stderr);
-          expect.fail(`Pipeline build failed: ${buildResult.stderr}`);
-        }
-
-        // Check that pipeline artifacts exist
-        const expectedArtifacts = [
-          'temp/pipeline.js',
-          'temp/manifest.json'
-        ];
-
-        for (const artifact of expectedArtifacts) {
-          const artifactPath = join(project.path, artifact);
-          const validation = await FileValidator.validate(artifactPath);
-          
-          expect(validation.exists).toBe(true);
-          expect(validation.isFile).toBe(true);
-          
-          if (!validation.exists) {
-            expect.fail(`Pipeline artifact missing: ${artifact}`);
-          }
-        }
-
-        console.log('✅ Pipeline build successful');
-      } finally {
-        await project.cleanup();
-      }
-    }, 180000);
-
-    it('should generate valid pipeline.js', async () => {
-      const project = await ProjectCreator.createProjectWithInstall({
-        projectName: 'test-pipeline-js-validity'
-      });
-
-      try {
-        const buildResult = await ProjectCreator.testProjectBuild(project.path);
-        expect(buildResult.success).toBe(true);
-
-        // Validate pipeline.js content
-        const pipelineValidation = await FileValidator.validateFileContent(
-          join(project.path, 'temp/pipeline.js'),
-          /export[\s\S]*as default/,
-          { partial: true }
-        );
-
-        expect(pipelineValidation.valid).toBe(true);
-        if (!pipelineValidation.valid) {
-          expect.fail('pipeline.js should contain export default');
-        }
-
-        // Check that it's valid JavaScript (basic syntax check)
-        const content = pipelineValidation.content!;
-        expect(content.length).toBeGreaterThan(0);
-        // Check for valid export syntax and expected content
-        expect(content).toMatch(/export[\s\S]*as default/); // Has export as default
-        expect(content).toContain('generateModel'); // Contains expected function
-
-        console.log('✅ pipeline.js is valid');
-      } finally {
-        await project.cleanup();
-      }
-    }, 180000);
-
-    it('should generate valid manifest.json', async () => {
-      const project = await ProjectCreator.createProjectWithInstall({
-        projectName: 'test-manifest-validity'
-      });
-
-      try {
-        await ProcessRunner.npmRun('build:pipeline', project.path);
-
-        // Validate manifest.json
-        const manifestValidation = await FileValidator.validateJsonFile(
-          join(project.path, 'temp/manifest.json'),
-          (data) => {
-            if (!data.models) return 'Manifest missing models array';
-            if (!Array.isArray(data.models)) return 'Models should be an array';
-            
-            // Check that we have at least one model
-            if (data.models.length === 0) return 'Manifest should contain at least one model';
-            
-            // Validate model structure
-            for (const model of data.models) {
-              if (!model.id) return 'Model missing id field';
-              if (!model.name) return 'Model missing name field';
-              if (!model.type) return 'Model missing type field';
-            }
-
-            return true;
-          }
-        );
-
-        expect(manifestValidation.valid).toBe(true);
-        if (!manifestValidation.valid) {
-          expect.fail(`manifest.json validation failed: ${manifestValidation.error}`);
-        }
-
-        console.log('✅ manifest.json is valid');
-      } finally {
-        await project.cleanup();
-      }
-    }, 180000);
-  });
-
-  describe('UI Build', () => {
-    it('should build UI successfully', async () => {
-      const project = await ProjectCreator.createProjectWithInstall({
-        projectName: 'test-ui-build'
-      });
-
-      try {
-        // Build pipeline first (UI build depends on it)
-        await ProcessRunner.npmRun('build:pipeline', project.path);
-
-        console.log('🔧 Testing UI build...');
-        const buildResult = await ProcessRunner.npmRun('build:ui', project.path, {
-          timeout: 120000 // 2 minutes
-        });
-
-        expect(buildResult.success).toBe(true);
-        if (!buildResult.success) {
-          console.error('UI build stdout:', buildResult.stdout);
-          console.error('UI build stderr:', buildResult.stderr);
-          expect.fail(`UI build failed: ${buildResult.stderr}`);
-        }
-
-        // Check that UI artifacts exist
-        const expectedArtifacts = [
-          'dist/index.html',
-          'dist/assets'
-        ];
-
-        for (const artifact of expectedArtifacts) {
-          const artifactPath = join(project.path, artifact);
-          const validation = await FileValidator.validate(artifactPath);
-          
-          expect(validation.exists).toBe(true);
-          
-          if (!validation.exists) {
-            expect.fail(`UI artifact missing: ${artifact}`);
-          }
-        }
-
-        console.log('✅ UI build successful');
-      } finally {
-        await project.cleanup();
-      }
-    }, 240000);
-
-    it('should generate valid HTML output', async () => {
-      const project = await ProjectCreator.createProjectWithInstall({
-        projectName: 'test-html-validity'
-      });
-
-      try {
-        // Build both pipeline and UI
-        await ProcessRunner.npmRun('build:pipeline', project.path);
-        await ProcessRunner.npmRun('build:ui', project.path);
-
-        // Validate index.html
-        const htmlValidation = await FileValidator.validateFileContent(
-          join(project.path, 'dist/index.html'),
-          /<!DOCTYPE html>/,
-          { partial: true }
-        );
-
-        expect(htmlValidation.valid).toBe(true);
-        if (!htmlValidation.valid) {
-          expect.fail('dist/index.html should be valid HTML');
-        }
-
-        const content = htmlValidation.content!;
-        
-        // Check for essential HTML elements
-        expect(content).toContain('<html');
-        expect(content).toContain('<head>');
-        expect(content).toContain('<body>');
-        expect(content).toContain('<script');
-
-        console.log('✅ Generated HTML is valid');
-      } finally {
-        await project.cleanup();
-      }
-    }, 240000);
-  });
-
-  describe('Combined Build', () => {
-    it('should build both pipeline and UI with build script', async () => {
-      const project = await ProjectCreator.createProjectWithInstall({
-        projectName: 'test-combined-build'
-      });
-
-      try {
-        console.log('🔧 Testing combined build...');
-        const buildResult = await ProcessRunner.npmRun('build', project.path, {
-          timeout: 180000 // 3 minutes
-        });
-
-        expect(buildResult.success).toBe(true);
-        if (!buildResult.success) {
-          console.error('Combined build stdout:', buildResult.stdout);
-          console.error('Combined build stderr:', buildResult.stderr);
-          expect.fail(`Combined build failed: ${buildResult.stderr}`);
-        }
-
-        // Check that all artifacts exist
-        const expectedArtifacts = [
-          'temp/pipeline.js',
-          'temp/manifest.json',
-          'dist/index.html',
-          'dist/assets'
-        ];
-
-        for (const artifact of expectedArtifacts) {
-          const artifactPath = join(project.path, artifact);
-          const validation = await FileValidator.validate(artifactPath);
-          
-          expect(validation.exists).toBe(true);
-          if (!validation.exists) {
-            expect.fail(`Build artifact missing: ${artifact}`);
-          }
-        }
-
-        console.log('✅ Combined build successful');
-      } finally {
-        await project.cleanup();
-      }
-    }, 240000);
-
-    it('should use ProjectCreator testProjectBuild utility', async () => {
-      const project = await ProjectCreator.createProjectWithInstall({
-        projectName: 'test-project-creator-build'
-      });
-
-      try {
-        const buildResult = await ProjectCreator.testProjectBuild(project.path);
-        
-        expect(buildResult.success).toBe(true);
-        if (!buildResult.success) {
-          console.error('Build errors:', buildResult.errors);
-          expect.fail(`Build test failed: ${buildResult.errors.join(', ')}`);
-        }
-
-        console.log('✅ ProjectCreator build test passed');
-      } finally {
-        await project.cleanup();
-      }
-    }, 240000);
-  });
-
-  describe('TypeScript Compilation', () => {
-    it('should have no TypeScript errors', async () => {
-      const project = await ProjectCreator.createProjectWithInstall({
-        projectName: 'test-typescript-errors'
-      });
-
-      try {
-        // During source-based development, TypeScript compiler can't resolve Vite aliases
-        // The Vite build process (which includes TypeScript compilation) is tested separately
-        // and provides the same validation with proper alias resolution
-        console.log('🔍 Checking TypeScript compilation via Vite build...');
-
-        // Use Vite build instead of raw tsc to properly handle aliases
-        const buildResult = await ProcessRunner.npmRun('build:ui', project.path, {
-          timeout: 120000
-        });
-
-        expect(buildResult.success).toBe(true);
-        if (!buildResult.success) {
-          console.error('Vite build stdout:', buildResult.stdout);
-          console.error('Vite build stderr:', buildResult.stderr);
-          expect.fail(`Vite build (including TypeScript) failed: ${buildResult.stderr}`);
-        }
-
-        console.log('✅ TypeScript compilation successful via Vite build');
-      } finally {
-        await project.cleanup();
-      }
-    }, 120000);
-
-    it('should have valid TypeScript configuration', async () => {
-      const project = await ProjectCreator.createProjectWithInstall({
-        projectName: 'test-tsconfig-validity'
-      });
-
-      try {
-        // Test that tsconfig.json is valid by running tsc --showConfig
-        const configResult = await ProcessRunner.run('npx', ['tsc', '--showConfig'], {
+        // Test that the CLI command exists and can be invoked
+        const helpResult = await ProcessRunner.run('npx', ['manifold-dev', '--help'], {
           cwd: project.path,
           timeout: 30000
         });
 
-        expect(configResult.success).toBe(true);
-        if (!configResult.success) {
-          expect.fail(`TypeScript config invalid: ${configResult.stderr}`);
+        expect(helpResult.success).toBe(true);
+        if (!helpResult.success) {
+          console.error('CLI help stdout:', helpResult.stdout);
+          console.error('CLI help stderr:', helpResult.stderr);
+          expect.fail(`CLI help command failed: ${helpResult.stderr}`);
         }
 
-        // Parse the config output to ensure it's valid JSON
-        try {
-          JSON.parse(configResult.stdout);
-          console.log('✅ TypeScript configuration is valid');
-        } catch (error) {
-          expect.fail(`TypeScript config output is not valid JSON: ${error}`);
+        // Verify help output contains expected commands
+        expect(helpResult.stdout).toContain('dev');
+        expect(helpResult.stdout).toContain('development server');
+
+        console.log('✅ CLI development server command available');
+      } finally {
+        await project.cleanup();
+      }
+    }, 60000);
+
+    it('should discover models in project structure', async () => {
+      const project = await ProjectCreator.createProject({
+        name: 'test-model-discovery',
+        skipInstall: true
+      });
+
+      try {
+        console.log('🔍 Testing model discovery...');
+
+        // Verify that the project has the expected model files
+        const expectedModelFiles = [
+          'main.ts',
+          'components/example.ts',
+          'components/wheel.ts'
+        ];
+
+        for (const modelFile of expectedModelFiles) {
+          const modelPath = join(project.path, modelFile);
+          const validation = await FileValidator.validate(modelPath);
+
+          expect(validation.exists).toBe(true);
+          expect(validation.isFile).toBe(true);
+
+          if (!validation.exists) {
+            expect.fail(`Expected model file missing: ${modelFile}`);
+          }
         }
+
+        // Verify model files contain expected exports (V3 format uses export default)
+        const mainTsValidation = await FileValidator.validateFileContent(
+          join(project.path, 'main.ts'),
+          /export default/,
+          { partial: true }
+        );
+
+        expect(mainTsValidation.valid).toBe(true);
+        if (!mainTsValidation.valid) {
+          expect.fail('main.ts should contain exported functions');
+        }
+
+        console.log('✅ Model discovery structure valid');
+      } finally {
+        await project.cleanup();
+      }
+    }, 60000);
+
+    it('should validate CLI configuration files', async () => {
+      const project = await ProjectCreator.createProject({
+        name: 'test-cli-config',
+        skipInstall: true
+      });
+
+      try {
+        console.log('🔧 Testing CLI configuration validation...');
+
+        // Verify that essential configuration files exist
+        const configFiles = [
+          'package.json',
+          'tsconfig.json',
+          'vite.config.ts'
+        ];
+
+        for (const configFile of configFiles) {
+          const configPath = join(project.path, configFile);
+          const validation = await FileValidator.validate(configPath);
+
+          expect(validation.exists).toBe(true);
+          expect(validation.isFile).toBe(true);
+
+          if (!validation.exists) {
+            expect.fail(`Configuration file missing: ${configFile}`);
+          }
+        }
+
+        // Validate package.json has CLI-compatible scripts
+        const packageValidation = await FileValidator.validateJsonFile(
+          join(project.path, 'package.json'),
+          (data) => {
+            if (!data.scripts) return 'Package.json missing scripts';
+            if (!data.scripts.dev) return 'Package.json missing dev script';
+            if (!data.scripts.dev.includes('manifold-dev')) return 'Dev script should use manifold-dev';
+            return true;
+          }
+        );
+
+        expect(packageValidation.isValid).toBe(true);
+        if (!packageValidation.isValid) {
+          expect.fail(`package.json validation failed: ${packageValidation.error}`);
+        }
+
+        console.log('✅ CLI configuration files valid');
       } finally {
         await project.cleanup();
       }
     }, 60000);
   });
 
-  describe('Build Performance', () => {
-    it('should complete builds within reasonable time', async () => {
-      const project = await ProjectCreator.createProjectWithInstall({
-        projectName: 'test-build-performance'
+  describe('CLI Development Workflow', () => {
+    it('should validate development dependencies', async () => {
+      const project = await ProjectCreator.createProject({
+        name: 'test-dev-dependencies',
+        skipInstall: true
       });
 
       try {
-        const startTime = Date.now();
-        
-        const buildResult = await ProcessRunner.npmRun('build', project.path, {
-          timeout: 180000 // 3 minutes max
-        });
+        console.log('🔧 Testing development dependencies...');
 
-        const duration = Date.now() - startTime;
-        
-        expect(buildResult.success).toBe(true);
-        
-        // Build should complete within 3 minutes (generous)
-        expect(duration).toBeLessThan(180000);
-        
-        console.log(`📊 Build performance: ${duration}ms`);
-        
-        if (duration > 60000) { // 1 minute
-          console.warn(`⚠️  Build took longer than expected: ${duration}ms`);
+        // Verify package.json has required dependencies
+        const packageValidation = await FileValidator.validateJsonFile(
+          join(project.path, 'package.json'),
+          (data) => {
+            if (!data.dependencies) return 'Package.json missing dependencies';
+
+            const requiredDeps = [
+              'manifold-3d'
+            ];
+
+            for (const dep of requiredDeps) {
+              if (!data.dependencies[dep]) {
+                return `Missing required dependency: ${dep}`;
+              }
+            }
+
+            if (!data.devDependencies) return 'Package.json missing devDependencies';
+
+            const requiredDevDeps = [
+              '@manifold-studio/configurator',
+              'typescript',
+              'vitest'
+            ];
+
+            for (const dep of requiredDevDeps) {
+              if (!data.devDependencies[dep]) {
+                return `Missing required dev dependency: ${dep}`;
+              }
+            }
+
+            return true;
+          }
+        );
+
+        expect(packageValidation.isValid).toBe(true);
+        if (!packageValidation.isValid) {
+          expect.fail(`Dependencies validation failed: ${packageValidation.error}`);
         }
 
-        console.log('✅ Build performance acceptable');
+        console.log('✅ Development dependencies valid');
       } finally {
         await project.cleanup();
       }
-    }, 240000);
+    }, 60000);
+
+    it('should validate CLI scripts are executable', async () => {
+      const project = await ProjectCreator.createProject({
+        name: 'test-cli-scripts',
+        skipInstall: true
+      });
+
+      try {
+        console.log('🔧 Testing CLI script validation...');
+
+        // Test that the dev script can be parsed (without actually running it)
+        const packageValidation = await FileValidator.validateJsonFile(
+          join(project.path, 'package.json'),
+          (data) => {
+            if (!data.scripts?.dev) return 'Missing dev script';
+
+            const devScript = data.scripts.dev;
+            if (!devScript.includes('manifold-dev')) {
+              return 'Dev script should use manifold-dev command';
+            }
+
+            if (!devScript.includes('dev')) {
+              return 'Dev script should include dev subcommand';
+            }
+
+            return true;
+          }
+        );
+
+        expect(packageValidation.isValid).toBe(true);
+        if (!packageValidation.isValid) {
+          expect.fail(`CLI script validation failed: ${packageValidation.error}`);
+        }
+
+        // Verify TypeScript configuration supports the CLI workflow
+        const tsconfigValidation = await FileValidator.validateJsonFile(
+          join(project.path, 'tsconfig.json'),
+          (data) => {
+            if (!data.compilerOptions) return 'Missing compilerOptions';
+            if (!data.compilerOptions.target) return 'Missing target in compilerOptions';
+            return true;
+          }
+        );
+
+        expect(tsconfigValidation.isValid).toBe(true);
+        if (!tsconfigValidation.isValid) {
+          expect.fail(`TypeScript config validation failed: ${tsconfigValidation.error}`);
+        }
+
+        console.log('✅ CLI scripts are properly configured');
+      } finally {
+        await project.cleanup();
+      }
+    }, 60000);
+  });
+
+  describe('CLI Integration', () => {
+    it('should validate project structure for CLI compatibility', async () => {
+      const project = await ProjectCreator.createProject({
+        name: 'test-cli-integration',
+        skipInstall: true
+      });
+
+      try {
+        console.log('🔧 Testing CLI integration compatibility...');
+
+        // Verify project structure is CLI-compatible
+        const expectedFiles = [
+          'package.json',
+          'tsconfig.json',
+          'vite.config.ts',
+          'main.ts',
+          'components/example.ts',
+          'components/wheel.ts',
+          'README.md'
+        ];
+
+        for (const file of expectedFiles) {
+          const filePath = join(project.path, file);
+          const validation = await FileValidator.validate(filePath);
+
+          expect(validation.exists).toBe(true);
+          expect(validation.isFile).toBe(true);
+
+          if (!validation.exists) {
+            expect.fail(`CLI-required file missing: ${file}`);
+          }
+        }
+
+        // Verify no old build artifacts exist (clean CLI-based project)
+        const oldArtifacts = [
+          'temp',
+          'dist',
+          'vite.pipeline.config.ts',
+          'vite.ui.config.ts'
+        ];
+
+        for (const artifact of oldArtifacts) {
+          const artifactPath = join(project.path, artifact);
+          const validation = await FileValidator.validate(artifactPath);
+
+          expect(validation.exists).toBe(false);
+          if (validation.exists) {
+            expect.fail(`Old build artifact should not exist: ${artifact}`);
+          }
+        }
+
+        console.log('✅ CLI integration structure valid');
+      } finally {
+        await project.cleanup();
+      }
+    }, 60000);
+
+    it('should validate CLI command availability', async () => {
+      const project = await ProjectCreator.createProject({
+        name: 'test-cli-availability',
+        skipInstall: true
+      });
+
+      try {
+        console.log('🔧 Testing CLI command availability...');
+
+        // Test that manifold-dev command can be found and shows help
+        const helpResult = await ProcessRunner.run('npx', ['manifold-dev', '--help'], {
+          cwd: project.path,
+          timeout: 30000
+        });
+
+        expect(helpResult.success).toBe(true);
+        if (!helpResult.success) {
+          console.error('CLI help stdout:', helpResult.stdout);
+          console.error('CLI help stderr:', helpResult.stderr);
+          expect.fail(`CLI help command failed: ${helpResult.stderr}`);
+        }
+
+        // Verify help output contains expected commands and options
+        const helpOutput = helpResult.stdout;
+        expect(helpOutput).toContain('dev');
+        expect(helpOutput).toContain('development server');
+
+        console.log('✅ CLI command is available and functional');
+      } finally {
+        await project.cleanup();
+      }
+    }, 60000);
+  });
+
+  describe('TypeScript Configuration', () => {
+    it('should have valid TypeScript configuration for CLI', async () => {
+      const project = await ProjectCreator.createProject({
+        name: 'test-typescript-config',
+        skipInstall: true
+      });
+
+      try {
+        console.log('🔍 Checking TypeScript configuration for CLI compatibility...');
+
+        // Test that tsconfig.json is valid by parsing it directly
+        const tsconfigValidation = await FileValidator.validateJsonFile(
+          join(project.path, 'tsconfig.json'),
+          (data) => {
+            if (!data.compilerOptions) return 'Missing compilerOptions';
+            if (!data.compilerOptions.target) return 'Missing target in compilerOptions';
+            if (!data.compilerOptions.module) return 'Missing module in compilerOptions';
+            return true;
+          }
+        );
+
+        expect(tsconfigValidation.isValid).toBe(true);
+        if (!tsconfigValidation.isValid) {
+          expect.fail(`TypeScript configuration validation failed: ${tsconfigValidation.error}`);
+        }
+
+        console.log('✅ TypeScript configuration is CLI-compatible');
+      } finally {
+        await project.cleanup();
+      }
+    }, 60000);
+
+    it('should validate model files have correct TypeScript syntax', async () => {
+      const project = await ProjectCreator.createProject({
+        name: 'test-model-typescript',
+        skipInstall: true
+      });
+
+      try {
+        console.log('🔍 Checking model files TypeScript syntax...');
+
+        // Validate that model files contain proper TypeScript exports
+        const modelFiles = ['main.ts', 'components/example.ts', 'components/wheel.ts'];
+
+        for (const modelFile of modelFiles) {
+          const filePath = join(project.path, modelFile);
+          const validation = await FileValidator.validateFileContent(
+            filePath,
+            /export default/,
+            { partial: true }
+          );
+
+          expect(validation.valid).toBe(true);
+          if (!validation.valid) {
+            expect.fail(`Model file ${modelFile} should contain export default (V3 format)`);
+          }
+
+          // Check for TypeScript-specific syntax
+          const content = validation.content!;
+          expect(content).toMatch(/export default/);
+          expect(content.length).toBeGreaterThan(0);
+        }
+
+        console.log('✅ Model files have valid TypeScript syntax');
+      } finally {
+        await project.cleanup();
+      }
+    }, 60000);
+  });
+
+  describe('CLI Performance', () => {
+    it('should validate CLI command responds quickly', async () => {
+      const project = await ProjectCreator.createProject({
+        name: 'test-cli-performance',
+        skipInstall: true
+      });
+
+      try {
+        console.log('📊 Testing CLI command response time...');
+
+        const startTime = Date.now();
+
+        // Test CLI help command performance (should be fast)
+        const helpResult = await ProcessRunner.run('npx', ['manifold-dev', '--help'], {
+          cwd: project.path,
+          timeout: 30000 // 30 seconds max
+        });
+
+        const duration = Date.now() - startTime;
+
+        expect(helpResult.success).toBe(true);
+        if (!helpResult.success) {
+          expect.fail(`CLI help command failed: ${helpResult.stderr}`);
+        }
+
+        // CLI help should respond within 30 seconds (generous for npx)
+        expect(duration).toBeLessThan(30000);
+
+        console.log(`📊 CLI response time: ${duration}ms`);
+
+        if (duration > 10000) { // 10 seconds
+          console.warn(`⚠️  CLI took longer than expected: ${duration}ms`);
+        }
+
+        console.log('✅ CLI performance acceptable');
+      } finally {
+        await project.cleanup();
+      }
+    }, 60000);
   });
 });

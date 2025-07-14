@@ -120,10 +120,9 @@ describe('Package.json Validation', () => {
           `${project.path}/package.json`,
           (data) => {
             const requiredScripts = {
-              'dev': 'should start development servers',
-              'build:pipeline': 'should build pipeline',
-              'build:ui': 'should build UI',
-              'build': 'should build both pipeline and UI'
+              'dev': 'should start CLI development mode',
+              'build': 'should handle build process',
+              'test': 'should run tests'
             };
 
             for (const [script, description] of Object.entries(requiredScripts)) {
@@ -136,8 +135,8 @@ describe('Package.json Validation', () => {
           }
         );
 
-        expect(validation.valid).toBe(true);
-        if (!validation.valid) {
+        expect(validation.isValid).toBe(true);
+        if (!validation.isValid) {
           expect.fail(`Script validation failed: ${validation.error}`);
         }
       } finally {
@@ -157,19 +156,21 @@ describe('Package.json Validation', () => {
         const { FileValidator } = await import('../utils/index.js');
         const packageValidation = await FileValidator.validateJsonFile(`${project.path}/package.json`);
         
-        expect(packageValidation.valid).toBe(true);
+        expect(packageValidation.isValid).toBe(true);
         const packageData = packageValidation.data;
 
         // Check that script commands reference valid executables/files
         const scripts = packageData.scripts;
-        
-        // Dev script should use concurrently
-        expect(scripts.dev).toContain('concurrently');
-        
-        // Build scripts should use vite
-        expect(scripts['build:pipeline']).toContain('vite');
-        expect(scripts['build:ui']).toContain('vite');
-        
+
+        // Dev script should use manifold-dev CLI
+        expect(scripts.dev).toContain('manifold-dev');
+
+        // Build script should exist (even if it's a placeholder)
+        expect(scripts.build).toBeDefined();
+
+        // Test script should use vitest
+        expect(scripts.test).toContain('vitest');
+
         console.log('✅ All script commands appear valid');
       } finally {
         await project.cleanup();
@@ -216,8 +217,8 @@ describe('Package.json Validation', () => {
           }
         );
 
-        expect(validation.valid).toBe(true);
-        if (!validation.valid) {
+        expect(validation.isValid).toBe(true);
+        if (!validation.isValid) {
           expect.fail(`Package metadata validation failed: ${validation.error}`);
         }
       } finally {
@@ -237,26 +238,31 @@ describe('Package.json Validation', () => {
         const validation = await FileValidator.validateJsonFile(
           `${project.path}/package.json`,
           (data) => {
-            // Check that all dependency versions are valid semver ranges
+            // Check that all dependency versions are valid semver ranges or file links
             const allDeps = { ...data.dependencies, ...data.devDependencies };
-            
+
             for (const [name, version] of Object.entries(allDeps)) {
               if (typeof version !== 'string') {
                 return `Invalid version type for ${name}: ${typeof version}`;
               }
-              
-              // Basic semver pattern check
+
+              // Allow file: dependencies for CLI architecture
+              if ((version as string).startsWith('file:')) {
+                continue;
+              }
+
+              // Basic semver pattern check for regular dependencies
               const semverPattern = /^[\^~]?\d+\.\d+\.\d+/;
               if (!semverPattern.test(version as string)) {
                 return `Invalid version format for ${name}: ${version}`;
               }
             }
 
-            // Check specific required versions
+            // Check specific required dependencies for CLI architecture
             const requiredDeps = {
               'manifold-3d': '^3.1.1',
               'typescript': '^5.0.0',
-              'vite': '^4.4.5'
+              'vitest': '^1.0.0'
             };
 
             for (const [name, expectedVersion] of Object.entries(requiredDeps)) {
@@ -264,22 +270,27 @@ describe('Package.json Validation', () => {
               if (!actualVersion) {
                 return `Missing required dependency: ${name}`;
               }
-              
+
               // Check major version compatibility
               const expectedMajor = expectedVersion.match(/\d+/)?.[0];
               const actualMajor = (actualVersion as string).match(/\d+/)?.[0];
-              
+
               if (expectedMajor !== actualMajor) {
                 return `Version mismatch for ${name}: expected ${expectedVersion}, got ${actualVersion}`;
               }
+            }
+
+            // Check that configurator is present as dev dependency (file: link)
+            if (!allDeps['@manifold-studio/configurator']) {
+              return 'Missing required dev dependency: @manifold-studio/configurator';
             }
 
             return true;
           }
         );
 
-        expect(validation.valid).toBe(true);
-        if (!validation.valid) {
+        expect(validation.isValid).toBe(true);
+        if (!validation.isValid) {
           expect.fail(`Dependency version validation failed: ${validation.error}`);
         }
       } finally {
