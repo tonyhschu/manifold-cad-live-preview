@@ -11,24 +11,22 @@ export interface ServerInstance {
 
 export interface ServerManagerOptions {
   projectPath: string;
-  pipelinePort?: number;
-  uiPort?: number;
+  port?: number;
   timeout?: number;
   silent?: boolean;
 }
 
 /**
- * Manages dual Vite servers for V3 architecture testing
- * Handles starting/stopping pipeline and UI servers with proper cleanup
+ * Manages CLI development server for testing
+ * Handles starting/stopping the unified manifold-dev server with proper cleanup
  */
 export class ServerManager {
-  private servers: Map<string, ServerInstance> = new Map();
+  private server: ServerInstance | null = null;
   private options: Required<ServerManagerOptions>;
 
   constructor(options: ServerManagerOptions) {
     this.options = {
-      pipelinePort: 3001,
-      uiPort: 5173,
+      port: 5173,
       timeout: 30000,
       silent: false,
       ...options
@@ -36,21 +34,21 @@ export class ServerManager {
   }
 
   /**
-   * Start the pipeline server (Vite build with watch mode)
+   * Start the CLI development server (manifold-dev dev)
    */
-  async startPipelineServer(): Promise<ServerInstance> {
-    const { projectPath, pipelinePort, timeout, silent } = this.options;
+  async startServer(): Promise<ServerInstance> {
+    const { projectPath, port, timeout, silent } = this.options;
 
     if (!silent) {
-      console.log(`🚀 Starting pipeline server on port ${pipelinePort}...`);
+      console.log(`🚀 Starting CLI development server on port ${port}...`);
     }
 
     return new Promise((resolve, reject) => {
-      const childProcess = spawn('npm', ['run', 'dev:pipeline'], {
+      const childProcess = spawn('npx', ['manifold-dev', 'dev'], {
         cwd: projectPath,
         env: {
           ...process.env,
-          PORT: pipelinePort.toString(),
+          PORT: port.toString(),
           NODE_ENV: 'development'
         },
         stdio: ['pipe', 'pipe', 'pipe']
@@ -58,9 +56,9 @@ export class ServerManager {
 
       const server: ServerInstance = {
         childProcess,
-        port: pipelinePort,
-        name: 'pipeline',
-        url: `http://localhost:${pipelinePort}`,
+        port,
+        name: 'cli-dev',
+        url: `http://localhost:${port}`,
         ready: false
       };
 
@@ -70,8 +68,8 @@ export class ServerManager {
       // Set timeout for server startup
       if (timeout > 0) {
         timeoutId = setTimeout(() => {
-          this.killServer('pipeline');
-          reject(new Error(`Pipeline server failed to start within ${timeout}ms`));
+          this.killServer();
+          reject(new Error(`CLI development server failed to start within ${timeout}ms`));
         }, timeout);
       }
 
@@ -79,17 +77,17 @@ export class ServerManager {
       const onData = (data: Buffer) => {
         const text = data.toString();
         output += text;
-        
+
         if (!silent) {
-          console.log(`[Pipeline] ${text.trim()}`);
+          console.log(`[CLI-Dev] ${text.trim()}`);
         }
 
-        // Look for build completion indicators
-        // Wait for both the initial build completion AND manifest generation
-        if (text.includes('built in') && output.includes('✅ Manifest generated')) {
+        // Look for CLI server ready indicators
+        // The CLI combines both pipeline compilation and UI server
+        if (text.includes('Local:') || text.includes('ready in') || text.includes('dev server running')) {
           server.ready = true;
           if (timeoutId) clearTimeout(timeoutId);
-          this.servers.set('pipeline', server);
+          this.server = server;
           resolve(server);
         }
       };
@@ -99,170 +97,73 @@ export class ServerManager {
 
       childProcess.on('error', (error) => {
         if (timeoutId) clearTimeout(timeoutId);
-        reject(new Error(`Pipeline server error: ${error.message}`));
+        reject(new Error(`CLI development server error: ${error.message}`));
       });
 
       childProcess.on('exit', (code) => {
         if (timeoutId) clearTimeout(timeoutId);
         if (!server.ready) {
-          reject(new Error(`Pipeline server exited with code ${code}`));
+          reject(new Error(`CLI development server exited with code ${code}`));
         }
       });
     });
   }
 
-  /**
-   * Start the UI server (Vite dev server)
-   */
-  async startUIServer(): Promise<ServerInstance> {
-    const { projectPath, uiPort, timeout, silent } = this.options;
-    
-    if (!silent) {
-      console.log(`🚀 Starting UI server on port ${uiPort}...`);
-    }
 
-    return new Promise((resolve, reject) => {
-      const childProcess = spawn('npm', ['run', 'dev'], {
-        cwd: projectPath,
-        env: {
-          ...process.env,
-          PORT: uiPort.toString(),
-          NODE_ENV: 'development'
-        },
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
-
-      const server: ServerInstance = {
-        childProcess,
-        port: uiPort,
-        name: 'ui',
-        url: `http://localhost:${uiPort}`,
-        ready: false
-      };
-
-      let output = '';
-      let timeoutId: NodeJS.Timeout | null = null;
-
-      // Set timeout for server startup
-      if (timeout > 0) {
-        timeoutId = setTimeout(() => {
-          this.killServer('ui');
-          reject(new Error(`UI server failed to start within ${timeout}ms`));
-        }, timeout);
-      }
-
-      // Monitor output for readiness indicators
-      const onData = (data: Buffer) => {
-        const text = data.toString();
-        output += text;
-        
-        if (!silent) {
-          console.log(`[UI] ${text.trim()}`);
-        }
-
-        // Look for Vite dev server ready indicators
-        if (text.includes('Local:') || text.includes('ready in')) {
-          server.ready = true;
-          if (timeoutId) clearTimeout(timeoutId);
-          this.servers.set('ui', server);
-          resolve(server);
-        }
-      };
-
-      childProcess.stdout?.on('data', onData);
-      childProcess.stderr?.on('data', onData);
-
-      childProcess.on('error', (error) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        reject(new Error(`UI server error: ${error.message}`));
-      });
-
-      childProcess.on('exit', (code) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        if (!server.ready) {
-          reject(new Error(`UI server exited with code ${code}`));
-        }
-      });
-    });
-  }
 
   /**
-   * Start both servers concurrently
+   * Kill the server
    */
-  async startBothServers(): Promise<{ pipeline: ServerInstance; ui: ServerInstance }> {
-    const [pipeline, ui] = await Promise.all([
-      this.startPipelineServer(),
-      this.startUIServer()
-    ]);
-
-    return { pipeline, ui };
-  }
-
-  /**
-   * Kill a specific server
-   */
-  killServer(name: string): void {
-    const server = this.servers.get(name);
-    if (server) {
-      server.childProcess.kill('SIGTERM');
+  killServer(): void {
+    if (this.server) {
+      this.server.childProcess.kill('SIGTERM');
       setTimeout(() => {
-        if (!server.childProcess.killed) {
-          server.childProcess.kill('SIGKILL');
+        if (this.server && !this.server.childProcess.killed) {
+          this.server.childProcess.kill('SIGKILL');
         }
       }, 5000);
-      this.servers.delete(name);
+      this.server = null;
     }
   }
 
   /**
-   * Kill all servers
+   * Get the server instance
    */
-  killAllServers(): void {
-    for (const [name] of this.servers) {
-      this.killServer(name);
-    }
-  }
-
-  /**
-   * Get server instance by name
-   */
-  getServer(name: string): ServerInstance | undefined {
-    return this.servers.get(name);
+  getServer(): ServerInstance | null {
+    return this.server;
   }
 
   /**
    * Check if server is running and ready
    */
-  isServerReady(name: string): boolean {
-    const server = this.servers.get(name);
-    return server?.ready ?? false;
+  isServerReady(): boolean {
+    return this.server?.ready ?? false;
   }
 
   /**
-   * Wait for a server to be ready
+   * Wait for the server to be ready
    */
-  async waitForServer(name: string, timeout: number = 30000): Promise<boolean> {
+  async waitForServer(timeout: number = 30000): Promise<boolean> {
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < timeout) {
-      if (this.isServerReady(name)) {
+      if (this.isServerReady()) {
         return true;
       }
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
+
     return false;
   }
 
   /**
-   * Test HTTP connectivity to a server
+   * Test HTTP connectivity to the server
    */
-  async testServerConnectivity(name: string): Promise<boolean> {
-    const server = this.servers.get(name);
-    if (!server) return false;
+  async testServerConnectivity(): Promise<boolean> {
+    if (!this.server) return false;
 
     try {
-      const response = await fetch(server.url);
+      const response = await fetch(this.server.url);
       return response.ok;
     } catch {
       return false;
@@ -273,9 +174,9 @@ export class ServerManager {
    * Cleanup all resources
    */
   async cleanup(): Promise<void> {
-    this.killAllServers();
-    
-    // Wait a bit for processes to terminate
+    this.killServer();
+
+    // Wait a bit for process to terminate
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 }

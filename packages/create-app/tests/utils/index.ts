@@ -16,4 +16,9 @@ export {
   type ServerInstance,
   type ServerManagerOptions
 } from './server-manager.js';
-export { PortManager } from './port-manager.js';
+export {
+  CLIHelper,
+  type CLITestResult,
+  type CLIValidationResult
+} from './cli-helper.js';
+
