@@ -2,30 +2,19 @@
   "name": "test-v3-development",
   "version": "1.0.0",
   "type": "module",
-  "description": "V3 Development Test Environment",
+  "description": "A Manifold Studio project",
   "scripts": {
-    "dev": "concurrently \"npm run dev:pipeline\" \"npm run dev:ui\"",
-    "dev:v3": "node ../packages/configurator/dist/cli/index.js dev --configurator-dev-mode",
-    "dev:pipeline": "vite build --config vite.pipeline.config.ts --watch",
-    "dev:ui": "vite",
-    "build": "npm run build:pipeline && npm run build:ui",
-    "build:pipeline": "vite build --config vite.pipeline.config.ts && npm run generate:manifest",
-    "build:ui": "vite build",
-    "generate:manifest": "tsx scripts/generate-manifest.ts",
-    "test": "vitest",
-    "test:pipeline": "npm run build:pipeline"
+    "dev": "manifold-dev",
+    "build": "echo 'Build not needed - CLI handles compilation'",
+    "test": "vitest"
   },
   "dependencies": {
-    "@manifold-studio/wrapper": "^1.0.0",
     "manifold-3d": "^3.1.1"
   },
   "devDependencies": {
+    "@manifold-studio/configurator": "file:../packages/configurator",
     "@types/node": "^20.0.0",
-    "concurrently": "^8.0.0",
-    "jsdom": "^24.0.0",
-    "tsx": "^4.20.3",
     "typescript": "^5.0.2",
-    "vite": "^4.4.5",
     "vitest": "^1.0.0"
   }
 }
