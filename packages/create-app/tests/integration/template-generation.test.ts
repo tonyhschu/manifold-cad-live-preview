@@ -19,7 +19,7 @@ describe('Template Generation', () => {
   describe('Basic Template', () => {
     it('should create project with correct file structure', async () => {
       const project = await ProjectCreator.createProject({
-        projectName: 'test-basic-structure',
+        name: 'test-basic-structure',
         template: 'basic',
         skipInstall: true
       });
@@ -41,7 +41,7 @@ describe('Template Generation', () => {
     it('should process Handlebars templates correctly', async () => {
       const projectName = 'test-handlebars-processing';
       const project = await ProjectCreator.createProject({
-        projectName,
+        name: projectName,
         template: 'basic',
         skipInstall: true
       });
@@ -59,8 +59,8 @@ describe('Template Generation', () => {
           }
         );
 
-        expect(packageJsonValidation.valid).toBe(true);
-        if (!packageJsonValidation.valid) {
+        expect(packageJsonValidation.isValid).toBe(true);
+        if (!packageJsonValidation.isValid) {
           expect.fail(`Package.json validation failed: ${packageJsonValidation.error}`);
         }
 
@@ -82,7 +82,7 @@ describe('Template Generation', () => {
 
     it('should create all required files', async () => {
       const project = await ProjectCreator.createProject({
-        projectName: 'test-required-files',
+        name: 'test-required-files',
         template: 'basic',
         skipInstall: true
       });
@@ -90,21 +90,14 @@ describe('Template Generation', () => {
       try {
         const { FileValidator } = await import('../utils/index.js');
         
-        // Define all files that should exist
+        // Define all files that should exist (CLI-based architecture)
         const requiredFiles = [
           'package.json',
           'tsconfig.json',
           'vite.config.ts',
-          'vite.pipeline.config.ts',
-          'pipeline-entry.ts',
-          'index.html',
           'main.ts',
-          'src/main.ts',
           'components/example.ts',
           'components/wheel.ts',
-          'vite-plugins/pipeline-hmr.ts',
-          'vite-plugins/manifest-generator.ts',
-          'scripts/generate-manifest.ts',
           'README.md'
         ];
 
@@ -123,7 +116,7 @@ describe('Template Generation', () => {
 
     it('should have valid package.json with correct dependencies', async () => {
       const project = await ProjectCreator.createProject({
-        projectName: 'test-package-json',
+        name: 'test-package-json',
         template: 'basic',
         skipInstall: true
       });
@@ -142,16 +135,23 @@ describe('Template Generation', () => {
               }
             }
 
-            // Check required scripts
-            const requiredScripts = ['dev', 'build:pipeline', 'build:ui'];
+            // Check required scripts for CLI-based architecture
+            const requiredScripts = ['dev', 'test'];
             for (const script of requiredScripts) {
               if (!data.scripts[script]) {
                 return `Missing required script: ${script}`;
               }
             }
 
+            // Validate CLI-based scripts
+            if (data.scripts.dev !== 'manifold-dev dev') {
+              return `dev script should be "manifold-dev dev", got "${data.scripts.dev}"`;
+            }
+            if (data.scripts.test !== 'vitest') {
+              return `test script should be "vitest", got "${data.scripts.test}"`;
+            }
+
             // Check required dependencies
-            // NOTE: During source-based development, @manifold-studio packages are imported via Vite aliases
             const requiredDeps = [
               'manifold-3d'
             ];
@@ -161,8 +161,8 @@ describe('Template Generation', () => {
               }
             }
 
-            // Check required dev dependencies
-            const requiredDevDeps = ['typescript', 'vite', 'concurrently'];
+            // Check required dev dependencies for CLI-based architecture
+            const requiredDevDeps = ['@manifold-studio/configurator', 'typescript', 'vitest'];
             for (const dep of requiredDevDeps) {
               if (!data.devDependencies[dep]) {
                 return `Missing required dev dependency: ${dep}`;
@@ -173,8 +173,8 @@ describe('Template Generation', () => {
           }
         );
 
-        expect(validation.valid).toBe(true);
-        if (!validation.valid) {
+        expect(validation.isValid).toBe(true);
+        if (!validation.isValid) {
           expect.fail(`Package.json validation failed: ${validation.error}`);
         }
       } finally {
@@ -184,7 +184,7 @@ describe('Template Generation', () => {
 
     it('should have valid TypeScript configuration', async () => {
       const project = await ProjectCreator.createProject({
-        projectName: 'test-typescript-config',
+        name: 'test-typescript-config',
         template: 'basic',
         skipInstall: true
       });
@@ -211,8 +211,8 @@ describe('Template Generation', () => {
           }
         );
 
-        expect(validation.valid).toBe(true);
-        if (!validation.valid) {
+        expect(validation.isValid).toBe(true);
+        if (!validation.isValid) {
           expect.fail(`TypeScript config validation failed: ${validation.error}`);
         }
       } finally {
@@ -222,7 +222,7 @@ describe('Template Generation', () => {
 
     it('should have valid Vite configurations', async () => {
       const project = await ProjectCreator.createProject({
-        projectName: 'test-vite-config',
+        name: 'test-vite-config',
         template: 'basic',
         skipInstall: true
       });
@@ -241,18 +241,6 @@ describe('Template Generation', () => {
         if (!viteConfigValidation.valid) {
           expect.fail('vite.config.ts should contain defineConfig');
         }
-
-        // Check pipeline vite config exists
-        const pipelineConfigValidation = await FileValidator.validateFileContent(
-          `${project.path}/vite.pipeline.config.ts`,
-          /defineConfig/,
-          { partial: true }
-        );
-
-        expect(pipelineConfigValidation.valid).toBe(true);
-        if (!pipelineConfigValidation.valid) {
-          expect.fail('vite.pipeline.config.ts should contain defineConfig');
-        }
       } finally {
         await project.cleanup();
       }
@@ -264,7 +252,7 @@ describe('Template Generation', () => {
       // Test with invalid characters
       await expect(
         ProjectCreator.createProject({
-          projectName: 'invalid/project/name',
+          name: 'invalid/project/name',
           skipInstall: true
         })
       ).rejects.toThrow();
@@ -273,7 +261,7 @@ describe('Template Generation', () => {
     it('should handle non-existent templates gracefully', async () => {
       await expect(
         ProjectCreator.createProject({
-          projectName: 'test-invalid-template',
+          name: 'test-invalid-template',
           template: 'non-existent-template',
           skipInstall: true
         })

@@ -162,21 +162,14 @@ export class ProjectCreator {
   ): Promise<{ valid: boolean; errors: string[] }> {
     const errors: string[] = [];
 
-    // Define expected files for basic template
+    // Define expected files for basic template (CLI-based architecture)
     const expectedFiles = [
       'package.json',
       'tsconfig.json',
       'vite.config.ts',
-      'vite.pipeline.config.ts',
-      'pipeline-entry.ts',
-      'index.html',
       'main.ts',
-      'src/main.ts',
       'components/example.ts',
       'components/wheel.ts',
-      'vite-plugins/pipeline-hmr.ts',
-      'vite-plugins/manifest-generator.ts',
-      'scripts/generate-manifest.ts',
       'README.md'
     ];
 
@@ -187,7 +180,7 @@ export class ProjectCreator {
       errors.push(...fileValidation.errors);
     }
 
-    // Validate package.json structure
+    // Validate package.json structure for CLI-based architecture
     const packageJsonPath = join(projectPath, 'package.json');
     const packageValidation = await FileValidator.validateJsonFile(
       packageJsonPath,
@@ -195,35 +188,58 @@ export class ProjectCreator {
         if (!data.name) return 'package.json missing name field';
         if (!data.scripts) return 'package.json missing scripts field';
         if (!data.scripts.dev) return 'package.json missing dev script';
-        if (!data.scripts['build:pipeline']) return 'package.json missing build:pipeline script';
-        if (!data.scripts['build:ui']) return 'package.json missing build:ui script';
+        if (!data.scripts.test) return 'package.json missing test script';
         if (!data.dependencies) return 'package.json missing dependencies field';
-        
-        // Check for required dependencies
-        // NOTE: During source-based development, @manifold-studio packages are imported via Vite aliases
-        // Only manifold-3d is required as a runtime dependency
+        if (!data.devDependencies) return 'package.json missing devDependencies field';
+
+        // Validate CLI-based scripts
+        if (data.scripts.dev !== 'manifold-dev dev') {
+          return `package.json dev script should be "manifold-dev dev", got "${data.scripts.dev}"`;
+        }
+        if (data.scripts.test !== 'vitest') {
+          return `package.json test script should be "vitest", got "${data.scripts.test}"`;
+        }
+
+        // Check for required runtime dependencies
         const requiredDeps = [
           'manifold-3d'
         ];
-        
+
         for (const dep of requiredDeps) {
           if (!data.dependencies[dep]) {
             return `package.json missing required dependency: ${dep}`;
           }
         }
-        
+
+        // Check for required dev dependencies (note: configurator path will be different in generated projects)
+        const requiredDevDeps = [
+          'typescript',
+          'vitest'
+        ];
+
+        for (const dep of requiredDevDeps) {
+          if (!data.devDependencies[dep]) {
+            return `package.json missing required devDependency: ${dep}`;
+          }
+        }
+
+        // Check that configurator dependency exists (path may vary)
+        if (!data.devDependencies['@manifold-studio/configurator']) {
+          return 'package.json missing required devDependency: @manifold-studio/configurator';
+        }
+
         return true;
       }
     );
 
-    if (!packageValidation.valid) {
+    if (!packageValidation.isValid) {
       errors.push(`Package.json validation failed: ${packageValidation.error}`);
     }
 
     // Validate TypeScript config
     const tsconfigPath = join(projectPath, 'tsconfig.json');
     const tsconfigValidation = await FileValidator.validateJsonFile(tsconfigPath);
-    if (!tsconfigValidation.valid) {
+    if (!tsconfigValidation.isValid) {
       errors.push(`tsconfig.json validation failed: ${tsconfigValidation.error}`);
     }
 
@@ -234,43 +250,50 @@ export class ProjectCreator {
   }
 
   /**
-   * Test that a project can build successfully
+   * Test that a project can work with the CLI development server
    */
-  static async testProjectBuild(
+  static async testProjectCLI(
     projectPath: string,
-    timeout = 120000
+    timeout = 10000
   ): Promise<{ success: boolean; errors: string[] }> {
     const errors: string[] = [];
 
     try {
-      // Test pipeline build
-      console.log('🔧 Testing pipeline build...');
-      const pipelineBuild = await ProcessRunner.npmRun('build:pipeline', projectPath, { timeout });
-      if (!pipelineBuild.success) {
-        errors.push(`Pipeline build failed: ${pipelineBuild.stderr}`);
+      // Test that manifold-dev command is available by running help
+      console.log('🔧 Testing CLI availability...');
+
+      const helpResult = await ProcessRunner.run('npx', ['manifold-dev', '--help'], {
+        cwd: projectPath,
+        timeout: 10000,
+        silent: true
+      });
+
+      if (!helpResult.success) {
+        errors.push(`CLI not available: ${helpResult.stderr}`);
+        return { success: false, errors };
       }
 
-      // Test UI build
-      console.log('🔧 Testing UI build...');
-      const uiBuild = await ProcessRunner.npmRun('build:ui', projectPath, { timeout });
-      if (!uiBuild.success) {
-        errors.push(`UI build failed: ${uiBuild.stderr}`);
+      // Test that the project structure is valid for CLI
+      console.log('🔧 Testing project structure for CLI compatibility...');
+
+      // Check that main.ts exists and has valid content
+      const mainTsPath = join(projectPath, 'main.ts');
+      const mainTsValidation = await FileValidator.validate(mainTsPath);
+      if (!mainTsValidation.exists || !mainTsValidation.isFile) {
+        errors.push('main.ts file missing - required for CLI model discovery');
       }
 
-      // Check that build artifacts exist
-      const expectedArtifacts = [
-        'temp/pipeline.js',
-        'temp/manifest.json',
-        'dist/index.html'
-      ];
-
-      const artifactValidation = await FileValidator.validateFilesExist(projectPath, expectedArtifacts);
-      if (!artifactValidation.valid) {
-        errors.push(...artifactValidation.missing.map(f => `Missing build artifact: ${f}`));
+      // Check that components directory exists
+      const componentsPath = join(projectPath, 'components');
+      const componentsDirValidation = await FileValidator.validate(componentsPath);
+      if (!componentsDirValidation.exists || !componentsDirValidation.isDirectory) {
+        errors.push('components/ directory missing - required for CLI model discovery');
       }
+
+      console.log('✅ CLI compatibility test completed');
 
     } catch (error) {
-      errors.push(`Build test failed: ${error}`);
+      errors.push(`CLI test failed: ${error}`);
     }
 
     return {
