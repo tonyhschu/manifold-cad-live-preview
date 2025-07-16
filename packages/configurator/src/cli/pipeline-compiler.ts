@@ -92,11 +92,20 @@ export async function createPipelineCompiler(options: PipelineCompilerOptions): 
   };
   
   // Create the Vite dev server
-  const server = await createServer(viteConfig);
-  
-  // Start the server
-  await server.listen();
-  
+  let server;
+  try {
+    server = await createServer(viteConfig);
+    // Start the server
+    await server.listen();
+  } catch (error: any) {
+    if (error.code === 'EADDRINUSE' || error.message?.includes('already in use')) {
+      const portError = new Error(`Port ${port} is already in use`);
+      (portError as any).code = 'EADDRINUSE';
+      throw portError;
+    }
+    throw error;
+  }
+
   const serverInfo = server.config.logger.info;
   console.log(`🔧 Pipeline compiler running on http://localhost:${port}`);
   

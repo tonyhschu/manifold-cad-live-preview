@@ -65,6 +65,7 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
     root: userProjectPath,
     server: {
       port,
+      strictPort: true, // Fail if port is already in use
       fs: {
         allow: ['..', '.'] // Allow serving files from parent directories
       },
@@ -117,9 +118,11 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
   }
 
   // Create Vite server with custom middleware for template serving
-  const server = await createServer({
-    ...viteConfig,
-    plugins: [
+  let server;
+  try {
+    server = await createServer({
+      ...viteConfig,
+      plugins: [
       {
         name: 'manifold-template-server',
         configureServer(server) {
@@ -180,10 +183,18 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
     ]
   });
 
-  await server.listen();
-  
+    await server.listen();
+  } catch (error: any) {
+    if (error.code === 'EADDRINUSE' || error.message?.includes('already in use')) {
+      const portError = new Error(`Port ${port} is already in use`);
+      (portError as any).code = 'EADDRINUSE';
+      throw portError;
+    }
+    throw error;
+  }
+
   const actualPort = server.config.server.port || port;
-  
+
   if (verbose) {
     console.log(`✅ Template server started on port ${actualPort}`);
   }
