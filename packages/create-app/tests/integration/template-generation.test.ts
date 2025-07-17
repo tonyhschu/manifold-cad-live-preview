@@ -144,8 +144,8 @@ describe('Template Generation', () => {
             }
 
             // Validate CLI-based scripts
-            if (data.scripts.dev !== 'manifold-dev dev') {
-              return `dev script should be "manifold-dev dev", got "${data.scripts.dev}"`;
+            if (data.scripts.dev !== 'manifold-studio dev') {
+              return `dev script should be "manifold-studio dev", got "${data.scripts.dev}"`;
             }
             if (data.scripts.test !== 'vitest') {
               return `test script should be "vitest", got "${data.scripts.test}"`;

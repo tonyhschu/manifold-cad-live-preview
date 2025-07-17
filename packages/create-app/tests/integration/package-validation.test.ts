@@ -162,8 +162,8 @@ describe('Package.json Validation', () => {
         // Check that script commands reference valid executables/files
         const scripts = packageData.scripts;
 
-        // Dev script should use manifold-dev CLI
-        expect(scripts.dev).toContain('manifold-dev');
+        // Dev script should use manifold-studio CLI
+        expect(scripts.dev).toContain('manifold-studio');
 
         // Build script should exist (even if it's a placeholder)
         expect(scripts.build).toBeDefined();

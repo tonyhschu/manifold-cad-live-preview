@@ -15,7 +15,7 @@ This package provides both a **library** and a **CLI tool**:
 
 ```mermaid
 graph TD
-    A[User runs: npm run dev] --> B[manifold-dev CLI]
+    A[User runs: npm run dev] --> B[manifold-studio CLI]
     B --> C[Model Discovery]
     C --> D[Pipeline Generation]
     D --> E[Pipeline Compiler Server :3001]
@@ -136,7 +136,7 @@ npm run dev
 
 # The CLI automatically detects development mode and enables configurator source imports
 # Manual override (if auto-detection fails):
-manifold-dev dev --configurator-dev-mode
+manifold-studio dev --configurator-dev-mode
 ```
 
 ## Library Usage

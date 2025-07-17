@@ -6,7 +6,7 @@ import { devCommand } from './commands/dev.js';
 const program = new Command();
 
 program
-  .name('manifold-dev')
+  .name('manifold-studio')
   .description('Manifold Studio development server')
   .version('1.0.0');
 

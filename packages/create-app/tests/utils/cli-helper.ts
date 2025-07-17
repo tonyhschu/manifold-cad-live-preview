@@ -16,17 +16,17 @@ export interface CLIValidationResult {
 }
 
 /**
- * CLI Helper for testing manifold-dev CLI functionality
+ * CLI Helper for testing manifold-studio CLI functionality
  * Provides common patterns for testing CLI commands and validation
  */
 export class CLIHelper {
   /**
-   * Test if manifold-dev CLI is available and working
+   * Test if manifold-studio CLI is available and working
    */
   static async testCLIAvailability(projectPath: string, timeout: number = 30000): Promise<CLIValidationResult> {
     try {
       const startTime = Date.now();
-      const result = await ProcessRunner.run('npx', ['manifold-dev', '--help'], {
+      const result = await ProcessRunner.run('npx', ['manifold-studio', '--help'], {
         cwd: projectPath,
         timeout
       });
@@ -67,7 +67,7 @@ export class CLIHelper {
     
     try {
       const startTime = Date.now();
-      const result = await ProcessRunner.run('npx', ['manifold-dev', ...args], {
+      const result = await ProcessRunner.run('npx', ['manifold-studio', ...args], {
         cwd: projectPath,
         timeout
       });
@@ -108,16 +108,16 @@ export class CLIHelper {
       if (!scripts.dev) {
         return 'Missing dev script';
       }
-      if (!scripts.dev.includes('manifold-dev')) {
-        return `Dev script should use manifold-dev, got: "${scripts.dev}"`;
+      if (!scripts.dev.includes('manifold-studio')) {
+        return `Dev script should use manifold-studio, got: "${scripts.dev}"`;
       }
       if (!scripts.dev.includes('dev')) {
         return `Dev script should include dev subcommand, got: "${scripts.dev}"`;
       }
 
       // Check that expected script format is correct
-      if (scripts.dev !== 'manifold-dev dev') {
-        return `Dev script should be "manifold-dev dev", got: "${scripts.dev}"`;
+      if (scripts.dev !== 'manifold-studio dev') {
+        return `Dev script should be "manifold-studio dev", got: "${scripts.dev}"`;
       }
 
       // Check test script (should use vitest)
@@ -147,7 +147,7 @@ export class CLIHelper {
    * This tests that the command can be invoked and shows expected help/usage
    */
   static async testCLIDevServerCommand(projectPath: string): Promise<CLIValidationResult> {
-    // Test that 'manifold-dev dev --help' works
+    // Test that 'manifold-studio dev --help' works
     const result = await this.testCLICommand(projectPath, ['dev', '--help']);
     
     if (!result.success) {

@@ -23,7 +23,7 @@ describe('CLI Development System Testing', () => {
         console.log('🔧 Testing CLI development server startup...');
 
         // Test that the CLI command exists and can be invoked
-        const helpResult = await ProcessRunner.run('npx', ['manifold-dev', '--help'], {
+        const helpResult = await ProcessRunner.run('npx', ['manifold-studio', '--help'], {
           cwd: project.path,
           timeout: 30000
         });
@@ -125,7 +125,7 @@ describe('CLI Development System Testing', () => {
           (data) => {
             if (!data.scripts) return 'Package.json missing scripts';
             if (!data.scripts.dev) return 'Package.json missing dev script';
-            if (!data.scripts.dev.includes('manifold-dev')) return 'Dev script should use manifold-dev';
+            if (!data.scripts.dev.includes('manifold-studio')) return 'Dev script should use manifold-studio';
             return true;
           }
         );
@@ -213,8 +213,8 @@ describe('CLI Development System Testing', () => {
             if (!data.scripts?.dev) return 'Missing dev script';
 
             const devScript = data.scripts.dev;
-            if (!devScript.includes('manifold-dev')) {
-              return 'Dev script should use manifold-dev command';
+            if (!devScript.includes('manifold-studio')) {
+              return 'Dev script should use manifold-studio command';
             }
 
             if (!devScript.includes('dev')) {
@@ -318,8 +318,8 @@ describe('CLI Development System Testing', () => {
       try {
         console.log('🔧 Testing CLI command availability...');
 
-        // Test that manifold-dev command can be found and shows help
-        const helpResult = await ProcessRunner.run('npx', ['manifold-dev', '--help'], {
+        // Test that manifold-studio command can be found and shows help
+        const helpResult = await ProcessRunner.run('npx', ['manifold-studio', '--help'], {
           cwd: project.path,
           timeout: 30000
         });
@@ -426,7 +426,7 @@ describe('CLI Development System Testing', () => {
         const startTime = Date.now();
 
         // Test CLI help command performance (should be fast)
-        const helpResult = await ProcessRunner.run('npx', ['manifold-dev', '--help'], {
+        const helpResult = await ProcessRunner.run('npx', ['manifold-studio', '--help'], {
           cwd: project.path,
           timeout: 30000 // 30 seconds max
         });

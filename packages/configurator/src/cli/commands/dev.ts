@@ -43,7 +43,7 @@ function handleServerError(error: any, port: number, serverType: string): never 
     console.error(`\n❌ Port ${port} is already in use for ${serverType}`);
     console.error(`\n💡 Solutions:`);
     console.error(`   1. Stop the process using port ${port}`);
-    console.error(`   2. Use a different port: manifold-dev dev --${serverType === 'UI server' ? 'port' : 'pipeline-port'} ${port + 1}`);
+    console.error(`   2. Use a different port: manifold-studio dev --${serverType === 'UI server' ? 'port' : 'pipeline-port'} ${port + 1}`);
     console.error(`   3. Find what's using the port: lsof -ti:${port}`);
     process.exit(1);
   }
@@ -51,8 +51,8 @@ function handleServerError(error: any, port: number, serverType: string): never 
   if (error.code === 'EACCES') {
     console.error(`\n❌ Permission denied for ${serverType} on port ${port}`);
     console.error(`\n💡 Solutions:`);
-    console.error(`   1. Use a port above 1024: manifold-dev dev --${serverType === 'UI server' ? 'port' : 'pipeline-port'} ${port < 1024 ? 3000 + Math.floor(Math.random() * 1000) : port + 1}`);
-    console.error(`   2. Run with elevated permissions (not recommended): sudo manifold-dev dev`);
+    console.error(`   1. Use a port above 1024: manifold-studio dev --${serverType === 'UI server' ? 'port' : 'pipeline-port'} ${port < 1024 ? 3000 + Math.floor(Math.random() * 1000) : port + 1}`);
+    console.error(`   2. Run with elevated permissions (not recommended): sudo manifold-studio dev`);
     console.error(`   3. Check your system's port restrictions`);
     process.exit(1);
   }
@@ -82,7 +82,7 @@ function handleServerError(error: any, port: number, serverType: string): never 
     console.error(`📋 Error code: ${error.code}`);
   }
   console.error(`\n💡 Try:`);
-  console.error(`   1. Use a different port: manifold-dev dev --${serverType === 'UI server' ? 'port' : 'pipeline-port'} ${port + 1}`);
+  console.error(`   1. Use a different port: manifold-studio dev --${serverType === 'UI server' ? 'port' : 'pipeline-port'} ${port + 1}`);
   console.error(`   2. Check system resources and network configuration`);
   console.error(`   3. Restart your development environment`);
   process.exit(1);
@@ -99,21 +99,21 @@ function validateCliArguments(options: DevCommandOptions): void {
   if (isNaN(uiPort) || uiPort < 1 || uiPort > 65535) {
     console.error(`\n❌ Invalid UI server port: ${options.port}`);
     console.error(`\n💡 Port must be a number between 1 and 65535`);
-    console.error(`   Example: manifold-dev dev --port 3000`);
+    console.error(`   Example: manifold-studio dev --port 3000`);
     process.exit(1);
   }
 
   if (isNaN(pipelinePort) || pipelinePort < 1 || pipelinePort > 65535) {
     console.error(`\n❌ Invalid pipeline server port: ${options.pipelinePort}`);
     console.error(`\n💡 Port must be a number between 1 and 65535`);
-    console.error(`   Example: manifold-dev dev --pipeline-port 3001`);
+    console.error(`   Example: manifold-studio dev --pipeline-port 3001`);
     process.exit(1);
   }
 
   if (uiPort === pipelinePort) {
     console.error(`\n❌ UI server and pipeline server cannot use the same port: ${uiPort}`);
     console.error(`\n💡 Use different ports for each server`);
-    console.error(`   Example: manifold-dev dev --port 3000 --pipeline-port 3001`);
+    console.error(`   Example: manifold-studio dev --port 3000 --pipeline-port 3001`);
     process.exit(1);
   }
 
@@ -133,7 +133,7 @@ function validateCliArguments(options: DevCommandOptions): void {
 
 /**
  * Main dev command implementation
- * This is the entry point for `manifold-dev dev`
+ * This is the entry point for `manifold-studio dev`
  */
 export async function devCommand(options: DevCommandOptions) {
   console.log('🚀 Starting Manifold Studio development server...');

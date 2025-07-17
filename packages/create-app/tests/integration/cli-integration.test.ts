@@ -56,7 +56,7 @@ describe('CLI Integration Tests', () => {
       const cliValidation = await CLIHelper.testCLIAvailability(project.path);
       expect(cliValidation.isValid).toBe(true);
 
-      // Step 3: Start CLI server (manifold-dev dev)
+      // Step 3: Start CLI server (manifold-studio dev)
       console.log('🚀 Starting CLI development server...');
       serverManager = new ServerManager({
         projectPath: project.path,

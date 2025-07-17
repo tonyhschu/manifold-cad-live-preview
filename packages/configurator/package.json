@@ -5,7 +5,7 @@
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
   "bin": {
-    "manifold-dev": "dist/cli/index.js"
+    "manifold-studio": "dist/cli/index.js"
   },
   "files": [
     "dist/lib",

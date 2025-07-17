@@ -193,8 +193,8 @@ export class ProjectCreator {
         if (!data.devDependencies) return 'package.json missing devDependencies field';
 
         // Validate CLI-based scripts
-        if (data.scripts.dev !== 'manifold-dev dev') {
-          return `package.json dev script should be "manifold-dev dev", got "${data.scripts.dev}"`;
+        if (data.scripts.dev !== 'manifold-studio dev') {
+          return `package.json dev script should be "manifold-studio dev", got "${data.scripts.dev}"`;
         }
         if (data.scripts.test !== 'vitest') {
           return `package.json test script should be "vitest", got "${data.scripts.test}"`;
@@ -259,10 +259,10 @@ export class ProjectCreator {
     const errors: string[] = [];
 
     try {
-      // Test that manifold-dev command is available by running help
+      // Test that manifold-studio command is available by running help
       console.log('🔧 Testing CLI availability...');
 
-      const helpResult = await ProcessRunner.run('npx', ['manifold-dev', '--help'], {
+      const helpResult = await ProcessRunner.run('npx', ['manifold-studio', '--help'], {
         cwd: projectPath,
         timeout: 10000,
         silent: true

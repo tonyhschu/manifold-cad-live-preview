@@ -21,7 +21,7 @@ export interface ServerManagerOptions {
 
 /**
  * Manages CLI development server for testing
- * Handles starting/stopping the unified manifold-dev server with proper cleanup
+ * Handles starting/stopping the unified manifold-studio server with proper cleanup
  */
 export class ServerManager {
   private server: ServerInstance | null = null;
@@ -38,7 +38,7 @@ export class ServerManager {
   }
 
   /**
-   * Start the CLI development server (manifold-dev dev)
+   * Start the CLI development server (manifold-studio dev)
    */
   async startServer(): Promise<ServerInstance> {
     const { projectPath, uiPort, pipelinePort, timeout, silent } = this.options;
@@ -48,7 +48,7 @@ export class ServerManager {
     }
 
     return new Promise((resolve, reject) => {
-      const childProcess = spawn('npx', ['manifold-dev', 'dev', '--port', uiPort.toString(), '--pipeline-port', pipelinePort.toString()], {
+      const childProcess = spawn('npx', ['manifold-studio', 'dev', '--port', uiPort.toString(), '--pipeline-port', pipelinePort.toString()], {
         cwd: projectPath,
         env: {
           ...process.env,

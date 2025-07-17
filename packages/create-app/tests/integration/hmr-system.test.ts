@@ -52,7 +52,7 @@ describe('CLI HMR System Tests', () => {
       console.log('🚀 Testing CLI development server startup...');
 
       // Test that CLI command is available
-      const helpResult = await ProcessRunner.run('npx', ['manifold-dev', '--help'], { cwd: project.path, timeout: 10000 });
+      const helpResult = await ProcessRunner.run('npx', ['manifold-studio', '--help'], { cwd: project.path, timeout: 10000 });
       expect(helpResult.success).toBe(true);
       expect(helpResult.stdout.toLowerCase()).toContain('development server');
 
@@ -76,8 +76,8 @@ describe('CLI HMR System Tests', () => {
       const packageValidation = await FileValidator.validateJsonFile(
         join(project.path, 'package.json'),
         (data) => {
-          if (!data.scripts?.dev?.includes('manifold-dev')) {
-            return 'package.json missing manifold-dev dev script';
+          if (!data.scripts?.dev?.includes('manifold-studio')) {
+            return 'package.json missing manifold-studio dev script';
           }
           return null;
         }
@@ -275,11 +275,11 @@ describe('CLI HMR System Tests', () => {
       console.log('🔧 Testing CLI command error handling...');
 
       // Test invalid CLI command
-      const invalidResult = await ProcessRunner.run('npx', ['manifold-dev', 'invalid-command'], { cwd: project.path, timeout: 10000 });
+      const invalidResult = await ProcessRunner.run('npx', ['manifold-studio', 'invalid-command'], { cwd: project.path, timeout: 10000 });
       expect(invalidResult.success).toBe(false);
 
       // Test that help command still works
-      const helpResult = await ProcessRunner.run('npx', ['manifold-dev', '--help'], { cwd: project.path, timeout: 10000 });
+      const helpResult = await ProcessRunner.run('npx', ['manifold-studio', '--help'], { cwd: project.path, timeout: 10000 });
       expect(helpResult.success).toBe(true);
       expect(helpResult.stdout.toLowerCase()).toContain('development server');
 
