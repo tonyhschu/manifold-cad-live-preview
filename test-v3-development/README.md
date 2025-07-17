@@ -15,9 +15,10 @@ npm run dev
 ```
 
 This starts the Manifold Studio CLI which automatically:
+
 - **Discovers Models**: Finds your models (`main.ts` + `components/*.ts`)
 - **Compiles Pipeline**: Generates pipeline entries automatically
-- **Starts Servers**: UI server (port 5173) and pipeline compiler (port 3001)
+- **Starts Servers**: UI server (port 3000) and pipeline compiler (port 3001)
 - **Watches Files**: Updates automatically when you change model files
 - **Live Preview**: Opens your browser with real-time 3D rendering
 - **Parameter Controls**: Adjust model parameters using the control panel
@@ -44,6 +45,7 @@ Simply add TypeScript files to your project - the CLI discovers them automatical
 4. **No manual setup**: No need to edit pipeline files or configuration
 
 Example model structure:
+
 ```typescript
 // components/my-part.ts
 declare const manifold: any;
@@ -57,9 +59,9 @@ export default {
   description: "A customizable part",
   parameters: {
     width: { value: 10, min: 1, max: 50, step: 1 },
-    height: { value: 10, min: 1, max: 50, step: 1 }
+    height: { value: 10, min: 1, max: 50, step: 1 },
   },
-  generateModel: createMyPart
+  generateModel: createMyPart,
 };
 ```
 
@@ -113,8 +115,8 @@ npm install mathjs
 Then import and use them in your model:
 
 ```javascript
-import * as d3 from 'd3';
-import { evaluate } from 'mathjs';
+import * as d3 from "d3";
+import { evaluate } from "mathjs";
 ```
 
 Happy modeling! 🎨

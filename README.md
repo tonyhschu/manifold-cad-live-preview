@@ -19,7 +19,7 @@ npm run dev
 This single command automatically:
 
 - **Discovers your models** (main.ts + components/)
-- **Starts dual servers** (UI server + pipeline compiler)
+- **Starts development servers** (UI server on port 3000 + pipeline compiler on port 3001)
 - **Watches for changes** and regenerates pipeline entries
 - **Opens browser** with live 3D preview and parameter controls
 
@@ -206,7 +206,7 @@ The browser mode provides a live development environment with instant feedback:
    npm run dev
    ```
 
-2. **Open your browser** to the displayed URL (typically `http://localhost:5173`)
+2. **Open your browser** to the displayed URL (typically `http://localhost:3000`)
 
 3. **Select a model** from the dropdown to see it rendered in 3D
 

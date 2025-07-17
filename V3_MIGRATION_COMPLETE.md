@@ -7,6 +7,7 @@ The V3 migration has been successfully completed! The configurator package has b
 ## What Was Accomplished
 
 ### ✅ Phase 1: Set up create-app development environment
+
 - **Added dual-server scripts** to `packages/create-app/package.json`
 - **Installed required dependencies**: concurrently, tsx, vite, jsdom, manifold-3d
 - **Created Vite configurations**: `vite.config.ts` and `vite.pipeline.config.ts`
@@ -16,12 +17,14 @@ The V3 migration has been successfully completed! The configurator package has b
 - **Verified development environment**: Successfully runs dual-server setup with HMR
 
 ### ✅ Phase 2: Update configurator package
+
 - **Removed standalone development capabilities**: Eliminated `dev`, `build:app`, `preview` scripts
 - **Simplified to library-only**: Only `build` (library), `test`, and `test:watch` scripts remain
 - **Removed standalone files**: index.html, src/main.ts, vite.config.js
 - **Maintained library functionality**: All core configurator features preserved
 
 ### ✅ Phase 3: Update documentation
+
 - **Created configurator README**: Documents library-only development workflow
 - **Updated create-app README**: Added configurator development environment section
 - **Updated main project README**: Added V3 architecture and source-based development documentation
@@ -41,7 +44,7 @@ npm run dev
 # Edit configurator source files
 # Files in packages/configurator/src/ update immediately via HMR
 
-# View changes at http://localhost:5173
+# View changes at http://localhost:3000
 ```
 
 ### Key Benefits
@@ -54,16 +57,19 @@ npm run dev
 ## Technical Architecture
 
 ### Source-Based Development
+
 - **Vite aliases** point to source files: `@manifold-studio/configurator` → `../configurator/src`
 - **Direct TypeScript imports**: No intermediate build step required
 - **HMR across packages**: Vite handles hot reloading for cross-package imports
 
 ### Dual-Server Setup
+
 - **Pipeline server**: Compiles models into pipeline.js (port varies)
-- **UI server**: Serves configurator interface (port 5173)
+- **UI server**: Serves configurator interface (port 3000)
 - **Coordinated HMR**: Custom plugin handles pipeline updates
 
 ### File Structure
+
 ```
 packages/create-app/
 ├── src/main.ts              # Development environment entry point
@@ -83,6 +89,7 @@ packages/configurator/
 ## Migration Validation
 
 ### ✅ Proof of Concept Verified
+
 - **HMR works**: Changes to TypeScript files trigger browser updates
 - **Source imports work**: Configurator imported directly from source files
 - **Pipeline compilation works**: Models compile successfully to pipeline.js
@@ -90,6 +97,7 @@ packages/configurator/
 - **Development server works**: Dual-server setup runs without issues
 
 ### ✅ Development Environment Ready
+
 - All dependencies installed and configured
 - Example models available for testing
 - HMR system functional across package boundaries

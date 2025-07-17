@@ -384,11 +384,11 @@ Update error handling tests to work with the new CLI architecture and ensure com
 - [x] Proper exit codes and shutdown procedures
 - [x] User-friendly error messages with specific examples
 
-### Phase 8: CLI Integration Tests Update ❌ _Not Started_
+### Phase 8: CLI Integration Tests Update ⏳ _In Progress_
 
-**Status**: Pending
+**Status**: Ready to Start (Documentation Updated)
 **Estimated Effort**: Medium
-**Dependencies**: Phase 7
+**Dependencies**: Phase 7 ✅ Complete
 
 #### Objective
 
@@ -397,10 +397,10 @@ Add comprehensive CLI integration tests that validate the complete CLI workflow 
 #### Tasks
 
 - [ ] Audit existing CLI integration coverage
-- [ ] Add end-to-end CLI workflow tests
+- [ ] Add end-to-end CLI workflow tests (happy path: create project → start server → verify UI → make edit → verify pipeline triggers)
 - [ ] Test CLI command variations and options
 - [ ] Validate CLI output and user experience
-- [ ] Performance testing for CLI operations
+- [x] **Documentation Updates**: Updated all documentation to reflect current CLI architecture (UI: port 3000, Pipeline: port 3001)
 
 #### Success Criteria
 

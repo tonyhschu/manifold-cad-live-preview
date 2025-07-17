@@ -19,7 +19,7 @@ This document outlines the comprehensive testing strategy for `@manifold-studio/
 - ✅ **100% Test Success Rate**: All 11 HMR system tests passing (11/11)
 - ✅ **Performance Optimized**: 15% faster execution (98s → 83.57s) with 91% reduction in redundant operations
 - ✅ **Pipeline System Validation**: Complete testing of TypeScript compilation to temp/pipeline.js with manifest.json generation
-- ✅ **Dual-Server Architecture**: Full validation of pipeline server (port 3001+) and UI server (port 5173+) communication
+- ✅ **Dual-Server Architecture**: Full validation of pipeline server (port 3001+) and UI server (port 3000+) communication
 - ✅ **HMR System Testing**: File change detection, pipeline rebuilds, and cache busting validation
 - ✅ **Dynamic Port Management**: Zero-conflict port allocation for parallel test execution
 - ✅ **Shared Project Optimization**: Dependency caching eliminates redundant npm installs
@@ -138,7 +138,7 @@ This document outlines the comprehensive testing strategy for `@manifold-studio/
 ✅ Dual-Server Architecture (tests/integration/hmr-system.test.ts)
 - ✅ Both Vite servers start successfully
 - ✅ Pipeline server (port 3001+) builds and watches
-- ✅ UI server (port 5173+) serves and has HMR
+- ✅ UI server (port 3000+) serves and has HMR
 - ✅ Servers communicate correctly via HTTP endpoints
 - ✅ Dynamic port allocation prevents conflicts
 ```

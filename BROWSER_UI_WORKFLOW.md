@@ -22,6 +22,7 @@ In the V3 migration, we broke the `npm run dev` workflow inside the configurator
 ### Division of Responsibilities
 
 #### **Configurator Package** (`packages/configurator/`)
+
 - **Source of truth** for all UI JavaScript, CSS, and components
 - Contains configurator logic, styling, web components
 - Exports `startConfigurator()` API for library consumers
@@ -29,6 +30,7 @@ In the V3 migration, we broke the `npm run dev` workflow inside the configurator
 - **No development server** - relies on consumer projects for development environment
 
 #### **Create-App Package** (`packages/create-app/`)
+
 - **Development environment** for configurator UI changes
 - Contains V3 dual-server setup (pipeline compiler + UI server)
 - Has example models for testing configurator features
@@ -45,13 +47,15 @@ npm run dev
 ```
 
 This starts:
+
 - **Pipeline compiler** (watches model files, builds `/temp/pipeline.js`)
-- **UI server** (serves at localhost:5173 with HMR)
+- **UI server** (serves at localhost:3000 with HMR)
 - **Source-based imports** (configurator imported directly from `packages/configurator/src/`)
 
 ### 2. **Make UI Changes**
 
 Edit files in their original locations:
+
 - **JavaScript/TypeScript**: `packages/configurator/src/**/*.ts`
 - **CSS**: `packages/configurator/src/style.css`
 - **Components**: `packages/configurator/src/components/**/*`
@@ -86,11 +90,13 @@ resolve: {
 ```
 
 When `packages/create-app/src/main.ts` imports:
+
 ```typescript
-import { startConfigurator } from '@manifold-studio/configurator';
+import { startConfigurator } from "@manifold-studio/configurator";
 ```
 
 Vite resolves it to `packages/configurator/src/index.ts` directly, enabling:
+
 - ✅ **Immediate TypeScript compilation** via Vite
 - ✅ **Native HMR** for all configurator files
 - ✅ **No build chain complexity** during development
@@ -147,17 +153,20 @@ packages/
 ## Benefits of This Approach
 
 ### ✅ **Architectural Alignment**
+
 - Configurator remains library-only as designed
 - Development happens in real user project context
 - No duplication of V3 infrastructure
 
 ### ✅ **Developer Experience**
+
 - **Immediate feedback** - changes appear in <2 seconds
 - **Native HMR** - CSS updates without page refresh
 - **Real pipeline testing** - full V3 workflow available
 - **Familiar file locations** - edit configurator files where they live
 
 ### ✅ **Maintenance Benefits**
+
 - **Single source of truth** for V3 development setup
 - **No configuration drift** between development environments
 - **Real user context** ensures library works as intended
@@ -165,12 +174,14 @@ packages/
 ## Comparison to Alternatives
 
 ### ❌ **Option 1: Fix configurator dev command**
+
 - Would require duplicating entire V3 dual-server setup
 - Creates maintenance burden (two V3 configs to keep in sync)
 - Goes against library-only architecture principle
 - Needs separate example models for configurator development
 
 ### ✅ **Option 2: Development in create-app (chosen)**
+
 - Leverages existing working V3 setup
 - Aligns with library-only architecture
 - Single source of truth for development configuration
