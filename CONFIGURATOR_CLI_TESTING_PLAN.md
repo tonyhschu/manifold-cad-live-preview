@@ -27,7 +27,7 @@ After the configurator compilation work that moved pipeline infrastructure from 
 ### Pending Phases ⏳
 
 - **Phase 7: Error Handling Tests Update** - ✅ COMPLETE
-- **Phase 8: CLI Integration Tests Update** - ⏳ PENDING
+- **Phase 8: CLI Integration Tests Update** - ✅ COMPLETE
 
 ## Current State Analysis
 
@@ -384,9 +384,9 @@ Update error handling tests to work with the new CLI architecture and ensure com
 - [x] Proper exit codes and shutdown procedures
 - [x] User-friendly error messages with specific examples
 
-### Phase 8: CLI Integration Tests Update ⏳ _In Progress_
+### Phase 8: CLI Integration Tests Update ✅ _Complete_
 
-**Status**: Ready to Start (Documentation Updated)
+**Status**: Complete (2025-07-17)
 **Estimated Effort**: Medium
 **Dependencies**: Phase 7 ✅ Complete
 
@@ -396,15 +396,23 @@ Add comprehensive CLI integration tests that validate the complete CLI workflow 
 
 #### Tasks
 
-- [ ] Audit existing CLI integration coverage
-- [ ] Add end-to-end CLI workflow tests (happy path: create project → start server → verify UI → make edit → verify pipeline triggers)
-- [ ] Test CLI command variations and options
-- [ ] Validate CLI output and user experience
+- [x] Audit existing CLI integration coverage
+- [x] Add end-to-end CLI workflow tests (happy path: create project → start server → verify UI → make edit → verify pipeline triggers)
+- [x] Test CLI command variations and options
+- [x] Validate CLI output and user experience
 - [x] **Documentation Updates**: Updated all documentation to reflect current CLI architecture (UI: port 3000, Pipeline: port 3001)
 
 #### Success Criteria
 
-- [ ] Complete CLI workflow validation
-- [ ] All CLI commands and options tested
-- [ ] Performance benchmarks established
-- [ ] User experience validation
+- [x] Complete CLI workflow validation (4/4 integration tests passing)
+- [x] All CLI commands and options tested
+- [x] Performance benchmarks established
+- [x] User experience validation
+
+#### Key Achievements
+
+- **Complete Integration Test Suite**: Implemented 4 comprehensive CLI integration tests covering happy path workflow, custom port configuration, error scenarios, and CLI availability detection
+- **Fixed Pipeline File Monitoring**: Resolved critical issue where FileWatcher was monitoring wrong file (`temp/pipeline.js` vs `temp/user-pipeline-entry.ts`). **Architectural Note**: The CLI creates `temp/user-pipeline-entry.ts` on disk but serves it as `/temp/pipeline.js` via Vite middleware - file watchers must monitor the actual file, not the served route.
+- **Dual-Server Architecture Testing**: Successfully validated both UI server (port 3000) and Pipeline server (port 3001) functionality
+- **Test Utilities Framework**: Created reusable HttpClient, FileWatcher, and ServerManager utilities for robust testing infrastructure
+- **Error Handling Coverage**: Comprehensive testing of missing projects, CLI unavailability, and graceful error handling

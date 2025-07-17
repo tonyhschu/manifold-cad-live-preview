@@ -187,6 +187,7 @@ export async function devCommand(options: DevCommandOptions) {
     }
     
     // Step 4: Write pipeline entry to temp directory
+    // NOTE: Creates user-pipeline-entry.ts (actual file) which gets served as /temp/pipeline.js (route)
     const tempDir = path.join(userProjectPath, 'temp');
     const pipelineEntryPath = path.join(tempDir, 'user-pipeline-entry.ts');
     const manifestPath = path.join(tempDir, 'manifest.json');

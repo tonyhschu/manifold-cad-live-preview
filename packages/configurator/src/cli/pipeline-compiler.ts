@@ -136,9 +136,13 @@ function createPipelineCompilerPlugin(options: { verbose?: boolean }) {
       }
       
       // Add middleware to handle pipeline-specific routes
+      // IMPORTANT: File/Route mapping gotcha!
+      // - File on disk: temp/user-pipeline-entry.ts (TypeScript source)
+      // - Served route: /temp/pipeline.js (compiled JavaScript)
+      // This allows serving TypeScript as JavaScript without a build step
       server.middlewares.use('/temp/pipeline.js', async (req, res, next) => {
         try {
-          // Serve the compiled pipeline entry as JavaScript
+          // Transform TypeScript file to JavaScript on-the-fly
           const result = await server.transformRequest('/temp/user-pipeline-entry.ts');
           if (result) {
             res.setHeader('Content-Type', 'application/javascript');
@@ -175,6 +179,7 @@ function createPipelineCompilerPlugin(options: { verbose?: boolean }) {
     
     handleHotUpdate(ctx) {
       // Custom HMR handling for pipeline files
+      // NOTE: We monitor user-pipeline-entry.ts (the actual file), not pipeline.js (the served route)
       if (ctx.file.includes('user-pipeline-entry.ts')) {
         console.log('🔄 Pipeline entry updated, triggering rebuild...');
         // Let Vite handle the default HMR

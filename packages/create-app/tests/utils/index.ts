@@ -21,4 +21,14 @@ export {
   type CLITestResult,
   type CLIValidationResult
 } from './cli-helper.js';
+export {
+  HttpClient,
+  type HttpResponse,
+  type HttpRequestOptions
+} from './http-client.js';
+export {
+  FileWatcher,
+  type FileChangeResult,
+  type WatchOptions
+} from './file-watcher.js';
 

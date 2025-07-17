@@ -52,6 +52,21 @@ graph TD
 - **Dual Server Management**: Coordinates UI server and pipeline compiler
 - **File Watching**: Monitors model files for changes and regenerates pipeline
 
+### Pipeline File Architecture ⚠️ Important Gotcha
+
+The CLI uses a file/route mapping that can be confusing:
+
+- **File on disk**: `temp/user-pipeline-entry.ts` (TypeScript source)
+- **Served route**: `/temp/pipeline.js` (compiled JavaScript via Vite middleware)
+
+**Why this matters:**
+
+- File watchers must monitor `temp/user-pipeline-entry.ts` (the actual file)
+- HTTP requests go to `/temp/pipeline.js` (the served route)
+- The pipeline server transforms TypeScript to JavaScript on-the-fly
+
+This design allows the CLI to serve TypeScript files as JavaScript without requiring a separate build step, but the filename mismatch can be confusing for developers working on CLI internals or testing.
+
 ## Development Workflow
 
 ### CLI-Based Development

@@ -3,15 +3,18 @@ import { ProcessRunner, ProcessResult } from './process-runner.js';
 
 export interface ServerInstance {
   childProcess: ChildProcess;
-  port: number;
+  uiPort: number;
+  pipelinePort: number;
   name: string;
-  url: string;
+  uiUrl: string;
+  pipelineUrl: string;
   ready: boolean;
 }
 
 export interface ServerManagerOptions {
   projectPath: string;
-  port?: number;
+  uiPort?: number;
+  pipelinePort?: number;
   timeout?: number;
   silent?: boolean;
 }
@@ -26,7 +29,8 @@ export class ServerManager {
 
   constructor(options: ServerManagerOptions) {
     this.options = {
-      port: 5173,
+      uiPort: 3000,
+      pipelinePort: 3001,
       timeout: 30000,
       silent: false,
       ...options
@@ -37,18 +41,17 @@ export class ServerManager {
    * Start the CLI development server (manifold-dev dev)
    */
   async startServer(): Promise<ServerInstance> {
-    const { projectPath, port, timeout, silent } = this.options;
+    const { projectPath, uiPort, pipelinePort, timeout, silent } = this.options;
 
     if (!silent) {
-      console.log(`🚀 Starting CLI development server on port ${port}...`);
+      console.log(`🚀 Starting CLI development server (UI: ${uiPort}, Pipeline: ${pipelinePort})...`);
     }
 
     return new Promise((resolve, reject) => {
-      const childProcess = spawn('npx', ['manifold-dev', 'dev'], {
+      const childProcess = spawn('npx', ['manifold-dev', 'dev', '--port', uiPort.toString(), '--pipeline-port', pipelinePort.toString()], {
         cwd: projectPath,
         env: {
           ...process.env,
-          PORT: port.toString(),
           NODE_ENV: 'development'
         },
         stdio: ['pipe', 'pipe', 'pipe']
@@ -56,9 +59,11 @@ export class ServerManager {
 
       const server: ServerInstance = {
         childProcess,
-        port,
+        uiPort,
+        pipelinePort,
         name: 'cli-dev',
-        url: `http://localhost:${port}`,
+        uiUrl: `http://localhost:${uiPort}`,
+        pipelineUrl: `http://localhost:${pipelinePort}`,
         ready: false
       };
 
@@ -82,9 +87,14 @@ export class ServerManager {
           console.log(`[CLI-Dev] ${text.trim()}`);
         }
 
+        // Debug: Log what we're looking for vs what we got
+        if (text.includes('servers') || text.includes('started') || text.includes('✅')) {
+          console.log(`[DEBUG] Potential ready indicator: "${text.trim()}"`);
+        }
+
         // Look for CLI server ready indicators
-        // The CLI combines both pipeline compilation and UI server
-        if (text.includes('Local:') || text.includes('ready in') || text.includes('dev server running')) {
+        // The CLI outputs "✅ Development servers started!" when both servers are ready
+        if (text.includes('Development servers started!')) {
           server.ready = true;
           if (timeoutId) clearTimeout(timeoutId);
           this.server = server;
