@@ -65,7 +65,7 @@ For day-to-day development (after initial setup):
 ```bash
 # V3 CLI approach (recommended)
 cd test-v3-development
-npm run dev:v3
+npm run dev
 ```
 
 This starts the **unified configurator CLI** which automatically:
@@ -93,7 +93,7 @@ npm run dev  # Runs manifold-dev CLI automatically
 cd packages/wrapper && npm run dev
 
 # Terminal 2: V3 CLI approach
-cd test-v3-development && npm run dev:v3
+cd test-v3-development && npm run dev
 ```
 
 ### 🔧 **Individual Package Development**
@@ -116,7 +116,7 @@ npm test
 ```bash
 # V3 CLI approach (recommended)
 cd test-v3-development
-npm run dev:v3
+npm run dev
 
 # Test configurator changes
 # Edit files in packages/configurator/src/ and see immediate results
@@ -165,7 +165,7 @@ npm run test:create-app
 ```bash
 # Test V3 CLI workflow (recommended)
 cd test-v3-development
-npm run dev:v3
+npm run dev
 # → Add/remove model files → Verify automatic pipeline regeneration → Verify UI updates
 
 # Test generated project workflow
@@ -192,11 +192,11 @@ npm run dev  # Should automatically use manifold-dev CLI
 
 ### V3 CLI Approach (Recommended)
 
-The new configurator CLI (`npm run dev:v3`) provides unified file watching:
+The new configurator CLI (`npm run dev`) provides unified file watching:
 
 ```
 ┌─ Configurator CLI ──────────────────────────────────────────────────────┐
-│  node ../packages/configurator/dist/cli/index.js dev --configurator-dev-mode │
+│  manifold-dev dev (auto-detects development mode)                      │
 │                                                                         │
 │  ┌─ File Watcher ─────────────┐  ┌─ Pipeline Compiler ─────────────────┐ │
 │  │  Watches: main.ts,         │  │  Port: 3001                         │ │
@@ -263,7 +263,7 @@ New projects created with create-app use the CLI by default:
 
 1. **Edit configurator source** (`packages/configurator/src/`)
 2. **Changes appear immediately** via source imports and HMR
-3. **Test in V3 project** (`npm run dev:v3` in `test-v3-development`)
+3. **Test in V3 project** (`npm run dev` in `test-v3-development`)
 4. **Verify changes** in browser at http://localhost:3000
 
 **Legacy Approach**:
@@ -309,7 +309,7 @@ New projects created with create-app use the CLI by default:
 2. **For wrapper changes**: Check if wrapper build is running (`npm run dev` in packages/wrapper)
 3. **Clear Vite cache**: `rm -rf node_modules/.vite` in test project
 4. **Restart dev server**:
-   - Development project: `npm run dev:v3` in test-v3-development
+   - Development project: `npm run dev` in test-v3-development
    - Generated project: `npm run dev` in user project
 5. **Check browser console**: Look for TypeScript compilation errors
 6. **Check Vite alias configuration**: If package imports fail, verify both UI server and pipeline compiler have the same aliases
@@ -366,14 +366,14 @@ New projects created with create-app use the CLI by default:
 
 ```bash
 # Start development (CLI approach - recommended)
-cd test-v3-development && npm run dev:v3  # Development project with source imports
+cd test-v3-development && npm run dev  # Development project with source imports
 
 # Generated project development
 cd my-project && npm run dev              # Uses CLI automatically
 
 # If also developing wrapper
 cd packages/wrapper && npm run dev        # Terminal 1: Wrapper auto-rebuild
-cd test-v3-development && npm run dev:v3  # Terminal 2: CLI approach
+cd test-v3-development && npm run dev  # Terminal 2: CLI approach
 
 # Individual package development
 cd packages/wrapper && npm run build:lib -- --watch  # Only if changing wrapper

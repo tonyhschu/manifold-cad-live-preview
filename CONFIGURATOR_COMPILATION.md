@@ -143,9 +143,10 @@ async function detectConfiguratorDevelopment(): Promise<boolean> {
 
 **Development Mode Detection**:
 
-- **Flag**: `--configurator-dev-mode` enables source-based development
-- **Without flag**: Uses published configurator package (when available)
-- **With flag**: Uses source-based Vite aliases (like current V3 setup)
+- **Automatic**: CLI detects development environment and enables source-based development
+- **Detection criteria**: Presence of configurator source code or local file dependencies
+- **Development mode**: Uses source-based Vite aliases (like current V3 setup)
+- **Production mode**: Uses published configurator package (when available)
 
 **Vite Configuration Strategy**:
 
@@ -516,9 +517,9 @@ Automatically:
    - Inject dynamic paths (`/temp/pipeline.js`, `/temp/manifest.json`)
    - Serve via Vite with appropriate configuration
 
-3. **Implement `--configurator-dev-mode` Flag**
+3. **Implement Development Mode Auto-Detection**
 
-   - Development mode detection for source-based development
+   - Automatic development mode detection for source-based development
    - Generate dynamic `vite.config.js` with source aliases when in dev mode
    - Preserve current HMR workflow (no departure from Vite strategy)
 
@@ -581,7 +582,7 @@ user-project/
 ```json
 {
   "scripts": {
-    "dev": "node ../packages/configurator/dist/cli/index.js dev --configurator-dev-mode",
+    "dev": "manifold-dev dev",
     "dev:legacy": "concurrently \"npm run dev:pipeline\" \"npm run dev:ui\"",
     "build": "npm run build:ui",
     "build:ui": "vite build"

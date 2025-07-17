@@ -57,7 +57,7 @@ For configurator library development, use the CLI in test projects:
 ```bash
 # Navigate to test project (not create-app package)
 cd test-v3-development
-npm run dev:v3  # CLI with configurator development mode
+npm run dev  # CLI automatically detects configurator development mode
 ```
 
 **Benefits of CLI approach**:

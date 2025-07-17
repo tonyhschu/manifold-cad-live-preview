@@ -4,7 +4,7 @@
   "type": "module",
   "description": "A Manifold Studio project",
   "scripts": {
-    "dev": "manifold-dev",
+    "dev": "manifold-dev dev",
     "build": "echo 'Build not needed - CLI handles compilation'",
     "test": "vitest"
   },

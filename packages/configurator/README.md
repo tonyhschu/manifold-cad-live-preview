@@ -79,11 +79,13 @@ This package **cannot be developed standalone**. Use the CLI development environ
    cd test-v3-development
    ```
 
-2. **Start CLI with configurator development mode**:
+2. **Start CLI development server**:
 
    ```bash
-   npm run dev:v3
+   npm run dev
    ```
+
+   The CLI automatically detects configurator development mode when running from the test project.
 
 3. **Make changes to configurator source files**:
 
@@ -101,7 +103,7 @@ The V3 architecture uses the **Manifold Studio CLI** to coordinate:
 
 - **Automatic model discovery**: Detects .ts files and generates pipeline entries
 - **Dual-server management**: Coordinates pipeline compiler (port 3001) + UI server (port 3000)
-- **Source-based imports**: No build chain during development with `--configurator-dev-mode`
+- **Source-based imports**: No build chain during development (auto-detected)
 - **Cross-package HMR**: Hot module replacement works across package boundaries
 - **File watching**: Monitors model files and regenerates pipeline automatically
 
@@ -130,10 +132,11 @@ The configurator includes a CLI tool for development:
 
 ```bash
 # In a user project directory
-node ../packages/configurator/dist/cli/index.js dev --configurator-dev-mode
-
-# Or via npm script (as set up by create-app)
 npm run dev
+
+# The CLI automatically detects development mode and enables configurator source imports
+# Manual override (if auto-detection fails):
+manifold-dev dev --configurator-dev-mode
 ```
 
 ## Library Usage
@@ -155,7 +158,7 @@ await startConfigurator({
 During development, this package is imported directly from source files using CLI-managed Vite aliases:
 
 ```typescript
-// CLI automatically configures aliases when using --configurator-dev-mode
+// CLI automatically configures aliases when development mode is detected
 resolve: {
   alias: {
     '@manifold-studio/configurator': resolve(userProjectPath, '../packages/configurator/src'),

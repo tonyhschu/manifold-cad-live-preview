@@ -385,8 +385,8 @@ The configurator package **cannot be developed standalone**. Use the CLI develop
 # Navigate to test project
 cd test-v3-development
 
-# Start CLI with configurator development mode
-npm run dev:v3
+# Start CLI (automatically detects development mode)
+npm run dev
 
 # Edit configurator source files
 # Changes in packages/configurator/src/ are reflected immediately via HMR
@@ -403,7 +403,7 @@ npm run dev:v3
 
 #### Development vs Production
 
-- **Development**: CLI uses `--configurator-dev-mode` flag for source-based imports
+- **Development**: CLI automatically detects development mode for source-based imports
 - **Production**: CLI uses published configurator package (when available)
 
 ### Cross-Package Development
@@ -419,7 +419,7 @@ For monorepo development when working on the framework itself:
 ```bash
 # V3 CLI Development (Recommended)
 cd test-v3-development
-npm run dev:v3                    # Start CLI with configurator dev mode
+npm run dev                    # Start CLI (auto-detects configurator dev mode)
 
 # Monorepo Development (for framework development)
 npm run devAll                    # Start both wrapper watch + configurator dev server
@@ -444,7 +444,7 @@ npm run test:create-app           # Test create-app package only
 ```bash
 # Single terminal - CLI handles everything
 cd test-v3-development
-npm run dev:v3
+npm run dev
 ```
 
 **Monorepo Development Approach** (for framework development):
