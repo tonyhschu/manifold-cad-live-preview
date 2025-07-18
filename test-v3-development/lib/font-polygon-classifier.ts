@@ -71,7 +71,7 @@ export function classifyFontPolygons(
 }
 
 /**
- * Implementation using sampling-based overlap detection
+ * Implementation using sampling-based overlap detection with improved multi-character support
  */
 function classifyWithOverlapSampling(
   polygons: Polygon[],
@@ -88,35 +88,85 @@ function classifyWithOverlapSampling(
     debugInfo: debug ? {} : undefined
   }));
 
-  // Find the largest polygon (likely the outer contour)
-  const largestIndex = classifications.reduce((maxIdx, curr, idx) => 
-    curr.area > classifications[maxIdx].area ? idx : maxIdx, 0);
+  // Instead of assuming one largest polygon, find potential outer contours
+  // by checking which polygons are not contained within any other polygon
+  const potentialOuterContours: number[] = [];
 
-  // Classify each polygon based on its overlap with the largest polygon
   for (let i = 0; i < classifications.length; i++) {
-    if (i === largestIndex) {
-      // Largest polygon is always solid
-      classifications[i].isHole = false;
-      classifications[i].confidence = 1.0;
-      if (debug) {
-        classifications[i].debugInfo!.method = 'largest-polygon';
-      }
-    } else {
-      // Calculate overlap with largest polygon
+    let isContainedInAny = false;
+
+    for (let j = 0; j < classifications.length; j++) {
+      if (i === j) continue;
+
+      // Check if polygon i is contained within polygon j
       const overlapRatio = estimateOverlapWithSampling(
         classifications[i].polygon,
-        classifications[largestIndex].polygon,
+        classifications[j].polygon,
+        Math.min(sampleCount, 50) // Use fewer samples for containment check
+      );
+
+      // If polygon i has high overlap with polygon j, and j is larger,
+      // then i might be contained in j
+      if (overlapRatio >= 0.8 && classifications[j].area > classifications[i].area) {
+        isContainedInAny = true;
+        break;
+      }
+    }
+
+    if (!isContainedInAny) {
+      potentialOuterContours.push(i);
+    }
+  }
+
+  // Mark potential outer contours as solid
+  for (const outerIndex of potentialOuterContours) {
+    classifications[outerIndex].isHole = false;
+    classifications[outerIndex].confidence = 1.0;
+    if (debug) {
+      classifications[outerIndex].debugInfo!.method = 'outer-contour';
+      classifications[outerIndex].debugInfo!.sampleCount = sampleCount;
+    }
+  }
+
+  // For remaining polygons, find their containing outer contour
+  for (let i = 0; i < classifications.length; i++) {
+    if (potentialOuterContours.includes(i)) continue; // Already classified as outer
+
+    let bestContainerIndex = -1;
+    let bestOverlapRatio = 0;
+
+    // Find the outer contour that best contains this polygon
+    for (const outerIndex of potentialOuterContours) {
+      const overlapRatio = estimateOverlapWithSampling(
+        classifications[i].polygon,
+        classifications[outerIndex].polygon,
         sampleCount
       );
-      
-      classifications[i].isHole = overlapRatio >= holeThreshold;
-      classifications[i].confidence = overlapRatio >= holeThreshold ? 
-        Math.min(overlapRatio / holeThreshold, 1.0) : 
-        Math.min((1 - overlapRatio) / (1 - holeThreshold), 1.0);
-      
+
+      if (overlapRatio > bestOverlapRatio) {
+        bestOverlapRatio = overlapRatio;
+        bestContainerIndex = outerIndex;
+      }
+    }
+
+    // Classify based on overlap with best containing outer contour
+    if (bestContainerIndex >= 0 && bestOverlapRatio >= holeThreshold) {
+      classifications[i].isHole = true;
+      classifications[i].confidence = Math.min(bestOverlapRatio / holeThreshold, 1.0);
       if (debug) {
-        classifications[i].debugInfo!.overlapRatio = overlapRatio;
-        classifications[i].debugInfo!.method = 'overlap-sampling';
+        classifications[i].debugInfo!.overlapRatio = bestOverlapRatio;
+        classifications[i].debugInfo!.method = 'contained-hole';
+        classifications[i].debugInfo!.sampleCount = sampleCount;
+        classifications[i].debugInfo!.containerIndex = bestContainerIndex;
+      }
+    } else {
+      // Not contained enough to be a hole - treat as separate solid
+      classifications[i].isHole = false;
+      classifications[i].confidence = bestContainerIndex >= 0 ?
+        Math.min((1 - bestOverlapRatio) / (1 - holeThreshold), 1.0) : 1.0;
+      if (debug) {
+        classifications[i].debugInfo!.overlapRatio = bestOverlapRatio;
+        classifications[i].debugInfo!.method = 'separate-solid';
         classifications[i].debugInfo!.sampleCount = sampleCount;
       }
     }

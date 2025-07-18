@@ -1,27 +1,90 @@
 /**
  * FontResolver - Universal font loading for browser and Node.js environments
- * Handles loading fonts from CDNs with proper error handling and caching
+ *
+ * This module provides a robust font loading system with the following features:
+ * - CDN-based font loading with fallback URLs
+ * - Cross-platform support (browser and Node.js)
+ * - Timeout handling and error recovery
+ * - Font caching to avoid redundant downloads
+ * - Comprehensive error reporting with custom error types
+ *
+ * @example
+ * ```typescript
+ * import { fontResolver } from './font-resolver';
+ *
+ * // Load a font
+ * const loadedFont = await fontResolver.loadFont('Inter Variable Font');
+ *
+ * // Use the font with OpenType.js
+ * const path = loadedFont.font.getPath('Hello', 0, 0, 72);
+ * ```
  */
 
 import opentype from 'opentype.js';
 import * as path from 'path';
 import * as fs from 'fs';
 
+/**
+ * Font metadata and loading configuration
+ */
 export interface FontInfo {
+  /** Display name for the font */
   name: string;
+  /** Primary URL to load the font from */
   url: string;
+  /** Font family name */
   family: string;
+  /** Font weight (e.g., '400', 'bold') */
   weight?: string;
+  /** Font style (e.g., 'normal', 'italic') */
   style?: string;
+  /** Fallback URLs to try if primary URL fails */
   fallbackUrls?: string[];
 }
 
+/**
+ * Successfully loaded font with metadata
+ */
 export interface LoadedFont {
+  /** Original font information */
   info: FontInfo;
+  /** Parsed OpenType.js font object */
   font: opentype.Font;
+  /** Timestamp when font was loaded */
   loadedAt: number;
 }
 
+/**
+ * Error thrown when font loading fails from all available URLs
+ */
+export class FontLoadError extends Error {
+  constructor(
+    message: string,
+    /** Name of the font that failed to load */
+    public fontName: string,
+    /** All URLs that were attempted */
+    public attemptedUrls: string[],
+    /** The last error encountered */
+    public lastError?: Error
+  ) {
+    super(message);
+    this.name = 'FontLoadError';
+  }
+}
+
+/**
+ * Error thrown when font loading exceeds the timeout limit
+ */
+export class FontTimeoutError extends Error {
+  constructor(fontName: string, timeoutMs: number) {
+    super(`Font loading timeout after ${timeoutMs}ms for '${fontName}'`);
+    this.name = 'FontTimeoutError';
+  }
+}
+
+/**
+ * FontResolver handles loading fonts from CDNs with caching and fallback support
+ */
 export class FontResolver {
   private fontCache = new Map<string, LoadedFont>();
   private loadingPromises = new Map<string, Promise<LoadedFont>>();
@@ -39,7 +102,21 @@ export class FontResolver {
   constructor() {}
 
   /**
-   * Load a font by name from the available fonts list
+   * Get list of available font names
+   * @returns Array of font names that can be loaded
+   */
+  getAvailableFonts(): string[] {
+    return FontResolver.AVAILABLE_FONTS.map(font => font.name);
+  }
+
+  /**
+   * Load a font by name with caching and fallback support
+   *
+   * @param fontName - Name of the font to load (must be in registry)
+   * @returns Promise that resolves to the loaded font
+   * @throws {FontLoadError} When font loading fails from all URLs
+   * @throws {FontTimeoutError} When font loading exceeds timeout
+   * @throws {Error} When font is not found in registry
    */
   async loadFont(fontName: string): Promise<LoadedFont> {
     // Check cache first
@@ -82,60 +159,94 @@ export class FontResolver {
    */
   private async loadFontFromUrl(fontInfo: FontInfo): Promise<LoadedFont> {
     const urlsToTry = [fontInfo.url, ...(fontInfo.fallbackUrls || [])];
+    const errors: Error[] = [];
+
+    if (urlsToTry.length === 0) {
+      throw new FontLoadError(
+        `No URLs available for font '${fontInfo.name}'`,
+        fontInfo.name,
+        []
+      );
+    }
 
     for (let i = 0; i < urlsToTry.length; i++) {
       const url = urlsToTry[i];
       const isLastAttempt = i === urlsToTry.length - 1;
 
       try {
-        console.log(`Attempting to load font from: ${url} (attempt ${i + 1}/${urlsToTry.length})`);
-
         const fontInfoWithUrl = { ...fontInfo, url };
         const result = await this.loadSingleUrl(fontInfoWithUrl);
-
-        console.log(`✅ Successfully loaded font '${fontInfo.name}' from ${url}`);
         return result;
 
       } catch (error) {
-        console.warn(`❌ Failed to load font from ${url}: ${error.message}`);
+        const fontError = error instanceof Error ? error : new Error(String(error));
+        errors.push(fontError);
+
+        console.warn(`Failed to load font from ${url}: ${fontError.message}`);
 
         if (isLastAttempt) {
-          throw new Error(`Failed to load font '${fontInfo.name}' from all ${urlsToTry.length} URLs. Last error: ${error.message}`);
+          throw new FontLoadError(
+            `Failed to load font '${fontInfo.name}' from all ${urlsToTry.length} URLs`,
+            fontInfo.name,
+            urlsToTry,
+            fontError
+          );
         }
-
-        // Continue to next URL
-        console.log(`Trying next URL...`);
       }
     }
 
-    throw new Error(`No URLs available for font '${fontInfo.name}'`);
+    // This should never be reached, but included for completeness
+    throw new FontLoadError(
+      `Unexpected error loading font '${fontInfo.name}'`,
+      fontInfo.name,
+      urlsToTry,
+      errors[errors.length - 1]
+    );
   }
 
   /**
    * Load a font from a single URL with timeout handling
    */
-  private async loadSingleUrl(fontInfo: FontInfo): Promise<LoadedFont> {
-    console.log(`Loading font '${fontInfo.name}' from ${fontInfo.url}`);
-
+  private async loadSingleUrl(fontInfo: FontInfo, timeoutMs: number = 10000): Promise<LoadedFont> {
     return new Promise<LoadedFont>((resolve, reject) => {
       const startTime = Date.now();
+      let isResolved = false;
 
       // Set a timeout for font loading
       const timeout = setTimeout(() => {
-        reject(new Error(`Font loading timeout after 10 seconds for '${fontInfo.name}'`));
-      }, 10000);
+        if (!isResolved) {
+          isResolved = true;
+          reject(new FontTimeoutError(fontInfo.name, timeoutMs));
+        }
+      }, timeoutMs);
+
+      const handleSuccess = (result: LoadedFont) => {
+        if (!isResolved) {
+          isResolved = true;
+          clearTimeout(timeout);
+          resolve(result);
+        }
+      };
+
+      const handleError = (error: Error) => {
+        if (!isResolved) {
+          isResolved = true;
+          clearTimeout(timeout);
+          reject(error);
+        }
+      };
 
       try {
         if (this.isBrowser()) {
           // Browser environment - use fetch
-          this.loadFontInBrowser(fontInfo, timeout, startTime, resolve, reject);
+          this.loadFontInBrowser(fontInfo, startTime, handleSuccess, handleError);
         } else {
           // Node.js environment - use opentype.js load method directly
-          this.loadFontInNode(fontInfo, timeout, startTime, resolve, reject);
+          this.loadFontInNode(fontInfo, startTime, handleSuccess, handleError);
         }
       } catch (error) {
-        clearTimeout(timeout);
-        reject(new Error(`Failed to load font '${fontInfo.name}': ${error.message}`));
+        const fontError = error instanceof Error ? error : new Error(String(error));
+        handleError(new Error(`Failed to load font '${fontInfo.name}': ${fontError.message}`));
       }
     });
   }
@@ -145,14 +256,11 @@ export class FontResolver {
    */
   private async loadFontInBrowser(
     fontInfo: FontInfo,
-    timeout: NodeJS.Timeout,
     startTime: number,
     resolve: (value: LoadedFont) => void,
-    reject: (reason: any) => void
+    reject: (reason: Error) => void
   ) {
     try {
-      console.log(`Fetching font from: ${fontInfo.url}`);
-
       // Fetch the font file with CORS handling
       const response = await fetch(fontInfo.url, {
         mode: 'cors',
@@ -165,23 +273,16 @@ export class FontResolver {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      console.log(`Font file downloaded, size: ${response.headers.get('content-length') || 'unknown'} bytes`);
-
-      // Get as ArrayBuffer
+      // Get as ArrayBuffer and parse with OpenType.js
       const arrayBuffer = await response.arrayBuffer();
-      console.log(`ArrayBuffer size: ${arrayBuffer.byteLength} bytes`);
-
-      // Parse with OpenType.js
       const font = opentype.parse(arrayBuffer);
 
       if (!font || !font.names) {
         throw new Error('Invalid font file - OpenType.js could not parse the font');
       }
 
-      clearTimeout(timeout);
       const loadTime = Date.now() - startTime;
       console.log(`Font '${fontInfo.name}' loaded successfully in ${loadTime}ms (browser)`);
-      console.log(`Font details: ${font.names.fullName?.en || 'Unknown'}, ${font.numGlyphs} glyphs`);
 
       resolve({
         info: fontInfo,
@@ -189,9 +290,8 @@ export class FontResolver {
         loadedAt: Date.now()
       });
     } catch (error) {
-      clearTimeout(timeout);
-      console.error(`Font loading error details:`, error);
-      reject(new Error(`Browser font loading failed for '${fontInfo.name}': ${error.message}`));
+      const fontError = error instanceof Error ? error : new Error(String(error));
+      reject(new Error(`Browser font loading failed for '${fontInfo.name}': ${fontError.message}`));
     }
   }
 
@@ -200,45 +300,46 @@ export class FontResolver {
    */
   private loadFontInNode(
     fontInfo: FontInfo,
-    timeout: NodeJS.Timeout,
     startTime: number,
     resolve: (value: LoadedFont) => void,
-    reject: (reason: any) => void
+    reject: (reason: Error) => void
   ) {
-    // Resolve URL to file path for Node.js
-    const filePath = this.resolveUrlToFilePath(fontInfo.url);
-    console.log(`Resolved URL '${fontInfo.url}' to file path '${filePath}'`);
+    try {
+      // Resolve URL to file path for Node.js
+      const filePath = this.resolveUrlToFilePath(fontInfo.url);
 
-    // Check if file exists before trying to load
-    if (!fs.existsSync(filePath)) {
-      clearTimeout(timeout);
-      reject(new Error(`Font file not found: ${filePath}`));
-      return;
-    }
-
-    // Use opentype.js load method with resolved file path
-    opentype.load(filePath, (err: any, font: opentype.Font) => {
-      clearTimeout(timeout);
-
-      if (err) {
-        reject(new Error(`Node.js font loading failed for '${fontInfo.name}': ${err.message || err}`));
+      // Check if file exists before trying to load
+      if (!fs.existsSync(filePath)) {
+        reject(new Error(`Font file not found: ${filePath}`));
         return;
       }
 
-      if (!font) {
-        reject(new Error(`Font parsing failed for '${fontInfo.name}': No font object returned`));
-        return;
-      }
+      // Use opentype.js load method with resolved file path
+      opentype.load(filePath, (err: any, font: opentype.Font) => {
+        if (err) {
+          const errorMessage = err.message || String(err);
+          reject(new Error(`Node.js font loading failed for '${fontInfo.name}': ${errorMessage}`));
+          return;
+        }
 
-      const loadTime = Date.now() - startTime;
-      console.log(`Font '${fontInfo.name}' loaded successfully in ${loadTime}ms (Node.js)`);
+        if (!font) {
+          reject(new Error(`Font parsing failed for '${fontInfo.name}': No font object returned`));
+          return;
+        }
 
-      resolve({
-        info: fontInfo,
-        font,
-        loadedAt: Date.now()
+        const loadTime = Date.now() - startTime;
+        console.log(`Font '${fontInfo.name}' loaded successfully in ${loadTime}ms (Node.js)`);
+
+        resolve({
+          info: fontInfo,
+          font,
+          loadedAt: Date.now()
+        });
       });
-    });
+    } catch (error) {
+      const fontError = error instanceof Error ? error : new Error(String(error));
+      reject(new Error(`Node.js font loading setup failed for '${fontInfo.name}': ${fontError.message}`));
+    }
   }
 
   /**
