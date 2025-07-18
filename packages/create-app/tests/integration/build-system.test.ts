@@ -16,7 +16,7 @@ describe('CLI Development System Testing', () => {
     it('should start development server successfully', async () => {
       const project = await ProjectCreator.createProject({
         name: 'test-cli-dev-server',
-        skipInstall: true
+        skipInstall: false  // Need dependencies installed to run CLI commands
       });
 
       try {
@@ -312,7 +312,7 @@ describe('CLI Development System Testing', () => {
     it('should validate CLI command availability', async () => {
       const project = await ProjectCreator.createProject({
         name: 'test-cli-availability',
-        skipInstall: true
+        skipInstall: false  // Need dependencies installed to test CLI availability
       });
 
       try {
@@ -417,7 +417,7 @@ describe('CLI Development System Testing', () => {
     it('should validate CLI command responds quickly', async () => {
       const project = await ProjectCreator.createProject({
         name: 'test-cli-performance',
-        skipInstall: true
+        skipInstall: false  // Need dependencies installed to test CLI performance
       });
 
       try {
