@@ -2,16 +2,33 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ParametricPanel } from './ParametricPanel';
 import type { ParametricConfig } from '@manifold-studio/wrapper';
 
-// Mock the store
-vi.mock('../../state/store', () => ({
-  currentParametricConfig: {
-    subscribe: vi.fn((callback) => {
-      // Return unsubscribe function
-      return () => {};
-    })
+// Mock the V3 bridge instead of legacy store
+vi.mock('../../state/v3-bridge', () => ({
+  v3Signals: {
+    isInitialized: {
+      value: true,
+      subscribe: vi.fn((callback) => {
+        // Return unsubscribe function
+        return () => {};
+      })
+    },
+    parametricConfig: {
+      value: null,
+      subscribe: vi.fn((callback) => {
+        // Return unsubscribe function
+        return () => {};
+      })
+    },
+    modelUrls: {
+      value: { objUrl: '', glbUrl: '' },
+      subscribe: vi.fn((callback) => {
+        return () => {};
+      })
+    }
   },
-  updateModel: vi.fn(),
-  modelUrls: { value: null }
+  v3Actions: {
+    updateModel: vi.fn()
+  }
 }));
 
 // Mock the services

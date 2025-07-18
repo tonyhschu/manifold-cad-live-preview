@@ -143,18 +143,18 @@ export class ModelService implements IModelService {
   }
 
   /**
-   * Get available models list (deprecated - use store.availableModels instead)
+   * Get available models list (deprecated - use V3 system via v3-bridge instead)
    */
   getAvailableModels(): { id: string; name: string; type: 'static' | 'parametric' }[] {
-    console.warn('ModelService.getAvailableModels() is deprecated. Use store.availableModels instead.');
+    console.warn('ModelService.getAvailableModels() is deprecated. Use V3 system via v3-bridge instead.');
     return [];
   }
 
   /**
-   * Refresh available models cache (deprecated - use store.refreshAvailableModels instead)
+   * Refresh available models cache (deprecated - use V3 system via v3-bridge instead)
    */
   refreshAvailableModels(): void {
-    console.warn('ModelService.refreshAvailableModels() is deprecated. Use store.refreshAvailableModels instead.');
+    console.warn('ModelService.refreshAvailableModels() is deprecated. Use V3 system via v3-bridge instead.');
   }
 
   /**
