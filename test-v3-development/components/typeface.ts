@@ -4,6 +4,7 @@
 import { Manifold, CrossSection, createConfig, P } from '@manifold-studio/wrapper';
 import opentype from 'opentype.js';
 import { fontResolver, type LoadedFont } from '../lib/font-resolver';
+import { classifyFontPolygons } from '../lib/font-polygon-classifier';
 
 // Type definitions for our implementation
 interface Vec2 {
@@ -14,6 +15,22 @@ interface Vec2 {
 interface Polygon extends Array<Vec2> {}
 
 interface CrossSectionPolygons extends Array<Polygon> {}
+
+/**
+ * Calculate signed area of a polygon using shoelace formula
+ * Positive area = counter-clockwise, negative area = clockwise
+ */
+function calculatePolygonArea(polygon: Polygon): number {
+  let area = 0;
+  for (let i = 0; i < polygon.length; i++) {
+    const j = (i + 1) % polygon.length;
+    area += polygon[i].x * polygon[j].y;
+    area -= polygon[j].x * polygon[i].y;
+  }
+  return area / 2;
+}
+
+// Removed isPointInPolygon and isPolygonContained functions - now handled by font-polygon-classifier utility
 
 /**
  * Text to CrossSection Converter Class
@@ -89,6 +106,75 @@ class TextToCrossSection {
 
     // Get the path for the entire text string
     const path = this.loadedFont.font.getPath(text, 0, 0, fontSize, { features });
+
+    console.log('=== OPENTYPE PATH ANALYSIS ===');
+    console.log('Path object:', path);
+    console.log('Path commands:', path.commands);
+    console.log('Path commands length:', path.commands.length);
+
+    // Analyze each command
+    path.commands.forEach((cmd: any, i: number) => {
+      console.log(`  Command ${i}: type=${cmd.type}, x=${cmd.x}, y=${cmd.y}`);
+      if (cmd.x1 !== undefined) console.log(`    Control points: x1=${cmd.x1}, y1=${cmd.y1}, x2=${cmd.x2}, y2=${cmd.y2}`);
+    });
+
+    // Check if there are any path properties that indicate contour direction
+    console.log('Path fill:', path.fill);
+    console.log('Path stroke:', path.stroke);
+    console.log('Path strokeWidth:', path.strokeWidth);
+    console.log('Path other properties:', Object.keys(path));
+
+    // Investigate individual command metadata
+    console.log('=== COMMAND-LEVEL METADATA ===');
+    path.commands.forEach((cmd: any, i: number) => {
+      const cmdProps = Object.keys(cmd);
+      if (cmdProps.length > 3) { // More than just type, x, y
+        console.log(`  Command ${i} (${cmd.type}): properties =`, cmdProps, 'values =', cmd);
+      }
+    });
+
+    // Also analyze individual glyphs for metadata
+    console.log('=== GLYPH ANALYSIS ===');
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const glyph = this.loadedFont.font.charToGlyph(char);
+      console.log(`Character "${char}":`);
+      console.log('  Glyph object:', glyph);
+      console.log('  Glyph properties:', Object.keys(glyph));
+      console.log('  Glyph path:', glyph.path);
+      console.log('  Glyph path commands:', glyph.path?.commands?.length || 0);
+
+      // Check for additional glyph metadata that might indicate fill/hole semantics
+      console.log('  Glyph detailed properties:');
+      ['index', 'name', 'unicode', 'unicodes', 'advanceWidth', 'leftSideBearing', 'path'].forEach(prop => {
+        if (glyph[prop] !== undefined) {
+          console.log(`    ${prop}:`, glyph[prop]);
+        }
+      });
+
+      // Check if there are any path-level properties beyond commands
+      if (glyph.path) {
+        console.log('  Path properties:', Object.keys(glyph.path));
+        ['fill', 'stroke', 'strokeWidth', 'fillRule', 'clipRule', 'opacity'].forEach(prop => {
+          if (glyph.path[prop] !== undefined) {
+            console.log(`    path.${prop}:`, glyph.path[prop]);
+          }
+        });
+      }
+
+      // Check if glyph has any contour information
+      if (glyph.path && glyph.path.commands) {
+        console.log('  Path commands breakdown:');
+        let contourCount = 0;
+        glyph.path.commands.forEach((cmd: any, cmdIndex: number) => {
+          if (cmd.type === 'M') contourCount++;
+          console.log(`    ${cmdIndex}: ${cmd.type} (${cmd.x}, ${cmd.y})`);
+        });
+        console.log(`  Total contours (M commands): ${contourCount}`);
+      }
+    }
+    console.log('=== END GLYPH ANALYSIS ===');
+    console.log('=== END OPENTYPE PATH ANALYSIS ===');
 
     // Convert the OpenType path to polygon arrays
     const polygons = this.convertPathToPolygons(path, fontSize);
@@ -367,6 +453,8 @@ class TextToCrossSection {
     return points;
   }
 
+
+
   /**
    * Process polygons to handle holes and winding order
    */
@@ -509,50 +597,89 @@ function createExtrudedText(
 
     if (polygons.length > 0) {
       console.log(`🔄 Converting ${polygons.length} polygons to ManifoldCAD format`);
-      console.log(`📊 Raw polygons from font:`, polygons);
+      console.log(`📊 Raw polygons from font:`, polygons.map(p => p.length));
 
-      // Convert to ManifoldCAD format and reverse winding order
-      // ManifoldCAD expects counter-clockwise winding, but fonts often use clockwise
-      const manifoldPolygons = polygons.map(polygon =>
-        polygon.map(point => [point.x, point.y] as [number, number]).reverse()
-      );
+      console.log('=== DETAILED POLYGON ANALYSIS ===');
+      for (let i = 0; i < polygons.length; i++) {
+        const polygon = polygons[i];
+        const area = calculatePolygonArea(polygon);
+        const windingDirection = area > 0 ? 'CCW (SOLID)' : 'CW (HOLE)';
+        console.log(`  Polygon ${i}: ${polygon.length} points, area=${area.toFixed(2)} (${windingDirection})`);
 
-      console.log(`✅ Converted to ${manifoldPolygons.length} ManifoldCAD polygons`);
-      console.log(`📊 ManifoldCAD polygons:`, manifoldPolygons);
+        // Show first few points to understand the shape
+        const first5Points = polygon.slice(0, 5);
+        console.log(`    First 5 points:`, first5Points.map(p => `[${p.x.toFixed(1)}, ${p.y.toFixed(1)}]`).join(', '));
 
-      // Create CrossSection from polygons
-      // ManifoldCAD expects Polygons = SimplePolygon[] where SimplePolygon = Vec2[]
-      // Our manifoldPolygons is already in the correct format: [number, number][][]
-      console.log(`🔧 Creating CrossSection with ${manifoldPolygons.length} polygons`);
-
-      // Debug each polygon
-      manifoldPolygons.forEach((polygon, i) => {
-        const first3 = polygon.slice(0, 3);
-        console.log(`  Polygon ${i}: ${polygon.length} points`);
-        console.log(`    First 3 points:`, first3.map(p => `[${p[0]}, ${p[1]}]`).join(', '));
-
-        // Check for invalid coordinates
-        const hasInvalidCoords = polygon.some(point =>
-          !Array.isArray(point) ||
-          point.length !== 2 ||
-          typeof point[0] !== 'number' ||
-          typeof point[1] !== 'number' ||
-          !isFinite(point[0]) ||
-          !isFinite(point[1])
-        );
-
-        if (hasInvalidCoords) {
-          console.error(`  ❌ Polygon ${i} has invalid coordinates!`);
+        // Show DETAILED coordinate sequence for winding analysis
+        console.log(`    DETAILED COORDINATE SEQUENCE (first 8 points):`);
+        for (let j = 0; j < Math.min(8, polygon.length); j++) {
+          const curr = polygon[j];
+          const next = polygon[(j + 1) % polygon.length];
+          const dx = next.x - curr.x;
+          const dy = next.y - curr.y;
+          console.log(`      ${j}: [${curr.x.toFixed(2)}, ${curr.y.toFixed(2)}] → [${next.x.toFixed(2)}, ${next.y.toFixed(2)}] (Δx=${dx.toFixed(2)}, Δy=${dy.toFixed(2)})`);
         }
 
-        if (polygon.length < 3) {
-          console.warn(`  ⚠️ Polygon ${i} is degenerate (< 3 points)`);
+        // Manual winding calculation step-by-step for verification
+        console.log(`    MANUAL WINDING CALCULATION:`);
+        let manualArea = 0;
+        for (let j = 0; j < Math.min(4, polygon.length); j++) {
+          const curr = polygon[j];
+          const next = polygon[(j + 1) % polygon.length];
+          const crossProduct = curr.x * next.y - next.x * curr.y;
+          manualArea += crossProduct;
+          console.log(`      Step ${j}: (${curr.x.toFixed(2)} * ${next.y.toFixed(2)}) - (${next.x.toFixed(2)} * ${curr.y.toFixed(2)}) = ${crossProduct.toFixed(2)}, running sum = ${manualArea.toFixed(2)}`);
+        }
+        console.log(`    Manual area (first 4 steps): ${(manualArea / 2).toFixed(2)}, Full area: ${area.toFixed(2)}`);
+
+        // Calculate bounding box to understand size/position
+        const minX = Math.min(...polygon.map(p => p.x));
+        const maxX = Math.max(...polygon.map(p => p.x));
+        const minY = Math.min(...polygon.map(p => p.y));
+        const maxY = Math.max(...polygon.map(p => p.y));
+        const width = maxX - minX;
+        const height = maxY - minY;
+        console.log(`    Bounding box: [${minX.toFixed(1)}, ${minY.toFixed(1)}] to [${maxX.toFixed(1)}, ${maxY.toFixed(1)}], size: ${width.toFixed(1)} x ${height.toFixed(1)}`);
+      }
+      console.log('=== END DETAILED ANALYSIS ===');
+
+      // Convert to ManifoldCAD format using overlap-based classification
+      console.log('🔧 Using overlap-based polygon classification...');
+
+      // Classify polygons using our utility
+      const classifications = classifyFontPolygons(polygons, {
+        holeThreshold: 0.9,  // 90% overlap threshold for hole detection
+        sampleCount: 100,    // Number of sample points for overlap estimation
+        debug: true          // Include debug information
+      });
+
+      console.log('📊 Classification results:');
+      classifications.forEach((classification, i) => {
+        console.log(`  Polygon ${i}: ${classification.isHole ? 'HOLE' : 'SOLID'} (confidence: ${(classification.confidence * 100).toFixed(1)}%, area: ${classification.area.toFixed(2)})`);
+        if (classification.debugInfo?.overlapRatio !== undefined) {
+          console.log(`    Overlap ratio: ${(classification.debugInfo.overlapRatio * 100).toFixed(1)}%`);
         }
       });
 
-      // Create CrossSection from polygons (now with correct winding order)
-      console.log(`🔧 Creating CrossSection with corrected winding order...`);
-      const crossSection = new CrossSection(manifoldPolygons);
+      // Convert classifications to ManifoldCAD format with proper winding order
+      const finalPolygons = classifications.map((classification, i) => {
+        const polygon = classification.polygon;
+        const area = calculatePolygonArea(polygon);
+        const coords = polygon.map(point => [point.x, point.y] as [number, number]);
+
+        if (classification.isHole) {
+          // This is a hole - make it clockwise
+          console.log(`  Polygon ${i}: hole, making clockwise (area=${area.toFixed(2)})`);
+          return area > 0 ? coords.reverse() : coords; // Make clockwise
+        } else {
+          // This is a solid part - make it counter-clockwise
+          console.log(`  Polygon ${i}: solid, making counter-clockwise (area=${area.toFixed(2)})`);
+          return area < 0 ? coords.reverse() : coords; // Make counter-clockwise
+        }
+      });
+
+      console.log(`🔧 Creating CrossSection with ${finalPolygons.length} polygons (1 outer + ${finalPolygons.length - 1} holes)...`);
+      const crossSection = new CrossSection(finalPolygons);
       console.log(`✅ CrossSection created: isEmpty=${crossSection.isEmpty()}, numContour=${crossSection.numContour()}, numVert=${crossSection.numVert()}`);
       console.log(`✅ Created CrossSection from font polygons:`, typeof crossSection, crossSection.constructor.name);
 
@@ -683,7 +810,7 @@ function createGeometricFallback(
 // Export the parametric config as the default export
 const typefaceConfig = createConfig(
   {
-    text: P.string('Hello'),
+    text: P.string('O'),
     height: P.number(10, 1, 50, 1),
     fontSize: P.number(50, 10, 200, 5),
     spacing: P.number(0, -10, 50, 1),
