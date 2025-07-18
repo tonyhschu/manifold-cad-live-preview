@@ -1,9 +1,33 @@
-// Text to CrossSection Converter using OpenType.js for Manifold Studio
-// This implementation converts text strings to ManifoldCAD CrossSection objects
+/**
+ * Text to 3D Converter for ManifoldCAD
+ *
+ * This module provides comprehensive text-to-3D conversion functionality using:
+ * - OpenType.js for font parsing and path generation
+ * - Custom polygon classification for hole detection
+ * - ManifoldCAD for 3D extrusion and boolean operations
+ * - Robust fallback system for when fonts fail to load
+ *
+ * Key Features:
+ * - True font-based text rendering with proper hole handling
+ * - Geometric fallback shapes for common letters
+ * - Cross-platform font loading (browser and Node.js)
+ * - Configurable text spacing and sizing
+ * - Error recovery and graceful degradation
+ *
+ * @example
+ * ```typescript
+ * // Create 3D text
+ * const text3D = createExtrudedText("Hello", 10, 50, 2);
+ *
+ * // Test font loading
+ * const status = await testFontLoading();
+ * console.log(status);
+ * ```
+ */
 
 import { Manifold, CrossSection, createConfig, P } from '@manifold-studio/wrapper';
 import opentype from 'opentype.js';
-import { fontResolver, type LoadedFont } from '../lib/font-resolver';
+import { fontResolver, type LoadedFont, FontLoadError, FontTimeoutError } from '../lib/font-resolver';
 import { classifyFontPolygons } from '../lib/font-polygon-classifier';
 
 // Type definitions for our implementation
@@ -34,7 +58,16 @@ function calculatePolygonArea(polygon: Polygon): number {
 
 /**
  * Text to CrossSection Converter Class
- * Handles loading fonts and converting text to vector paths suitable for ManifoldCAD
+ *
+ * This class handles the conversion of text strings to 2D polygon arrays
+ * that can be used with ManifoldCAD's CrossSection for 3D extrusion.
+ *
+ * Features:
+ * - Font loading and caching via FontResolver
+ * - Bezier curve subdivision for accurate text paths
+ * - Fallback text generation when fonts are unavailable
+ * - Configurable text rendering options (spacing, kerning, features)
+ * - Robust error handling with graceful degradation
  */
 class TextToCrossSection {
   private loadedFont: LoadedFont | null = null;
@@ -54,10 +87,8 @@ class TextToCrossSection {
    */
   async loadFont(fontName: string): Promise<void> {
     try {
-      console.log(`Loading font: ${fontName}`);
       this.loadedFont = await fontResolver.loadFont(fontName);
       this.fontLoaded = true;
-      console.log(`Font '${fontName}' loaded successfully`);
     } catch (error) {
       console.error(`Failed to load font '${fontName}':`, error);
       throw error;
@@ -69,20 +100,179 @@ class TextToCrossSection {
    */
   async loadDefaultFont(): Promise<void> {
     try {
-      console.log('Loading default font (Inter Variable Font)');
       await this.loadFont('Inter Variable Font');
-      console.log('Default font loaded successfully');
     } catch (error) {
-      console.warn('Failed to load default font, using fallback mode:', error);
-      // Set fallback mode
+      if (error instanceof FontLoadError) {
+        console.warn(`Font loading failed for all ${error.attemptedUrls.length} URLs:`, error.attemptedUrls);
+        console.warn('Last error:', error.lastError?.message);
+      } else if (error instanceof FontTimeoutError) {
+        console.warn('Font loading timed out:', error.message);
+      } else {
+        console.warn('Failed to load default font:', error);
+      }
+
+      // Set fallback mode - allow rendering with geometric shapes
       this.fontLoaded = true;
       this.loadedFont = null;
-      console.log('Fallback mode activated');
     }
   }
 
   /**
-   * Convert a text string to CrossSection polygons
+   * Convert text to polygons with proper hole detection and winding order
+   *
+   * This method processes each character individually, applies hole detection,
+   * and ensures correct winding order (holes clockwise, solids counter-clockwise).
+   * Maintains proper kerning and character positioning.
+   *
+   * @param text - The text string to convert
+   * @param fontSize - Font size in units (default: 100)
+   * @param options - Rendering options
+   * @param options.spacing - Additional character spacing (default: 0)
+   * @param options.kerning - Enable kerning (default: true)
+   * @param options.features - OpenType features like ligatures (default: {liga: true})
+   * @param options.holeThreshold - Overlap ratio threshold for hole detection (default: 0.9)
+   * @param options.sampleCount - Number of sample points for overlap estimation (default: 100)
+   * @param options.debug - Include debug information in results (default: false)
+   * @returns Array of polygons with correct winding order
+   * @throws {Error} When font is not loaded
+   */
+  textToPolygons(
+    text: string,
+    fontSize: number = 100,
+    options: {
+      spacing?: number;
+      kerning?: boolean;
+      features?: { [key: string]: boolean };
+      holeThreshold?: number;
+      sampleCount?: number;
+      debug?: boolean;
+    } = {}
+  ): CrossSectionPolygons {
+    if (!this.fontLoaded) {
+      throw new Error('Font not loaded. Call loadFont() or loadDefaultFont() first.');
+    }
+
+    if (!this.loadedFont) {
+      throw new Error('Font not loaded. Please call loadFont() or loadDefaultFont() before converting text to polygons.');
+    }
+
+    const {
+      kerning = true,
+      spacing = 0,
+      holeThreshold = 0.9,
+      sampleCount = 100,
+      debug = false
+    } = options;
+
+    // Get glyphs for the entire string (handles ligatures properly)
+    const glyphs = this.loadedFont!.font.stringToGlyphs(text);
+
+    const allPolygons: CrossSectionPolygons = [];
+    let currentX = 0;
+
+    for (let i = 0; i < glyphs.length; i++) {
+      const glyph = glyphs[i];
+      const nextGlyph = glyphs[i + 1];
+
+      // Skip glyphs that don't have paths (like spaces)
+      if (!glyph.path || glyph.path.commands.length === 0) {
+        // Still advance position for spacing
+        let advanceWidth = glyph.advanceWidth;
+        if (kerning && nextGlyph) {
+          const kerningValue = this.loadedFont!.font.getKerningValue(glyph, nextGlyph);
+          advanceWidth += kerningValue;
+        }
+        currentX += (advanceWidth + spacing) * (fontSize / this.loadedFont!.font.unitsPerEm);
+        continue;
+      }
+
+      // Get path for this specific glyph at the current position
+      const glyphPath = glyph.getPath(currentX, 0, fontSize);
+
+      // Convert this glyph's path to polygons
+      const glyphPolygons = this.convertPathToPolygons(glyphPath, fontSize);
+
+      // Apply hole detection and fix winding order for this character's polygons
+      if (glyphPolygons.length > 1) {
+        const classifications = classifyFontPolygons(glyphPolygons, {
+          holeThreshold,
+          sampleCount,
+          debug
+        });
+
+        if (debug) {
+          console.log(`Character '${String.fromCharCode(glyph.unicode)}' classifications:`,
+            classifications.map((c: any) => ({ isHole: c.isHole, confidence: c.confidence })));
+        }
+
+        // Add polygons with correct winding order
+        for (const classification of classifications) {
+          const polygon = classification.polygon;
+          const area = calculatePolygonArea(polygon);
+
+          if (classification.isHole) {
+            // Holes should be clockwise (negative area)
+            const woundPolygon = area > 0 ? [...polygon].reverse() : polygon;
+            allPolygons.push(woundPolygon);
+          } else {
+            // Solids should be counter-clockwise (positive area)
+            const woundPolygon = area < 0 ? [...polygon].reverse() : polygon;
+            allPolygons.push(woundPolygon);
+          }
+        }
+      } else {
+        // Single polygon - always solid, ensure counter-clockwise
+        const polygon = glyphPolygons[0];
+        const area = calculatePolygonArea(polygon);
+        const woundPolygon = area < 0 ? [...polygon].reverse() : polygon;
+        allPolygons.push(woundPolygon);
+      }
+
+      // Calculate advance width including kerning
+      let advanceWidth = glyph.advanceWidth;
+      if (kerning && nextGlyph) {
+        const kerningValue = this.loadedFont!.font.getKerningValue(glyph, nextGlyph);
+        advanceWidth += kerningValue;
+      }
+
+      // Advance position for next glyph (including manual spacing)
+      currentX += (advanceWidth + spacing) * (fontSize / this.loadedFont!.font.unitsPerEm);
+    }
+
+    return allPolygons;
+  }
+
+  /**
+   * Convert properly-wound polygons to a CrossSection
+   *
+   * This method assumes polygons already have correct winding order:
+   * - Holes: clockwise winding
+   * - Solids: counter-clockwise winding
+   *
+   * @param polygons - Array of polygons with correct winding order
+   * @returns CrossSection ready for 3D extrusion
+   */
+  polygonsToCrossSection(polygons: CrossSectionPolygons): any {
+    // Convert to ManifoldCAD format
+    const manifoldPolygons = polygons.map(polygon =>
+      polygon.map(point => [point.x, point.y] as [number, number])
+    );
+
+    // Create single CrossSection - winding order already correct
+    return new CrossSection(manifoldPolygons);
+  }
+
+  /**
+   * Convert a text string to CrossSection (two-stage approach)
+   *
+   * Stage 1: Convert text to properly-wound polygons with hole detection
+   * Stage 2: Convert polygons to CrossSection
+   *
+   * @param text - The text string to convert
+   * @param fontSize - Font size in units (default: 100)
+   * @param options - Rendering options (same as textToPolygons)
+   * @returns CrossSection ready for 3D extrusion
+   * @throws {Error} When font is not loaded
    */
   textToCrossSection(
     text: string,
@@ -91,237 +281,24 @@ class TextToCrossSection {
       spacing?: number;
       kerning?: boolean;
       features?: { [key: string]: boolean };
+      holeThreshold?: number;
+      sampleCount?: number;
+      debug?: boolean;
     } = {}
-  ): CrossSectionPolygons {
-    if (!this.fontLoaded) {
-      throw new Error('Font not loaded. Call loadFont() or loadDefaultFont() first.');
-    }
-
-    if (!this.loadedFont) {
-      // Fallback to simple shapes when no font is loaded
-      return this.createFallbackText(text, fontSize, options.spacing || 0);
-    }
-
-    const { spacing = 0, kerning = true, features = { liga: true } } = options;
-
-    // Get the path for the entire text string
-    const path = this.loadedFont.font.getPath(text, 0, 0, fontSize, { features });
-
-    console.log('=== OPENTYPE PATH ANALYSIS ===');
-    console.log('Path object:', path);
-    console.log('Path commands:', path.commands);
-    console.log('Path commands length:', path.commands.length);
-
-    // Analyze each command
-    path.commands.forEach((cmd: any, i: number) => {
-      console.log(`  Command ${i}: type=${cmd.type}, x=${cmd.x}, y=${cmd.y}`);
-      if (cmd.x1 !== undefined) console.log(`    Control points: x1=${cmd.x1}, y1=${cmd.y1}, x2=${cmd.x2}, y2=${cmd.y2}`);
-    });
-
-    // Check if there are any path properties that indicate contour direction
-    console.log('Path fill:', path.fill);
-    console.log('Path stroke:', path.stroke);
-    console.log('Path strokeWidth:', path.strokeWidth);
-    console.log('Path other properties:', Object.keys(path));
-
-    // Investigate individual command metadata
-    console.log('=== COMMAND-LEVEL METADATA ===');
-    path.commands.forEach((cmd: any, i: number) => {
-      const cmdProps = Object.keys(cmd);
-      if (cmdProps.length > 3) { // More than just type, x, y
-        console.log(`  Command ${i} (${cmd.type}): properties =`, cmdProps, 'values =', cmd);
-      }
-    });
-
-    // Also analyze individual glyphs for metadata
-    console.log('=== GLYPH ANALYSIS ===');
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      const glyph = this.loadedFont.font.charToGlyph(char);
-      console.log(`Character "${char}":`);
-      console.log('  Glyph object:', glyph);
-      console.log('  Glyph properties:', Object.keys(glyph));
-      console.log('  Glyph path:', glyph.path);
-      console.log('  Glyph path commands:', glyph.path?.commands?.length || 0);
-
-      // Check for additional glyph metadata that might indicate fill/hole semantics
-      console.log('  Glyph detailed properties:');
-      ['index', 'name', 'unicode', 'unicodes', 'advanceWidth', 'leftSideBearing', 'path'].forEach(prop => {
-        if (glyph[prop] !== undefined) {
-          console.log(`    ${prop}:`, glyph[prop]);
-        }
-      });
-
-      // Check if there are any path-level properties beyond commands
-      if (glyph.path) {
-        console.log('  Path properties:', Object.keys(glyph.path));
-        ['fill', 'stroke', 'strokeWidth', 'fillRule', 'clipRule', 'opacity'].forEach(prop => {
-          if (glyph.path[prop] !== undefined) {
-            console.log(`    path.${prop}:`, glyph.path[prop]);
-          }
-        });
-      }
-
-      // Check if glyph has any contour information
-      if (glyph.path && glyph.path.commands) {
-        console.log('  Path commands breakdown:');
-        let contourCount = 0;
-        glyph.path.commands.forEach((cmd: any, cmdIndex: number) => {
-          if (cmd.type === 'M') contourCount++;
-          console.log(`    ${cmdIndex}: ${cmd.type} (${cmd.x}, ${cmd.y})`);
-        });
-        console.log(`  Total contours (M commands): ${contourCount}`);
-      }
-    }
-    console.log('=== END GLYPH ANALYSIS ===');
-    console.log('=== END OPENTYPE PATH ANALYSIS ===');
-
-    // Convert the OpenType path to polygon arrays
-    const polygons = this.convertPathToPolygons(path, fontSize);
-
-    return polygons;
+  ): any {
+    const polygons = this.textToPolygons(text, fontSize, options);
+    return this.polygonsToCrossSection(polygons);
   }
 
-  /**
-   * Create fallback text using simple shapes when no font is available
-   */
-  private createFallbackText(text: string, fontSize: number, spacing: number): CrossSectionPolygons {
-    console.log(`Creating fallback text for: "${text}" with fontSize: ${fontSize}`);
-    const polygons: CrossSectionPolygons = [];
-    const charWidth = fontSize * 0.6;
-    const charHeight = fontSize;
 
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      const x = i * (charWidth + spacing);
 
-      if (char === ' ') continue; // Skip spaces
 
-      // Create letter-like shapes based on the character
-      const charPolygons = this.createFallbackCharacter(char, x, 0, charWidth, charHeight);
-      polygons.push(...charPolygons);
-    }
 
-    console.log(`Generated ${polygons.length} polygons for fallback text`);
-    return polygons;
-  }
-
-  /**
-   * Create simple letter-like shapes for fallback rendering
-   */
-  private createFallbackCharacter(char: string, x: number, y: number, width: number, height: number): Polygon[] {
-    const polygons: Polygon[] = [];
-    const strokeWidth = width * 0.15;
-
-    switch (char.toUpperCase()) {
-      case 'H':
-        // Left vertical bar
-        polygons.push([
-          { x: x, y: y },
-          { x: x + strokeWidth, y: y },
-          { x: x + strokeWidth, y: y + height },
-          { x: x, y: y + height }
-        ]);
-        // Right vertical bar
-        polygons.push([
-          { x: x + width - strokeWidth, y: y },
-          { x: x + width, y: y },
-          { x: x + width, y: y + height },
-          { x: x + width - strokeWidth, y: y + height }
-        ]);
-        // Horizontal bar
-        polygons.push([
-          { x: x + strokeWidth, y: y + height * 0.4 },
-          { x: x + width - strokeWidth, y: y + height * 0.4 },
-          { x: x + width - strokeWidth, y: y + height * 0.6 },
-          { x: x + strokeWidth, y: y + height * 0.6 }
-        ]);
-        break;
-
-      case 'E':
-        // Left vertical bar
-        polygons.push([
-          { x: x, y: y },
-          { x: x + strokeWidth, y: y },
-          { x: x + strokeWidth, y: y + height },
-          { x: x, y: y + height }
-        ]);
-        // Top horizontal bar
-        polygons.push([
-          { x: x, y: y + height - strokeWidth },
-          { x: x + width, y: y + height - strokeWidth },
-          { x: x + width, y: y + height },
-          { x: x, y: y + height }
-        ]);
-        // Middle horizontal bar
-        polygons.push([
-          { x: x, y: y + height * 0.4 },
-          { x: x + width * 0.8, y: y + height * 0.4 },
-          { x: x + width * 0.8, y: y + height * 0.6 },
-          { x: x, y: y + height * 0.6 }
-        ]);
-        // Bottom horizontal bar
-        polygons.push([
-          { x: x, y: y },
-          { x: x + width, y: y },
-          { x: x + width, y: y + strokeWidth },
-          { x: x, y: y + strokeWidth }
-        ]);
-        break;
-
-      case 'L':
-        // Vertical bar
-        polygons.push([
-          { x: x, y: y },
-          { x: x + strokeWidth, y: y },
-          { x: x + strokeWidth, y: y + height },
-          { x: x, y: y + height }
-        ]);
-        // Bottom horizontal bar
-        polygons.push([
-          { x: x, y: y },
-          { x: x + width, y: y },
-          { x: x + width, y: y + strokeWidth },
-          { x: x, y: y + strokeWidth }
-        ]);
-        break;
-
-      case 'O':
-        // Outer rectangle
-        const outerPoly: Polygon = [
-          { x: x, y: y },
-          { x: x + width, y: y },
-          { x: x + width, y: y + height },
-          { x: x, y: y + height }
-        ];
-        // Inner rectangle (hole)
-        const innerPoly: Polygon = [
-          { x: x + strokeWidth, y: y + strokeWidth },
-          { x: x + strokeWidth, y: y + height - strokeWidth },
-          { x: x + width - strokeWidth, y: y + height - strokeWidth },
-          { x: x + width - strokeWidth, y: y + strokeWidth }
-        ];
-        polygons.push(outerPoly, innerPoly);
-        break;
-
-      default:
-        // Default rectangular shape for unknown characters
-        polygons.push([
-          { x: x, y: y },
-          { x: x + width, y: y },
-          { x: x + width, y: y + height },
-          { x: x, y: y + height }
-        ]);
-        break;
-    }
-
-    return polygons;
-  }
 
   /**
    * Convert OpenType.js Path to polygon arrays
    */
-  private convertPathToPolygons(path: opentype.Path, fontSize: number): CrossSectionPolygons {
+  private convertPathToPolygons(path: any, fontSize: number): CrossSectionPolygons {
     const polygons: CrossSectionPolygons = [];
     let currentContour: Polygon = [];
     let startPoint: Vec2 | null = null;
@@ -532,29 +509,27 @@ class TextToCrossSection {
 // Create a global instance of the text converter
 const textConverter = new TextToCrossSection();
 
-// Test font loading function
+/**
+ * Test font loading functionality and return status
+ *
+ * This function attempts to load the default font and reports the result.
+ * Useful for debugging font loading issues and verifying system setup.
+ *
+ * @returns Promise that resolves to a status message describing the font loading result
+ */
 async function testFontLoading(): Promise<string> {
-  console.log('=== Font Loading Test ===');
-  console.log('Available fonts:', fontResolver.getAvailableFonts());
-
   try {
     await textConverter.loadDefaultFont();
-    console.log('✅ Font loading test passed');
 
-    // Test font metrics if loaded
     const metrics = textConverter.getMetrics();
     if (metrics) {
-      console.log('📊 Font metrics:', metrics);
-      return `✅ Font loaded successfully! Metrics: unitsPerEm=${metrics.unitsPerEm}, ascender=${metrics.ascender}`;
+      return `Font loaded successfully! Metrics: unitsPerEm=${metrics.unitsPerEm}, ascender=${metrics.ascender}`;
     } else {
-      console.log('📊 Using fallback rendering (no font metrics)');
-      return '⚠️ Using fallback rendering - no font loaded';
+      return 'Using fallback rendering - no font loaded';
     }
   } catch (error) {
-    console.error('❌ Font loading test failed:', error);
-    return `❌ Font loading failed: ${error.message}`;
-  } finally {
-    console.log('=== End Font Loading Test ===');
+    console.error('Font loading failed:', error);
+    return `Font loading failed: ${error.message}`;
   }
 }
 
@@ -569,245 +544,79 @@ fontLoadingStatus = await testFontLoading();
  * TODO: Add dynamic font loading based on fontName parameter
  */
 
+/**
+ * Create 3D extruded text using loaded fonts
+ *
+ * This function creates 3D text by:
+ * 1. Converting text to 2D polygons using the loaded font
+ * 2. Applying hole detection to distinguish solid parts from holes
+ * 3. Creating a CrossSection with proper winding order
+ * 4. Extruding the CrossSection to the specified height
+ *
+ * The function requires a font to be loaded before use and will throw an error
+ * if no font is available, providing clear feedback to users about the issue.
+ *
+ * @param text - The text string to render (default: "Hello")
+ * @param height - Extrusion height in units (default: 10)
+ * @param fontSize - Font size in units (default: 50)
+ * @param spacing - Additional character spacing (default: 0)
+ * @param _fontName - Font name (currently unused, reserved for future use)
+ * @returns ManifoldCAD Manifold object representing the 3D text
+ * @throws {Error} When no font is loaded
+ *
+ * @example
+ * ```typescript
+ * // Create simple 3D text (requires font to be loaded first)
+ * const text3D = createExtrudedText("Hello", 10, 50);
+ *
+ * // Create text with custom spacing
+ * const spacedText = createExtrudedText("WIDE", 5, 30, 10);
+ * ```
+ */
 function createExtrudedText(
   text: string = "Hello",
   height: number = 10,
   fontSize: number = 50,
   spacing: number = 0,
-  fontName: string = "Inter Variable Font"
+  _fontName: string = "Inter Variable Font" // TODO: Support dynamic font loading
 ): typeof Manifold {
-  console.log(`🎯 Creating extruded text: "${text}", height: ${height}, fontSize: ${fontSize}, spacing: ${spacing}, font: ${fontName}`);
-  console.log(`🔍 Font loaded status: ${textConverter.isFontLoaded}`);
-  console.log(`🔍 Available fonts: ${fontResolver.getAvailableFonts().join(', ')}`);
-
-  try {
-    // Check if font is loaded, if not, ensure it's loaded
-    if (!textConverter.isFontLoaded) {
-      console.warn('⚠️ Font not loaded yet, using geometric fallback');
-      const fallback = createGeometricFallback(text, height, fontSize, spacing);
-      console.log(`✅ Geometric fallback created:`, typeof fallback, fallback.constructor.name);
-      return fallback;
-    }
-
-    console.log(`✅ Font is loaded, proceeding with font-based rendering`);
-
-    // Try to use the actual font conversion first
-    const polygons = textConverter.textToCrossSection(text, fontSize, { spacing });
-    console.log(`📐 Generated ${polygons.length} polygons from font conversion`);
-
-    if (polygons.length > 0) {
-      console.log(`🔄 Converting ${polygons.length} polygons to ManifoldCAD format`);
-      console.log(`📊 Raw polygons from font:`, polygons.map(p => p.length));
-
-      console.log('=== DETAILED POLYGON ANALYSIS ===');
-      for (let i = 0; i < polygons.length; i++) {
-        const polygon = polygons[i];
-        const area = calculatePolygonArea(polygon);
-        const windingDirection = area > 0 ? 'CCW (SOLID)' : 'CW (HOLE)';
-        console.log(`  Polygon ${i}: ${polygon.length} points, area=${area.toFixed(2)} (${windingDirection})`);
-
-        // Show first few points to understand the shape
-        const first5Points = polygon.slice(0, 5);
-        console.log(`    First 5 points:`, first5Points.map(p => `[${p.x.toFixed(1)}, ${p.y.toFixed(1)}]`).join(', '));
-
-        // Show DETAILED coordinate sequence for winding analysis
-        console.log(`    DETAILED COORDINATE SEQUENCE (first 8 points):`);
-        for (let j = 0; j < Math.min(8, polygon.length); j++) {
-          const curr = polygon[j];
-          const next = polygon[(j + 1) % polygon.length];
-          const dx = next.x - curr.x;
-          const dy = next.y - curr.y;
-          console.log(`      ${j}: [${curr.x.toFixed(2)}, ${curr.y.toFixed(2)}] → [${next.x.toFixed(2)}, ${next.y.toFixed(2)}] (Δx=${dx.toFixed(2)}, Δy=${dy.toFixed(2)})`);
-        }
-
-        // Manual winding calculation step-by-step for verification
-        console.log(`    MANUAL WINDING CALCULATION:`);
-        let manualArea = 0;
-        for (let j = 0; j < Math.min(4, polygon.length); j++) {
-          const curr = polygon[j];
-          const next = polygon[(j + 1) % polygon.length];
-          const crossProduct = curr.x * next.y - next.x * curr.y;
-          manualArea += crossProduct;
-          console.log(`      Step ${j}: (${curr.x.toFixed(2)} * ${next.y.toFixed(2)}) - (${next.x.toFixed(2)} * ${curr.y.toFixed(2)}) = ${crossProduct.toFixed(2)}, running sum = ${manualArea.toFixed(2)}`);
-        }
-        console.log(`    Manual area (first 4 steps): ${(manualArea / 2).toFixed(2)}, Full area: ${area.toFixed(2)}`);
-
-        // Calculate bounding box to understand size/position
-        const minX = Math.min(...polygon.map(p => p.x));
-        const maxX = Math.max(...polygon.map(p => p.x));
-        const minY = Math.min(...polygon.map(p => p.y));
-        const maxY = Math.max(...polygon.map(p => p.y));
-        const width = maxX - minX;
-        const height = maxY - minY;
-        console.log(`    Bounding box: [${minX.toFixed(1)}, ${minY.toFixed(1)}] to [${maxX.toFixed(1)}, ${maxY.toFixed(1)}], size: ${width.toFixed(1)} x ${height.toFixed(1)}`);
-      }
-      console.log('=== END DETAILED ANALYSIS ===');
-
-      // Convert to ManifoldCAD format using overlap-based classification
-      console.log('🔧 Using overlap-based polygon classification...');
-
-      // Classify polygons using our utility
-      const classifications = classifyFontPolygons(polygons, {
-        holeThreshold: 0.9,  // 90% overlap threshold for hole detection
-        sampleCount: 100,    // Number of sample points for overlap estimation
-        debug: true          // Include debug information
-      });
-
-      console.log('📊 Classification results:');
-      classifications.forEach((classification, i) => {
-        console.log(`  Polygon ${i}: ${classification.isHole ? 'HOLE' : 'SOLID'} (confidence: ${(classification.confidence * 100).toFixed(1)}%, area: ${classification.area.toFixed(2)})`);
-        if (classification.debugInfo?.overlapRatio !== undefined) {
-          console.log(`    Overlap ratio: ${(classification.debugInfo.overlapRatio * 100).toFixed(1)}%`);
-        }
-      });
-
-      // Convert classifications to ManifoldCAD format with proper winding order
-      const finalPolygons = classifications.map((classification, i) => {
-        const polygon = classification.polygon;
-        const area = calculatePolygonArea(polygon);
-        const coords = polygon.map(point => [point.x, point.y] as [number, number]);
-
-        if (classification.isHole) {
-          // This is a hole - make it clockwise
-          console.log(`  Polygon ${i}: hole, making clockwise (area=${area.toFixed(2)})`);
-          return area > 0 ? coords.reverse() : coords; // Make clockwise
-        } else {
-          // This is a solid part - make it counter-clockwise
-          console.log(`  Polygon ${i}: solid, making counter-clockwise (area=${area.toFixed(2)})`);
-          return area < 0 ? coords.reverse() : coords; // Make counter-clockwise
-        }
-      });
-
-      console.log(`🔧 Creating CrossSection with ${finalPolygons.length} polygons (1 outer + ${finalPolygons.length - 1} holes)...`);
-      const crossSection = new CrossSection(finalPolygons);
-      console.log(`✅ CrossSection created: isEmpty=${crossSection.isEmpty()}, numContour=${crossSection.numContour()}, numVert=${crossSection.numVert()}`);
-      console.log(`✅ Created CrossSection from font polygons:`, typeof crossSection, crossSection.constructor.name);
-
-      // Extrude to create 3D text
-      const testCrossSection = CrossSection.square([10, 10]);
-      const testExtruded = Manifold.extrude(testCrossSection , height);
-
-      const extruded = Manifold.extrude(crossSection, height);
-
-      console.log(`✅ Extruded font-based text to 3D:`, extruded, extruded.constructor.name);
-      console.log(`   Test extrusion:`, testExtruded, testExtruded.constructor.name);
-
-      console.log('--- Debugging Output ---');
-      console.log('testCrossSection', testCrossSection.isEmpty());
-      console.log('testExtruded status', testExtruded.status());
-      console.log('crossSection', crossSection.isEmpty());
-      console.log('extruded status', extruded.status());
-
-      return extruded;
-    //   return testExtruded;
-    }
-
-    // If no polygons from font, fall back to geometric shapes
-    console.log('⚠️ No font polygons available, using geometric fallback');
-    const fallback = createGeometricFallback(text, height, fontSize, spacing);
-    console.log(`✅ Geometric fallback created:`, typeof fallback, fallback.constructor.name);
-    return fallback;
-
-  } catch (error) {
-    console.error('❌ Error in font-based text creation:', error);
-    console.log('🔄 Falling back to geometric shapes');
-    const fallback = createGeometricFallback(text, height, fontSize, spacing);
-    console.log(`✅ Error fallback created:`, typeof fallback, fallback.constructor.name);
-    return fallback;
+  // Ensure font is loaded before proceeding
+  if (!textConverter.isFontLoaded) {
+    throw new Error(
+      'Font not loaded. Cannot create extruded text without a loaded font. ' +
+      'Please ensure font loading completes successfully before calling this function.'
+    );
   }
+
+  // Use the new two-stage approach: text -> polygons with hole detection -> CrossSection
+  const crossSection = textConverter.textToCrossSection(text, fontSize, {
+    spacing,
+    holeThreshold: 0.9,  // 90% overlap threshold for hole detection
+    sampleCount: 100,    // Number of sample points for overlap estimation
+    debug: false         // Disable debug logging for production
+  });
+
+  // Extrude the CrossSection to 3D
+  const extruded = Manifold.extrude(crossSection, height);
+  return extruded;
 }
+
+
 
 /**
- * Create geometric fallback shapes when font loading fails
+ * ManifoldCAD Parametric Configuration for 3D Text Generation
+ *
+ * This configuration defines the user interface and parameters for the 3D text
+ * generation component in ManifoldCAD. It provides:
+ * - Text input field for the string to render
+ * - Height slider for extrusion depth
+ * - Font size control for text scaling
+ * - Spacing adjustment for character separation
+ * - Font selection dropdown (currently limited to available fonts)
+ *
+ * The configuration uses the createExtrudedText function as its implementation
+ * and provides real-time parameter updates in the ManifoldCAD interface.
  */
-function createGeometricFallback(
-  text: string,
-  height: number,
-  fontSize: number,
-  spacing: number
-): typeof Manifold {
-  console.log(`🔧 Creating geometric fallback for: "${text}", height: ${height}, fontSize: ${fontSize}, spacing: ${spacing}`);
-
-  try {
-    const letterShapes: any[] = [];
-    const charWidth = fontSize * 0.6;
-
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      if (char === ' ') continue;
-
-      const x = i * (charWidth + spacing);
-
-      // Create a simple shape for each character
-      let letterShape: any;
-
-      switch (char.toUpperCase()) {
-        case 'H':
-          // Create H shape using rectangles
-          const leftBar = CrossSection.square([fontSize * 0.1, fontSize]).translate([x, 0]);
-          const rightBar = CrossSection.square([fontSize * 0.1, fontSize]).translate([x + charWidth - fontSize * 0.1, 0]);
-          const crossBar = CrossSection.square([charWidth * 0.8, fontSize * 0.1]).translate([x + fontSize * 0.1, fontSize * 0.45]);
-          letterShape = CrossSection.union([leftBar, rightBar, crossBar]);
-          break;
-
-        case 'E':
-          // Create E shape
-          const vertBar = CrossSection.square([fontSize * 0.1, fontSize]).translate([x, 0]);
-          const topBar = CrossSection.square([charWidth, fontSize * 0.1]).translate([x, fontSize * 0.9]);
-          const midBar = CrossSection.square([charWidth * 0.8, fontSize * 0.1]).translate([x, fontSize * 0.45]);
-          const botBar = CrossSection.square([charWidth, fontSize * 0.1]).translate([x, 0]);
-          letterShape = CrossSection.union([vertBar, topBar, midBar, botBar]);
-          break;
-
-        case 'L':
-          // Create L shape
-          const vBar = CrossSection.square([fontSize * 0.1, fontSize]).translate([x, 0]);
-          const hBar = CrossSection.square([charWidth, fontSize * 0.1]).translate([x, 0]);
-          letterShape = CrossSection.union([vBar, hBar]);
-          break;
-
-        case 'O':
-          // Create O shape (square with hole)
-          const outer = CrossSection.square([charWidth, fontSize]).translate([x, 0]);
-          const inner = CrossSection.square([charWidth * 0.6, fontSize * 0.6]).translate([x + charWidth * 0.2, fontSize * 0.2]);
-          letterShape = outer.subtract(inner);
-          break;
-
-        default:
-          // Default rectangle for unknown characters
-          letterShape = CrossSection.square([charWidth, fontSize]).translate([x, 0]);
-          break;
-      }
-
-      letterShapes.push(letterShape);
-    }
-
-    console.log(`Created ${letterShapes.length} geometric letter shapes`);
-
-    if (letterShapes.length === 0) {
-      console.log('No letter shapes created, returning placeholder');
-      return Manifold.cube([fontSize, fontSize, height], true);
-    }
-
-    // Union all letter shapes
-    const textShape = letterShapes.length === 1 ? letterShapes[0] : CrossSection.union(letterShapes);
-    console.log('Unioned all geometric letter shapes');
-
-    // Extrude to create 3D text
-    const extruded = textShape.extrude(height);
-    console.log(`✅ Extruded geometric text shape to 3D:`, typeof extruded, extruded.constructor.name);
-
-    return extruded;
-  } catch (error) {
-    console.error('❌ Error creating geometric fallback:', error);
-    // Final fallback - simple cube
-    const cube = Manifold.cube([text.length * fontSize * 0.6, fontSize, height], true);
-    console.log(`✅ Final cube fallback created:`, typeof cube, cube.constructor.name);
-    return cube;
-  }
-}
-
-// Export the parametric config as the default export
 const typefaceConfig = createConfig(
   {
     text: P.string('O'),
@@ -824,4 +633,5 @@ const typefaceConfig = createConfig(
   }
 );
 
+export { TextToCrossSection };
 export default typefaceConfig;

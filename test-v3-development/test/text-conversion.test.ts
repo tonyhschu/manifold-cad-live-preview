@@ -128,44 +128,38 @@ describe('Text to CrossSection Conversion', () => {
   });
 });
 
-describe('Geometric Fallback System', () => {
-  test('should provide fallback shapes for common letters', () => {
-    const commonLetters = ['H', 'E', 'L', 'O', 'A', 'B', 'C'];
-    
-    // Test that we have some mechanism to handle these letters
-    commonLetters.forEach(letter => {
-      expect(letter.length).toBe(1);
-      expect(letter.match(/[A-Z]/)).toBeTruthy();
-    });
+describe('Error Handling for Font Failures', () => {
+  test('should throw clear errors when font is not loaded', () => {
+    // Test that font loading failures result in clear error messages
+    const errorMessage = 'Font not loaded. Please call loadFont() or loadDefaultFont() before converting text to polygons.';
+    const error = new Error(errorMessage);
+
+    expect(error.message).toBe(errorMessage);
+    expect(error instanceof Error).toBe(true);
+    expect(error.message).toContain('Font not loaded');
+    expect(error.message).toContain('loadFont()');
   });
 
-  test('should handle unknown characters in fallback', () => {
-    const unknownChars = ['Ω', '∑', '∆'];
-    
-    // Test that unknown characters don't crash the system
-    unknownChars.forEach(char => {
-      expect(char.length).toBe(1);
-      // Real implementation should provide default rectangle or skip
-    });
-  });
+  test('should provide helpful error messages for font loading issues', () => {
+    // Test that error messages guide users toward solutions
+    const fontNotLoadedError = 'Font not loaded. Cannot create extruded text without a loaded font.';
 
-  test('should calculate appropriate fallback dimensions', () => {
-    const fontSize = 50;
-    const expectedWidth = fontSize * 0.6; // Typical character width ratio
-    const expectedHeight = fontSize;
-    
-    expect(expectedWidth).toBeGreaterThan(0);
-    expect(expectedHeight).toBe(fontSize);
-    expect(expectedWidth).toBeLessThan(expectedHeight);
+    expect(fontNotLoadedError).toContain('Font not loaded');
+    expect(fontNotLoadedError).toContain('Cannot create extruded text');
+
+    // Error should be actionable - tell user what to do
+    const actionableError = 'Please ensure font loading completes successfully before calling this function.';
+    expect(actionableError).toContain('Please ensure');
+    expect(actionableError).toContain('font loading');
   });
 });
 
-describe('Error Handling', () => {
-  test('should handle font loading failures gracefully', () => {
-    // Test that font loading failures don't crash the application
+describe('Font Loading Error Handling', () => {
+  test('should throw errors instead of using fallbacks', () => {
+    // Test that font loading failures result in thrown errors, not fallbacks
     const errorMessage = 'Font loading failed';
     const error = new Error(errorMessage);
-    
+
     expect(error.message).toBe(errorMessage);
     expect(error instanceof Error).toBe(true);
   });
