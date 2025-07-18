@@ -160,6 +160,8 @@ npm run test:configurator
 npm run test:create-app
 ```
 
+**Note**: After V3 consolidation, configurator tests now require V3 bridge system mocking for components that use the unified state management.
+
 #### Integration Testing
 
 ```bash
@@ -400,6 +402,8 @@ cd packages/wrapper && npm run build  # Rebuild wrapper if needed
 ### Architecture Notes
 
 **Source-Based Development**: The configurator is imported directly from `packages/configurator/src/` using Vite aliases, eliminating build steps and caching issues during development. Only the wrapper requires building since it contains WASM bindings.
+
+**V3 State Management Consolidation**: The legacy store system has been deprecated and replaced with a unified V3 state management system using V3 UIStateManager and V3 bridge components. All UI components now use the V3 bridge exclusively for state synchronization.
 
 **CLI-Based Architecture**: The new configurator CLI significantly improves the development experience by:
 

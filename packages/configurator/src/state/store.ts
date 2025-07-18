@@ -251,7 +251,3 @@ export async function refreshAvailableModels() {
     updateStatus('Error loading models. Run "npm run dev:models" to compile your models.', true);
   }
 }
-
-// Legacy initializeStore function removed - V3 system only needs refreshAvailableModels()
-
-// Legacy URL management functions removed - V3 UIStateManager handles URL state
