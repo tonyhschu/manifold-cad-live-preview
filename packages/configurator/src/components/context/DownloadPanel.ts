@@ -1,11 +1,13 @@
 /**
  * DownloadPanel Web Component
- * 
+ *
  * Provides download links for OBJ and GLB models.
  * Uses the Light DOM approach (no Shadow DOM).
+ *
+ * Updated to use V3 state management system.
  */
 
-import { modelUrls } from '../../state/store';
+import { v3Signals } from '../../state/v3-bridge';
 
 export class DownloadPanel extends HTMLElement {
   private containerElement: HTMLElement | null = null;
@@ -17,19 +19,36 @@ export class DownloadPanel extends HTMLElement {
   }
   
   connectedCallback() {
-    console.log('DownloadPanel: Connected');
-    
+    console.log('DownloadPanel: Connected (V3)');
+
     // Find existing container or create it
-    this.containerElement = this.querySelector('.download-container') || 
+    this.containerElement = this.querySelector('.download-container') ||
                            this.createContainerElement();
-    
-    // Subscribe to modelUrls signal
-    this.unsubscribe = modelUrls.subscribe(urls => {
+
+    // Wait for V3 bridge to be initialized before setting up subscriptions
+    if (v3Signals.isInitialized.value) {
+      this.setupSubscriptions();
+    } else {
+      console.log('DownloadPanel: Waiting for V3 bridge initialization...');
+      // Subscribe to initialization signal
+      const initUnsubscribe = v3Signals.isInitialized.subscribe(isInitialized => {
+        if (isInitialized) {
+          console.log('DownloadPanel: V3 bridge initialized, setting up subscriptions');
+          this.setupSubscriptions();
+          initUnsubscribe(); // Unsubscribe from init signal
+        }
+      });
+    }
+  }
+
+  private setupSubscriptions() {
+    // Subscribe to V3 modelUrls signal
+    this.unsubscribe = v3Signals.modelUrls.subscribe(urls => {
       this.renderDownloadLinks(urls.objUrl, urls.glbUrl);
     });
-    
+
     // Initial render
-    this.renderDownloadLinks(modelUrls.value.objUrl, modelUrls.value.glbUrl);
+    this.renderDownloadLinks(v3Signals.modelUrls.value.objUrl, v3Signals.modelUrls.value.glbUrl);
   }
   
   disconnectedCallback() {

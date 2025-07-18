@@ -5,14 +5,11 @@ import './style.css'; // Import CSS for HMR support
 import './components'; // Register all web components
 import { initializeServices } from './services';
 import { createModelViewer } from './core/preview';
-import * as storeExports from './state/store';
 
 export interface ConfiguratorOptions {
   models?: Record<string, any>;
   defaultModel?: string;
   container?: string | HTMLElement;
-  /** Use V3 pipeline system instead of legacy model discovery */
-  useV3Pipeline?: boolean;
   /** Pipeline path for V3 system */
   pipelinePath?: string;
   /** Custom model registry for user projects - maps model ID to actual model objects */
@@ -226,10 +223,10 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
     console.log('🎯 Custom registry has models:', registryModels.map(m => m.id));
     configureModelDiscovery({ customModels: registryModels });
 
-    // Refresh the store with the new models
-    const { refreshAvailableModels } = await import('./state/store');
-    await refreshAvailableModels();
-    console.log('✅ Store updated with custom models');
+    // Refresh available models using V3 system
+    const { v3Actions } = await import('./state/v3-bridge');
+    await v3Actions.refreshAvailableModels();
+    console.log('✅ V3 system updated with custom models');
   }
 
   // Register models if provided (for future enhancement)
@@ -266,15 +263,16 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
     console.log('Configurator started successfully');
   } catch (error) {
     console.error('Failed to load default model:', error);
-    storeExports.updateStatus('Failed to load model', true);
+    // Use V3 bridge to update status
+    const { v3Actions } = await import('./state/v3-bridge');
+    v3Actions.updateStatus('Failed to load model', true);
   }
 
   return {
-    modelViewer,
-    store: storeExports
+    modelViewer
   };
 }
 
 // Re-export useful types and utilities
 export { getModelService, getExportService } from './services';
-export * as store from './state/store';
+export { v3Signals, v3Actions } from './state/v3-bridge';

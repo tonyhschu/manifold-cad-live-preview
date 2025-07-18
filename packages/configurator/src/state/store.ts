@@ -1,8 +1,11 @@
 /**
- * Application State Store
+ * Application State Store (DEPRECATED)
  *
  * Central state management using Preact Signals.
  * This store handles ONLY state management - business logic is delegated to services.
+ *
+ * @deprecated This legacy store is deprecated. Use V3 state management system (v3-bridge.ts) instead.
+ * The V3 system provides better state persistence, URL synchronization, and reactive updates.
  */
 
 import { signal, computed } from '@preact/signals';

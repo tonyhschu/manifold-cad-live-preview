@@ -1,11 +1,13 @@
 /**
  * ModelMetadata Web Component
- * 
+ *
  * Displays model metadata information (name, description, author, etc.)
  * Subscribes to the global modelMetadata signal to show information for all model types.
+ *
+ * Updated to use V3 state management system.
  */
 
-import { modelMetadata } from '../../state/store';
+import { v3Signals } from '../../state/v3-bridge';
 import type { ModelMetadata as ModelMetadataType } from '../../core/model-loader';
 
 export class ModelMetadata extends HTMLElement {
@@ -19,8 +21,25 @@ export class ModelMetadata extends HTMLElement {
       </div>
     `;
 
-    // Subscribe to model metadata changes (single source of truth)
-    this.unsubscribeMetadata = modelMetadata.subscribe(metadata => {
+    // Wait for V3 bridge to be initialized before setting up subscriptions
+    if (v3Signals.isInitialized.value) {
+      this.setupSubscriptions();
+    } else {
+      console.log('ModelMetadata: Waiting for V3 bridge initialization...');
+      // Subscribe to initialization signal
+      const initUnsubscribe = v3Signals.isInitialized.subscribe(isInitialized => {
+        if (isInitialized) {
+          console.log('ModelMetadata: V3 bridge initialized, setting up subscriptions');
+          this.setupSubscriptions();
+          initUnsubscribe(); // Unsubscribe from init signal
+        }
+      });
+    }
+  }
+
+  private setupSubscriptions() {
+    // Subscribe to V3 model metadata changes (single source of truth)
+    this.unsubscribeMetadata = v3Signals.modelMetadata.subscribe(metadata => {
       this.handleMetadataChange(metadata);
     });
   }

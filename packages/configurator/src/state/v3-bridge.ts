@@ -194,6 +194,17 @@ export class V3StateBridge {
    * Refresh available models
    */
   async refreshAvailableModels(): Promise<void> {
+    // Force refresh the model service cache if it supports it
+    try {
+      const modelService = getModelService();
+      if (modelService && typeof modelService.refreshAvailableModels === 'function') {
+        modelService.refreshAvailableModels();
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to refresh model service cache:', error);
+    }
+
+    // Update our local signals
     this.updateAvailableModels();
   }
 
