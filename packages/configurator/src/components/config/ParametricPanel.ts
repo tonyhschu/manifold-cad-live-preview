@@ -1,5 +1,5 @@
 import { ParameterManager } from '../../core/parameter-manager';
-import { currentParametricConfig, updateModel, modelUrls } from '../../state/store';
+import { v3Signals, v3Actions } from '../../state/v3-bridge';
 import { getExportService } from '../../services';
 import type { ParametricConfig } from '@manifold-studio/wrapper';
 
@@ -28,8 +28,25 @@ export class ParametricPanel extends HTMLElement {
       });
     }
 
-    // Subscribe to parametric config changes
-    this.unsubscribe = currentParametricConfig.subscribe(config => {
+    // Wait for V3 bridge to be initialized before setting up subscriptions
+    if (v3Signals.isInitialized.value) {
+      this.setupSubscriptions();
+    } else {
+      console.log('ParametricPanel: Waiting for V3 bridge initialization...');
+      // Subscribe to initialization signal
+      const initUnsubscribe = v3Signals.isInitialized.subscribe(isInitialized => {
+        if (isInitialized) {
+          console.log('ParametricPanel: V3 bridge initialized, setting up subscriptions');
+          this.setupSubscriptions();
+          initUnsubscribe(); // Unsubscribe from init signal
+        }
+      });
+    }
+  }
+
+  private setupSubscriptions() {
+    // Subscribe to parametric config changes from V3 bridge
+    this.unsubscribe = v3Signals.parametricConfig.subscribe(config => {
       this.handleConfigChange(config);
     });
   }
@@ -95,11 +112,16 @@ export class ParametricPanel extends HTMLElement {
       const customEvent = event as CustomEvent;
       const { manifold, params } = customEvent.detail;
 
-      // Update the global model state
-      updateModel(manifold);
-
-      // Generate new exports for the updated model
-      await this.updateModelExports(manifold);
+      // In V3 system, reload the model with new parameters
+      const selectedModel = v3Signals.selectedModel.value;
+      if (selectedModel) {
+        console.log('🔄 ParametricPanel: Reloading model with new parameters:', params);
+        try {
+          await v3Actions.loadModel(selectedModel, params);
+        } catch (error) {
+          console.error('❌ Failed to reload model with new parameters:', error);
+        }
+      }
 
       // Optionally store current parameters for persistence
       this.storeCurrentParameters(params);
@@ -123,26 +145,7 @@ export class ParametricPanel extends HTMLElement {
     };
   }
 
-  private async updateModelExports(manifold: any) {
-    try {
-      const exportService = getExportService();
 
-      // Generate OBJ export
-      const objResult = await exportService.exportToOBJ(manifold, 'parametric-model.obj');
-
-      // Generate GLB export
-      const glbResult = await exportService.exportToGLB(manifold, 'parametric-model.glb');
-
-      // Update model URLs in store
-      modelUrls.value = {
-        objUrl: objResult.url,
-        glbUrl: glbResult.url
-      };
-
-    } catch (error) {
-      console.error('Failed to generate exports for parametric model:', error);
-    }
-  }
 
   private storeCurrentParameters(params: Record<string, any>) {
     // Store in localStorage for persistence

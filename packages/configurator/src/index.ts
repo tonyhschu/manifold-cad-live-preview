@@ -4,10 +4,7 @@
 import './style.css'; // Import CSS for HMR support
 import './components'; // Register all web components
 import { initializeServices } from './services';
-import { loadDefaultModel } from './core/model-loader';
-import { initializeStore, loadModel } from './state/store';
 import { createModelViewer } from './core/preview';
-import { setupSimpleHMR } from './hmr-simple';
 import * as storeExports from './state/store';
 
 export interface ConfiguratorOptions {
@@ -129,32 +126,17 @@ async function initializeV3(pipelinePath: string = '/temp/pipeline.js') {
 }
 
 /**
- * Initialize the configurator (V1/V2 legacy or V3 pipeline)
+ * Initialize the V3 configurator
  */
-async function initializeConfigurator(useV3Pipeline: boolean = false, pipelinePath?: string) {
-  if (useV3Pipeline) {
-    // V3 Pipeline Mode
-    console.log('🚀 Initializing V3 Pipeline Configurator...');
-    await initializeV3(pipelinePath);
+async function initializeConfigurator(pipelinePath?: string) {
+  // V3 Pipeline Mode (only supported mode)
+  console.log('🚀 Initializing V3 Pipeline Configurator...');
+  await initializeV3(pipelinePath);
 
-    // Initialize store with V3 models
-    await initializeStore();
-  } else {
-    // Legacy V1/V2 Mode
-    console.log('🚀 Initializing Legacy Configurator...');
-
-    // Initialize store
-    await initializeStore();
-
-    // Initialize services
-    initializeServices();
-
-    // Set up HMR if available
-    setupSimpleHMR();
-
-    // V3 uses custom HMR events instead of temp folder polling
-    console.log('✅ V3 HMR: Using custom events instead of polling');
-  }
+  // Initialize V3 state bridge for UI components
+  const { initializeV3StateBridge } = await import('./state/v3-bridge');
+  await initializeV3StateBridge();
+  console.log('✅ V3 state bridge initialized');
 
   // Get DOM elements
   const modelViewerElement = document.getElementById("viewer") as any;
@@ -189,7 +171,6 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
     defaultModel,
     container = 'body',
     modelRegistry,
-    useV3Pipeline = false,
     pipelinePath = '/temp/pipeline.js'
   } = options;
 
@@ -226,7 +207,7 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
   });
 
   // Initialize the configurator
-  const { modelViewer } = await initializeConfigurator(useV3Pipeline, pipelinePath);
+  const { modelViewer } = await initializeConfigurator(pipelinePath);
 
   // Set up custom model registry if provided
   if (modelRegistry) {
@@ -256,12 +237,31 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
     console.log('Custom models provided:', Object.keys(models));
   }
 
-  // Load default model
+  // Load default model using V3 system
   try {
-    if (defaultModel) {
-      await loadModel(defaultModel);
+    const { getModelService } = await import('./services');
+    const modelService = getModelService();
+
+    // Check if there's a model in the URL first (V3 UIStateManager handles this)
+    const url = new URL(window.location.href);
+    const urlModel = url.searchParams.get('m_model');
+
+    if (urlModel) {
+      console.log('🔗 Loading model from URL (V3):', urlModel);
+      await modelService.loadModel(urlModel);
+      console.log('✅ Model loaded from URL via V3 system');
+    } else if (defaultModel) {
+      console.log('🎯 Loading default model (V3):', defaultModel);
+      await modelService.loadModel(defaultModel);
+      console.log('✅ Default model loaded via V3 system');
     } else {
-      await loadDefaultModel();
+      // Load first available model
+      const models = modelService.getAvailableModels();
+      if (models.length > 0) {
+        console.log('🎯 Loading first available model (V3):', models[0].id);
+        await modelService.loadModel(models[0].id);
+        console.log('✅ First available model loaded via V3 system');
+      }
     }
     console.log('Configurator started successfully');
   } catch (error) {

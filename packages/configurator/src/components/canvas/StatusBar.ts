@@ -1,11 +1,13 @@
 /**
  * StatusBar Web Component
- * 
+ *
  * Displays status messages and errors to the user.
  * Uses the Light DOM approach (no Shadow DOM).
+ *
+ * Updated to use V3 state management system.
  */
 
-import { status } from '../../state/store';
+import { v3Signals } from '../../state/v3-bridge';
 
 export class StatusBar extends HTMLElement {
   private statusElement: HTMLElement | null = null;
@@ -17,24 +19,41 @@ export class StatusBar extends HTMLElement {
   }
   
   connectedCallback() {
-    console.log('StatusBar: Connected');
-    
+    console.log('StatusBar: Connected (V3)');
+
     // Find existing status element or create if needed
     this.statusElement = this.querySelector('#status') || this.createStatusElement();
-    
-    // Subscribe to status signal
-    this.unsubscribe = status.subscribe(value => {
+
+    // Wait for V3 bridge to be initialized before setting up subscriptions
+    if (v3Signals.isInitialized.value) {
+      this.setupSubscriptions();
+    } else {
+      console.log('StatusBar: Waiting for V3 bridge initialization...');
+      // Subscribe to initialization signal
+      const initUnsubscribe = v3Signals.isInitialized.subscribe(isInitialized => {
+        if (isInitialized) {
+          console.log('StatusBar: V3 bridge initialized, setting up subscriptions');
+          this.setupSubscriptions();
+          initUnsubscribe(); // Unsubscribe from init signal
+        }
+      });
+    }
+  }
+
+  private setupSubscriptions() {
+    if (!this.statusElement) return;
+
+    // Subscribe to V3 status signal
+    this.unsubscribe = v3Signals.status.subscribe(value => {
       if (this.statusElement) {
         this.statusElement.textContent = value.message;
         this.statusElement.className = value.isError ? "error" : "";
       }
     });
-    
+
     // Initial render
-    if (this.statusElement) {
-      this.statusElement.textContent = status.value.message;
-      this.statusElement.className = status.value.isError ? "error" : "";
-    }
+    this.statusElement.textContent = v3Signals.status.value.message;
+    this.statusElement.className = v3Signals.status.value.isError ? "error" : "";
   }
   
   disconnectedCallback() {

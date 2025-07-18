@@ -128,15 +128,19 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
         configureServer(server) {
           // Serve our templates for the root routes
           server.middlewares.use('/', (req, res, next) => {
-            if (req.url === '/' || req.url === '/index.html') {
-              // Serve processed index.html template
+            // Parse URL to handle query parameters
+            const url = new URL(req.url, `http://${req.headers.host}`);
+            const pathname = url.pathname;
+
+            if (pathname === '/' || pathname === '/index.html') {
+              // Serve processed index.html template for root path (with or without query params)
               const htmlContent = processTemplate(indexTemplatePath, {
                 configuratorDevMode,
                 pipelinePath,
                 manifestPath,
                 userProjectPath
               });
-              
+
               res.setHeader('Content-Type', 'text/html');
               res.end(htmlContent);
               return;

@@ -117,8 +117,7 @@ export async function loadModel(modelId: string) {
       isError: false
     };
 
-    // Update URL with current model selection
-    updateURLWithModelSelection(modelId);
+    // Note: URL management is now handled by V3 UIStateManager
 
     return result.model;
 
@@ -250,61 +249,6 @@ export async function refreshAvailableModels() {
   }
 }
 
-/**
- * Initialize the store with available models
- */
-export async function initializeStore() {
-  // Load available models asynchronously
-  await refreshAvailableModels();
+// Legacy initializeStore function removed - V3 system only needs refreshAvailableModels()
 
-  // Initialize model selection from URL if present
-  await initializeFromURL();
-
-  // Note: HMR for model discovery is now handled in the user project context
-  // See the user project's main.ts for HMR setup
-}
-
-/**
- * Update URL with current model selection for state persistence
- */
-function updateURLWithModelSelection(modelId: string): void {
-  try {
-    const url = new URL(window.location.href);
-    url.searchParams.set('model', modelId);
-
-    // Update URL without triggering navigation
-    window.history.replaceState({}, '', url.toString());
-    console.log('🔗 URL updated with model selection:', modelId);
-  } catch (error) {
-    console.warn('⚠️ Could not update URL with model selection:', error);
-  }
-}
-
-/**
- * Initialize model selection from URL on startup
- */
-export async function initializeFromURL(): Promise<void> {
-  try {
-    const url = new URL(window.location.href);
-    const modelParam = url.searchParams.get('model');
-
-    if (modelParam) {
-      console.log('🔗 Initializing model from URL:', modelParam);
-      // Check if this model exists in available models
-      const models = availableModels.value;
-      const modelExists = models.some(m => m.id === modelParam);
-
-      if (modelExists) {
-        // Load the model from URL
-        await loadModel(modelParam);
-      } else {
-        console.warn('⚠️ Model from URL not found:', modelParam);
-        // Clear the invalid model param
-        url.searchParams.delete('model');
-        window.history.replaceState({}, '', url.toString());
-      }
-    }
-  } catch (error) {
-    console.warn('⚠️ Could not initialize from URL:', error);
-  }
-}
+// Legacy URL management functions removed - V3 UIStateManager handles URL state

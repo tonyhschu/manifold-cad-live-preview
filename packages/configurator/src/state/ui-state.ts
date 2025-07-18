@@ -48,7 +48,7 @@ const DEFAULT_STATE: UIState = {
 
 /**
  * UI State Manager
- * 
+ *
  * Manages UI state persistence across pipeline reloads.
  * Uses both URL parameters and localStorage for different types of state.
  */

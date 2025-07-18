@@ -3,9 +3,11 @@
  *
  * Handles the model-viewer element updates based on state changes.
  * Uses the Light DOM approach (no Shadow DOM).
+ *
+ * Updated to use V3 state management system.
  */
 
-import { modelUrls, modelMetadata } from "../../state/store";
+import { v3Signals } from "../../state/v3-bridge";
 import { ModelViewerElement } from "@google/model-viewer";
 
 export class ModelViewer extends HTMLElement {
@@ -19,7 +21,7 @@ export class ModelViewer extends HTMLElement {
   }
 
   connectedCallback() {
-    console.log("ModelViewer: Connected");
+    console.log("ModelViewer: Connected (V3)");
 
     // Find the model viewer element - this could be the element itself or a child
     this.viewerElement =
@@ -34,8 +36,27 @@ export class ModelViewer extends HTMLElement {
       return;
     }
 
-    // Subscribe to modelUrls signal to update the src attribute
-    this.unsubscribeUrls = modelUrls.subscribe((urls) => {
+    // Wait for V3 bridge to be initialized before setting up subscriptions
+    if (v3Signals.isInitialized.value) {
+      this.setupSubscriptions();
+    } else {
+      console.log('ModelViewer: Waiting for V3 bridge initialization...');
+      // Subscribe to initialization signal
+      const initUnsubscribe = v3Signals.isInitialized.subscribe(isInitialized => {
+        if (isInitialized) {
+          console.log('ModelViewer: V3 bridge initialized, setting up subscriptions');
+          this.setupSubscriptions();
+          initUnsubscribe(); // Unsubscribe from init signal
+        }
+      });
+    }
+  }
+
+  private setupSubscriptions() {
+    if (!this.viewerElement) return;
+
+    // Subscribe to V3 modelUrls signal to update the src attribute
+    this.unsubscribeUrls = v3Signals.modelUrls.subscribe((urls) => {
       if (this.viewerElement && urls.glbUrl) {
         // Check if this is a development update with timestamp
         const hasTimestamp = !!(globalThis as any).__MODEL_REBUILD_TIMESTAMP__;
@@ -51,24 +72,22 @@ export class ModelViewer extends HTMLElement {
       }
     });
 
-    // Subscribe to modelMetadata signal to update the alt text
-    this.unsubscribeMetadata = modelMetadata.subscribe((metadata) => {
+    // Subscribe to V3 modelMetadata signal to update the alt text
+    this.unsubscribeMetadata = v3Signals.modelMetadata.subscribe((metadata) => {
       if (this.viewerElement && metadata) {
-        console.log("ModelViewer: Updating model alt text");
+        console.log("ModelViewer: Updating model alt text (V3)");
         this.viewerElement.alt = metadata.description || "A 3D model";
       }
     });
 
     // Initial render if we already have values
-    if (this.viewerElement) {
-      if (modelUrls.value.glbUrl) {
-        this.viewerElement.src = modelUrls.value.glbUrl;
-      }
+    if (v3Signals.modelUrls.value.glbUrl) {
+      this.viewerElement.src = v3Signals.modelUrls.value.glbUrl;
+    }
 
-      if (modelMetadata.value) {
-        this.viewerElement.alt =
-          modelMetadata.value.description || "A 3D model";
-      }
+    if (v3Signals.modelMetadata.value) {
+      this.viewerElement.alt =
+        v3Signals.modelMetadata.value.description || "A 3D model";
     }
   }
 
