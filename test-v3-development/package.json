@@ -2,14 +2,23 @@
   "name": "test-v3-development",
   "version": "1.0.0",
   "type": "module",
-  "description": "A Manifold Studio project",
+  "description": "A Manifold Studio project with font loading capabilities",
+  "files": [
+    "components/**/*",
+    "lib/**/*",
+    "assets/**/*",
+    "*.ts",
+    "*.js",
+    "*.json"
+  ],
   "scripts": {
     "dev": "manifold-studio dev",
     "build": "echo 'Build not needed - CLI handles compilation'",
     "test": "vitest"
   },
   "dependencies": {
-    "manifold-3d": "^3.1.1"
+    "manifold-3d": "^3.1.1",
+    "opentype.js": "^1.3.4"
   },
   "devDependencies": {
     "@manifold-studio/configurator": "file:../packages/configurator",

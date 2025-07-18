@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Font Resolver Prototype</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        #console {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: 1px solid #333;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            border-radius: 4px;
+        }
+        .font-urls {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .font-urls code {
+            display: block;
+            margin: 5px 0;
+            padding: 5px;
+            background: white;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔤 Font Resolver Prototype</h1>
+        <p>Testing font loading from Google Fonts with OpenType.js in the browser.</p>
+
+        <div class="test-section info">
+            <h3>📋 Test Plan</h3>
+            <p><strong>Goal:</strong> Load fonts from Google Fonts and parse them with OpenType.js</p>
+            <p><strong>Library:</strong> OpenType.js from CDN</p>
+            <p><strong>Font Sources:</strong> Google Fonts (CORS-enabled)</p>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 Font URLs to Test</h3>
+            <div class="font-urls">
+                <strong>⚠️ Google Fonts WOFF2 (Will Fail):</strong>
+                <code>https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2</code>
+                <strong>🎯 Inter Variable Font TTF (Testing):</strong>
+                <code>https://cdn.jsdelivr.net/npm/inter-font@3.19.0/Inter-VariableFont_slnt,wght.ttf</code>
+                <strong>🔄 Backup @fontsource packages:</strong>
+                <code>Various TTF files from jsDelivr</code>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Tests</h3>
+            <button onclick="testOpenTypeImport()">1. Test OpenType.js Import</button>
+            <button onclick="testDirectFetch()">2. Test Direct Font Fetch</button>
+            <button onclick="testOpenTypeParse()">3. Test OpenType.js Parse</button>
+            <button onclick="testFontResolver()">4. Test Font Resolver</button>
+            <button onclick="clearConsole()">Clear Console</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 Console Output</h3>
+            <div id="console"></div>
+        </div>
+    </div>
+
+    <script src="font-resolver.js"></script>
+</body>
+</html>

@@ -17,5 +17,15 @@ export default defineConfig({
   // Enable top-level await support
   esbuild: {
     target: 'esnext'
-  }
+  },
+  // Development server configuration
+  server: {
+    cors: true,
+    // Serve static assets
+    fs: {
+      allow: ['..', 'assets']
+    }
+  },
+  // Public directory for static assets
+  publicDir: 'assets'
 });
