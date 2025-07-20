@@ -3,7 +3,7 @@ import path from 'path';
 import { createServer } from 'net';
 import type { DevCommandOptions } from '../types.js';
 import { detectConfiguratorDevelopment } from '../dev-mode-detector.js';
-import { createPipelineCompiler as createPipelineViteServer, validatePipelineEntry as validatePipelineFile } from '../pipeline-compiler.js';
+// Removed: Pipeline server is no longer needed - template server handles everything
 import { createPipelineCompiler, buildPipeline } from '../../pipeline-compiler/index.js';
 import { createTemplateServer } from '../template-server.js';
 
@@ -92,7 +92,7 @@ function handleServerError(error: any, port: number, serverType: string): never 
 function validateCliArguments(options: DevCommandOptions): void {
   // Validate port numbers
   const uiPort = parseInt(options.port);
-  const pipelinePort = parseInt(options.pipelinePort);
+  // Removed: pipelinePort validation no longer needed
 
   if (isNaN(uiPort) || uiPort < 1 || uiPort > 65535) {
     console.error(`\n❌ Invalid UI server port: ${options.port}`);
@@ -101,19 +101,7 @@ function validateCliArguments(options: DevCommandOptions): void {
     process.exit(1);
   }
 
-  if (isNaN(pipelinePort) || pipelinePort < 1 || pipelinePort > 65535) {
-    console.error(`\n❌ Invalid pipeline server port: ${options.pipelinePort}`);
-    console.error(`\n💡 Port must be a number between 1 and 65535`);
-    console.error(`   Example: manifold-studio dev --pipeline-port 3001`);
-    process.exit(1);
-  }
-
-  if (uiPort === pipelinePort) {
-    console.error(`\n❌ UI server and pipeline server cannot use the same port: ${uiPort}`);
-    console.error(`\n💡 Use different ports for each server`);
-    console.error(`   Example: manifold-studio dev --port 3000 --pipeline-port 3001`);
-    process.exit(1);
-  }
+  // Removed: Pipeline port validation no longer needed
 
   // Validate port ranges (warn about privileged ports)
   if (uiPort < 1024) {
@@ -122,11 +110,7 @@ function validateCliArguments(options: DevCommandOptions): void {
     console.warn(`   Consider using a port >= 1024 (e.g., 3000)`);
   }
 
-  if (pipelinePort < 1024) {
-    console.warn(`\n⚠️  Warning: Pipeline server port ${pipelinePort} is a privileged port (< 1024)`);
-    console.warn(`   You may need elevated permissions or encounter EACCES errors`);
-    console.warn(`   Consider using a port >= 1024 (e.g., 3001)`);
-  }
+  // Removed: Pipeline port warning no longer needed
 }
 
 /**
@@ -189,22 +173,7 @@ export async function devCommand(options: DevCommandOptions) {
       console.log('─'.repeat(50));
     }
 
-    // Step 7: Start pipeline compiler (Vite process)
-    console.log('\n🔄 Starting pipeline compiler server...');
-    const pipelinePort = parseInt(options.pipelinePort);
-
-    let pipelineCompiler;
-    try {
-      pipelineCompiler = await createPipelineViteServer({
-        userProjectPath,
-        pipelineEntryPath,
-        port: pipelinePort,
-        verbose: options.verbose,
-        configuratorDevMode
-      });
-    } catch (error: any) {
-      handleServerError(error, pipelinePort, 'pipeline server');
-    }
+    // Step 7: Pipeline server removed - template server handles everything directly
 
     // Step 8: Set up file watching using pipeline compiler
     console.log('\n👁️  Setting up file watcher...');
@@ -213,8 +182,7 @@ export async function devCommand(options: DevCommandOptions) {
       if (result.errors.length > 0) {
         console.error('❌ Compilation errors:', result.errors);
       }
-      // Trigger pipeline compiler server rebuild
-      await pipelineCompiler.restart();
+      // No need to restart pipeline server - template server watches files directly
     });
 
     // Step 9: Start UI server with template serving
@@ -226,7 +194,7 @@ export async function devCommand(options: DevCommandOptions) {
       templateServer = await createTemplateServer({
         userProjectPath,
         port: uiPort,
-        pipelinePort: pipelinePort,
+        pipelinePort: 0, // No longer used - keeping for interface compatibility
         pipelinePath: '/temp/pipeline.js',
         manifestPath: '/temp/manifest.json',
         configuratorDevMode,
@@ -236,11 +204,10 @@ export async function devCommand(options: DevCommandOptions) {
       handleServerError(error, uiPort, 'UI server');
     }
 
-    console.log('\n✅ Development servers started!');
+    console.log('\n✅ Development server started!');
     console.log(`🎯 Watching ${modelCount} models for changes`);
     console.log('📡 File watcher active - add/remove/edit model files to see updates');
     console.log(`\n🌐 UI Server: http://localhost:${templateServer.port}`);
-    console.log(`⚙️  Pipeline Server: http://localhost:${pipelinePort}`);
 
     // Keep the process running
     console.log('\n⏳ Press Ctrl+C to stop...');
@@ -257,7 +224,6 @@ export async function devCommand(options: DevCommandOptions) {
 
       const shutdownTasks = [
         { name: 'Pipeline compiler file watcher', task: () => realPipelineCompiler.stopWatching() },
-        { name: 'Pipeline compiler server', task: () => pipelineCompiler.close() },
         { name: 'Template server', task: () => templateServer.close() }
       ];
 
