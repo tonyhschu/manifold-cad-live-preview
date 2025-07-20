@@ -2,9 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'vite';
+import chokidar from 'chokidar';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Removed custom file watcher - let Vite handle temp files naturally
 
 export interface TemplateServerOptions {
   userProjectPath: string;
@@ -58,25 +61,24 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
       strictPort: true, // Fail if port is already in use
       fs: {
         allow: ['..', '.'] // Allow serving files from parent directories
-      },
-      proxy: {
-        // Proxy pipeline requests to the pipeline server
-        '/temp/pipeline.js': `http://localhost:${pipelinePort}`,
-        '/temp/manifest.json': `http://localhost:${pipelinePort}`
       }
+      // Note: Removed proxy configuration - temp files are now served directly from filesystem
     },
     publicDir: false, // Don't serve public directory
+
+    // Disable dependency optimization to prevent cache invalidation issues during development
+    optimizeDeps: {
+      disabled: true
+    },
+
+    // Plugins configuration
+    plugins: [
+      // Let Vite handle file watching naturally - no custom plugins needed
+    ],
     // Build configuration
     build: {
       target: 'esnext', // Support top-level await
       outDir: 'dist',
-    },
-    // Optimize deps configuration
-    optimizeDeps: {
-      exclude: ['manifold-3d'], // Exclude WASM module from pre-bundling
-      esbuildOptions: {
-        target: 'esnext' // Support top-level await in dependencies
-      }
     },
     // Enable top-level await support
     esbuild: {
