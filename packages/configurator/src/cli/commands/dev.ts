@@ -2,12 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { createServer } from 'net';
 import type { DevCommandOptions } from '../types.js';
-// ❌ Removed old discovery system - pipeline compiler handles everything now
-// import { discoverUserModels, validateModelFiles } from '../model-discovery.js';
-// import { generatePipelineEntry, validatePipelineEntry, generateManifest } from '../pipeline-generator.js';
 import { detectConfiguratorDevelopment } from '../dev-mode-detector.js';
-// ❌ Removed old file watcher - pipeline compiler handles file watching now
-// import { createFileWatcher } from '../file-watcher.js';
 import { createPipelineCompiler as createPipelineViteServer, validatePipelineEntry as validatePipelineFile } from '../pipeline-compiler.js';
 import { createPipelineCompiler, buildPipeline } from '../../pipeline-compiler/index.js';
 import { createTemplateServer } from '../template-server.js';

@@ -212,7 +212,11 @@ export class PipelineCompilerImpl implements PipelineCompiler {
   private generateUserPipelineEntry(compiledFunctions: CompiledFunction[]): string {
     // Generate import statements for each model
     const imports = compiledFunctions
-      .map(f => `import * as ${f.id.replace(/[\/\-\.]/g, '_')}Model from '../${f.filePath.replace(this.projectPath + '/', '')}';`)
+      .map(f => {
+        // Convert absolute path to relative path from temp directory
+        const relativePath = f.filePath.replace(resolve(this.rootDir) + '/', '');
+        return `import * as ${f.id.replace(/[\/\-\.]/g, '_')}Model from '../${relativePath}';`;
+      })
       .join('\n');
 
     // Generate model definitions array
