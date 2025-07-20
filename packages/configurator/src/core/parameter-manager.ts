@@ -1,5 +1,6 @@
 import { Pane } from 'tweakpane';
 import type { ParametricConfig, TweakpaneParam, ManifoldType } from '@manifold-studio/wrapper';
+import { getModelService } from '../services';
 
 export class ParameterManager {
   private pane: Pane;
@@ -112,7 +113,15 @@ export class ParameterManager {
       // Framework guarantee: generateModel called with complete parameter object
       const manifold = this.config.generateModel(this.params);
 
-      // Emit event for external listeners (e.g., 3D viewer)
+      // Update UIStateManager with new parameters (this will trigger reactive model reload)
+      const modelService = getModelService();
+      if (modelService && typeof modelService.getUIStateManager === 'function') {
+        const uiStateManager = modelService.getUIStateManager();
+        uiStateManager.setParameters({ ...this.params });
+        console.log('🔧 ParameterManager: Updated UIStateManager with parameters:', this.params);
+      }
+
+      // Still emit event for backward compatibility and other listeners
       const event = new CustomEvent('modelGenerated', {
         detail: { manifold, params: { ...this.params } }
       });

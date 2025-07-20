@@ -301,6 +301,24 @@ New projects created with create-app use the CLI by default:
 
 ## Troubleshooting
 
+### CLI Permission Denied Error
+
+**Symptoms**: `sh: manifold-studio: Permission denied` when running `npm run dev`
+
+**Cause**: After rebuilding the configurator package, the CLI binary loses execute permissions.
+
+**Solution**:
+
+```bash
+# Fix permissions for the CLI binary
+chmod +x test-v3-development/node_modules/@manifold-studio/configurator/dist/cli/index.js
+
+# Or for any project directory:
+chmod +x node_modules/@manifold-studio/configurator/dist/cli/index.js
+```
+
+**Note**: This needs to be done every time you rebuild the configurator package during development.
+
 ### "Changes not picked up"
 
 **Symptoms**: Edit code but don't see changes in browser

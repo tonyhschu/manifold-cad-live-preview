@@ -121,19 +121,9 @@ export class ParametricPanel extends HTMLElement {
       const customEvent = event as CustomEvent;
       const { manifold, params } = customEvent.detail;
 
-      // In V3 system, reload the model with new parameters
-      const selectedModel = v3Signals.selectedModel.value;
-      if (selectedModel) {
-        console.log('🔄 ParametricPanel: Reloading model with new parameters:', params);
-        try {
-          await v3Actions.loadModel(selectedModel, params);
-        } catch (error) {
-          console.error('❌ Failed to reload model with new parameters:', error);
-        }
-      }
-
-      // Optionally store current parameters for persistence
+      // Store current parameters for persistence (no model reload needed - that's handled reactively)
       this.storeCurrentParameters(params);
+      console.log('🔄 ParametricPanel: Parameters updated:', params);
     };
 
     const handleModelError = (event: Event) => {

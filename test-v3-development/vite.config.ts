@@ -1,6 +1,14 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 export default defineConfig({
+  // Source-based development - import configurator source directly to avoid npm link caching
+  resolve: {
+    alias: {
+      '@manifold-studio/configurator': resolve(__dirname, '../packages/configurator/src'),
+      '@manifold-studio/configurator/pipeline-runtime/types': resolve(__dirname, '../packages/configurator/src/pipeline-runtime/types.ts'),
+    }
+  },
   // Basic configuration for building the project
   // The CLI handles development servers automatically
   build: {

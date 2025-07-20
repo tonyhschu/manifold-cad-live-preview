@@ -21,7 +21,9 @@ let v3StateBridge: V3StateBridge | null = null;
  */
 export class V3StateBridge {
   private uiStateManager: UIStateManager | null = null;
-  
+  private parametricConfigUpdateTimeout: number | null = null;
+  private isParameterDrivenReload: boolean = false;
+
   // Reactive signals for UI components
   public readonly isInitialized = signal<boolean>(false);
   public readonly selectedModel = signal<string | null>(null);
@@ -98,8 +100,25 @@ export class V3StateBridge {
     // Listen to UIStateManager changes and update signals
     this.uiStateManager.addListener((state) => {
       console.log('🔄 V3 Bridge: UIStateManager state changed:', state);
+
+      const previousModel = this.selectedModel.value;
+      const previousParams = this.modelParameters.value;
+
       this.selectedModel.value = state.selectedModel;
       this.modelParameters.value = state.parameters;
+
+      // If parameters changed for the same model, reload it reactively
+      if (state.selectedModel &&
+          state.selectedModel === previousModel &&
+          JSON.stringify(state.parameters) !== JSON.stringify(previousParams)) {
+        console.log('🔄 V3 Bridge: Parameters changed, reloading model reactively:', state.parameters);
+        this.isParameterDrivenReload = true;
+        this.loadModel(state.selectedModel, state.parameters).catch(error => {
+          console.error('❌ Failed to reload model after parameter change:', error);
+        }).finally(() => {
+          this.isParameterDrivenReload = false;
+        });
+      }
     });
 
     // Update available models from model service
@@ -143,44 +162,86 @@ export class V3StateBridge {
       }
 
       // Update parametric config for parametric models
-      if (modelResult.isParametric && modelResult.config) {
-        // Convert pipeline config format to wrapper ParametricConfig format
-        const pipelineConfig = modelResult.config;
-        console.log('🔧 V3 Bridge: Converting pipeline config:', pipelineConfig);
-
-        // Deep clone the parameters to prevent reference issues
-        const clonedParameters = JSON.parse(JSON.stringify(pipelineConfig.parameters || {}));
-        console.log('🔧 V3 Bridge: Cloned parameters:', clonedParameters);
-
-        const wrappedConfig = {
-          parameters: clonedParameters,
-          generateModel: async (params: Record<string, any>) => {
-            // Use the pipeline directly to generate the model with the given parameters
-            const modelService = getModelService();
-            if (!modelService) {
-              throw new Error('Model service not available');
-            }
-            const pipeline = (modelService as any).pipelineLoader?.getPipeline();
-            if (!pipeline) {
-              throw new Error('Pipeline not available');
-            }
-            return await pipeline.generateModel(this.selectedModel.value!, params);
-          },
-          name: pipelineConfig.name,
-          description: pipelineConfig.description
-        };
-
-        console.log('🔧 V3 Bridge: Final wrapped config:', wrappedConfig);
-
-        this.parametricConfig.value = wrappedConfig;
-        console.log('✅ V3 Bridge: Updated parametric config:', this.parametricConfig.value);
+      // Skip this if it's a parameter-driven reload to prevent Tweakpane rebuilding
+      if (modelResult.isParametric && modelResult.config && !this.isParameterDrivenReload) {
+        console.log('🔧 V3 Bridge: Updating parametric config (model-driven reload)');
+        this.debouncedUpdateParametricConfig(modelResult.config);
+      } else if (modelResult.isParametric && this.isParameterDrivenReload) {
+        console.log('🔧 V3 Bridge: Skipping parametric config update (parameter-driven reload)');
       } else {
-        // Clear parametric config for static models
+        // Clear parametric config for non-parametric models
         this.parametricConfig.value = null;
         console.log('✅ V3 Bridge: Cleared parametric config (static model)');
       }
     } catch (error) {
       console.warn('⚠️ Failed to update model data from result in V3 bridge:', error);
+    }
+  }
+
+  /**
+   * Debounced update of parametric config to prevent UI rebuilding during rapid parameter changes
+   */
+  private debouncedUpdateParametricConfig(pipelineConfig: any): void {
+    // Clear any existing timeout
+    if (this.parametricConfigUpdateTimeout !== null) {
+      clearTimeout(this.parametricConfigUpdateTimeout);
+    }
+
+    // Set a new timeout to update the config after a brief delay
+    this.parametricConfigUpdateTimeout = window.setTimeout(() => {
+      this.updateParametricConfigImmediate(pipelineConfig);
+      this.parametricConfigUpdateTimeout = null;
+    }, 100); // 100ms debounce delay
+  }
+
+  /**
+   * Immediate update of parametric config (called by debounced method)
+   */
+  private updateParametricConfigImmediate(pipelineConfig: any): void {
+    try {
+      console.log('🔧 V3 Bridge: Converting pipeline config:', pipelineConfig);
+
+      // Deep clone the parameters to prevent reference issues
+      const clonedParameters = JSON.parse(JSON.stringify(pipelineConfig.parameters || {}));
+      console.log('🔧 V3 Bridge: Cloned parameters:', clonedParameters);
+
+      // Preserve current parameter values if they exist
+      const currentParameters = this.modelParameters.value;
+      if (currentParameters && Object.keys(currentParameters).length > 0) {
+        console.log('🔧 V3 Bridge: Preserving current parameter values:', currentParameters);
+        // Update the cloned parameters with current values while keeping the structure
+        for (const [key, currentValue] of Object.entries(currentParameters)) {
+          if (clonedParameters[key] && typeof clonedParameters[key] === 'object') {
+            clonedParameters[key] = { ...clonedParameters[key], value: currentValue };
+          }
+        }
+        console.log('🔧 V3 Bridge: Parameters after preserving values:', clonedParameters);
+      }
+
+      const wrappedConfig = {
+        parameters: clonedParameters,
+        generateModel: async (params: Record<string, any>) => {
+          // Use the pipeline directly to generate the model with the given parameters
+          const modelService = getModelService();
+          if (!modelService) {
+            throw new Error('Model service not available');
+          }
+          const pipeline = (modelService as any).pipelineLoader?.getPipeline();
+          if (!pipeline) {
+            throw new Error('Pipeline not available');
+          }
+          return await pipeline.generateModel(this.selectedModel.value!, params);
+        },
+        name: pipelineConfig.name,
+        description: pipelineConfig.description
+      };
+
+      console.log('🔧 V3 Bridge: Final wrapped config:', wrappedConfig);
+
+      this.parametricConfig.value = wrappedConfig;
+      console.log('✅ V3 Bridge: Updated parametric config:', this.parametricConfig.value);
+    } catch (error) {
+      console.error('❌ Failed to update parametric config:', error);
     }
   }
 
