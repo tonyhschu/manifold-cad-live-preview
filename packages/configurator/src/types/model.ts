@@ -78,4 +78,10 @@ export interface ModelConfig {
   name: string;
   type: 'static' | 'parametric';
   config?: ParametricConfig;
+  /** Optional description from model metadata */
+  description?: string;
+  /** Optional author from model metadata */
+  author?: string;
+  /** Optional version from model metadata */
+  version?: string;
 }

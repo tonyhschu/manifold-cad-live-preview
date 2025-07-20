@@ -32,7 +32,10 @@ export class PipelineLoaderImpl implements PipelineLoader {
     try {
       // Dynamic import with cache busting for HMR
       const cacheBuster = `?t=${Date.now()}`;
-      const module = await import(this.pipelinePath + cacheBuster);
+      const module = await import(
+         /* @vite-ignore */
+        this.pipelinePath + cacheBuster
+      );
       const pipeline = module.default || module.pipeline;
 
       if (!pipeline) {

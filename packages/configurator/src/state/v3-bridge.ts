@@ -144,7 +144,35 @@ export class V3StateBridge {
 
       // Update parametric config for parametric models
       if (modelResult.isParametric && modelResult.config) {
-        this.parametricConfig.value = modelResult.config;
+        // Convert pipeline config format to wrapper ParametricConfig format
+        const pipelineConfig = modelResult.config;
+        console.log('🔧 V3 Bridge: Converting pipeline config:', pipelineConfig);
+
+        // Deep clone the parameters to prevent reference issues
+        const clonedParameters = JSON.parse(JSON.stringify(pipelineConfig.parameters || {}));
+        console.log('🔧 V3 Bridge: Cloned parameters:', clonedParameters);
+
+        const wrappedConfig = {
+          parameters: clonedParameters,
+          generateModel: async (params: Record<string, any>) => {
+            // Use the pipeline directly to generate the model with the given parameters
+            const modelService = getModelService();
+            if (!modelService) {
+              throw new Error('Model service not available');
+            }
+            const pipeline = (modelService as any).pipelineLoader?.getPipeline();
+            if (!pipeline) {
+              throw new Error('Pipeline not available');
+            }
+            return await pipeline.generateModel(this.selectedModel.value!, params);
+          },
+          name: pipelineConfig.name,
+          description: pipelineConfig.description
+        };
+
+        console.log('🔧 V3 Bridge: Final wrapped config:', wrappedConfig);
+
+        this.parametricConfig.value = wrappedConfig;
         console.log('✅ V3 Bridge: Updated parametric config:', this.parametricConfig.value);
       } else {
         // Clear parametric config for static models

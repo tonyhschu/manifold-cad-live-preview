@@ -18,7 +18,7 @@ export function generatePipelineCode(compiledFunctions: CompiledFunction[]): str
   const modelCount = compiledFunctions.length;
 
   // Generate the main pipeline object
-  const pipelineObject = generatePipelineObject(compiledFunctions);
+  const pipelineObject = generatePipelineObject(compiledFunctions, modelCount);
   
   // Generate all individual function definitions
   const functionDefinitions = compiledFunctions
@@ -51,7 +51,7 @@ export { pipeline };
 /**
  * Generate the main pipeline object that implements ModelPipeline interface
  */
-function generatePipelineObject(compiledFunctions: CompiledFunction[]): string {
+function generatePipelineObject(compiledFunctions: CompiledFunction[], modelCount: number): string {
   // Generate model list for getAvailableModels()
   const modelList = compiledFunctions.map(func => ({
     id: func.id,

@@ -12,7 +12,7 @@ export default defineConfig({
     rollupOptions: {
       external: [
         // Node.js built-ins
-        'fs', 'path', 'process', 'url', 'os', 'crypto', 'util', 'events', 'stream',
+        'fs', 'fs/promises', 'path', 'process', 'url', 'os', 'crypto', 'util', 'events', 'stream',
         'http', 'https', 'net', 'tls', 'child_process', 'worker_threads', 'module',
         'assert', 'buffer', 'zlib', 'querystring', 'tty',
         // Node.js built-ins with node: prefix

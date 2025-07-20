@@ -2,11 +2,14 @@ import fs from 'fs';
 import path from 'path';
 import { createServer } from 'net';
 import type { DevCommandOptions } from '../types.js';
-import { discoverUserModels, validateModelFiles } from '../model-discovery.js';
-import { generatePipelineEntry, validatePipelineEntry, generateManifest } from '../pipeline-generator.js';
+// ❌ Removed old discovery system - pipeline compiler handles everything now
+// import { discoverUserModels, validateModelFiles } from '../model-discovery.js';
+// import { generatePipelineEntry, validatePipelineEntry, generateManifest } from '../pipeline-generator.js';
 import { detectConfiguratorDevelopment } from '../dev-mode-detector.js';
-import { createFileWatcher } from '../file-watcher.js';
-import { createPipelineCompiler, validatePipelineEntry as validatePipelineFile } from '../pipeline-compiler.js';
+// ❌ Removed old file watcher - pipeline compiler handles file watching now
+// import { createFileWatcher } from '../file-watcher.js';
+import { createPipelineCompiler as createPipelineViteServer, validatePipelineEntry as validatePipelineFile } from '../pipeline-compiler.js';
+import { createPipelineCompiler, buildPipeline } from '../../pipeline-compiler/index.js';
 import { createTemplateServer } from '../template-server.js';
 
 /**
@@ -157,74 +160,47 @@ export async function devCommand(options: DevCommandOptions) {
       console.log('🔧 Configurator development mode enabled');
     }
     
-    // Step 2: Discover user models
-    console.log('\n🔍 Discovering models...');
-    const discoveredModels = await discoverUserModels(userProjectPath);
-    const validModels = await validateModelFiles(discoveredModels);
-    
-    if (validModels.length === 0) {
-      console.warn('⚠️  No valid models found. Make sure you have:');
-      console.warn('   - main.ts or main.js in project root');
-      console.warn('   - or .ts/.js files in components/ directory');
-      console.warn('\nContinuing anyway...');
-    }
-    
-    // Step 3: Generate pipeline entry
-    console.log('\n⚙️  Generating pipeline entry...');
-    const pipelineEntry = generatePipelineEntry(validModels);
-
-    if (options.verbose) {
-      console.log('Generated pipeline entry length:', pipelineEntry.length);
-      console.log('First 200 chars:', pipelineEntry.substring(0, 200));
-    }
-
-    // Validate the generated pipeline
-    const validation = validatePipelineEntry(pipelineEntry);
-    if (!validation.valid) {
-      console.error('Pipeline validation failed:', validation);
-      console.error('Generated pipeline:', pipelineEntry);
-      throw new Error(`Pipeline generation failed: ${validation.error}`);
-    }
-    
-    // Step 4: Write pipeline entry to temp directory
-    // NOTE: Creates user-pipeline-entry.ts (actual file) which gets served as /temp/pipeline.js (route)
+    // Step 2: Run pipeline compiler to handle everything
+    console.log('\n🔨 Running pipeline compiler...');
     const tempDir = path.join(userProjectPath, 'temp');
     const pipelineEntryPath = path.join(tempDir, 'user-pipeline-entry.ts');
     const manifestPath = path.join(tempDir, 'manifest.json');
-    
+
     // Ensure temp directory exists
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
       console.log(`📁 Created temp directory: ${tempDir}`);
     }
-    
-    // Write the pipeline entry
-    fs.writeFileSync(pipelineEntryPath, pipelineEntry, 'utf-8');
-    console.log(`✅ Pipeline entry written to: ${pipelineEntryPath}`);
 
-    // Generate and write manifest
-    const manifestContent = generateManifest(validModels);
-    fs.writeFileSync(manifestPath, manifestContent, 'utf-8');
-    console.log(`✅ Manifest written to: ${manifestPath}`);
-    
-    // Step 5: Show what we generated (for proof of concept)
+    let modelCount = 0;
+    let realPipelineCompiler: any;
+    try {
+      realPipelineCompiler = createPipelineCompiler(userProjectPath, tempDir);
+      const compilationResult = await realPipelineCompiler.compile();
+      modelCount = compilationResult.modelCount;
+      console.log(`✅ Pipeline compiler generated manifest with ${modelCount} model(s)`);
+    } catch (error) {
+      console.error('❌ Pipeline compiler failed:', error);
+      throw new Error(`Pipeline compilation failed: ${error}`);
+    }
+
+    // Step 3: Show what we generated (for proof of concept)
     if (options.verbose) {
-      console.log('\n📄 Generated pipeline entry preview:');
+      console.log('\n📄 Generated files:');
       console.log('─'.repeat(50));
-      console.log(pipelineEntry.split('\n').slice(0, 20).join('\n'));
-      if (pipelineEntry.split('\n').length > 20) {
-        console.log('... (truncated)');
-      }
+      console.log(`✅ Pipeline: ${tempDir}/pipeline.js`);
+      console.log(`✅ Manifest: ${tempDir}/manifest.json`);
+      console.log(`✅ User Pipeline Entry: ${tempDir}/user-pipeline-entry.ts`);
       console.log('─'.repeat(50));
     }
 
-    // Step 6: Start pipeline compiler (Vite process)
-    console.log('\n🔄 Starting pipeline compiler...');
+    // Step 7: Start pipeline compiler (Vite process)
+    console.log('\n🔄 Starting pipeline compiler server...');
     const pipelinePort = parseInt(options.pipelinePort);
 
     let pipelineCompiler;
     try {
-      pipelineCompiler = await createPipelineCompiler({
+      pipelineCompiler = await createPipelineViteServer({
         userProjectPath,
         pipelineEntryPath,
         port: pipelinePort,
@@ -235,21 +211,18 @@ export async function devCommand(options: DevCommandOptions) {
       handleServerError(error, pipelinePort, 'pipeline server');
     }
 
-    // Step 7: Set up file watching for model changes
+    // Step 8: Set up file watching using pipeline compiler
     console.log('\n👁️  Setting up file watcher...');
-    const fileWatcher = createFileWatcher({
-      userProjectPath,
-      pipelineEntryPath,
-      manifestPath,
-      onPipelineRegenerated: async (models) => {
-        console.log(`🔄 Pipeline regenerated with ${models.length} model(s)`);
-        // Trigger pipeline compiler rebuild
-        await pipelineCompiler.restart();
-      },
-      verbose: options.verbose
+    realPipelineCompiler.startWatching(async (result) => {
+      console.log(`🔄 Pipeline updated: ${result.modelCount} model(s) compiled in ${result.compilation?.duration}ms`);
+      if (result.errors.length > 0) {
+        console.error('❌ Compilation errors:', result.errors);
+      }
+      // Trigger pipeline compiler server rebuild
+      await pipelineCompiler.restart();
     });
 
-    // Step 8: Start UI server with template serving
+    // Step 9: Start UI server with template serving
     console.log('\n🌐 Starting UI server...');
     const uiPort = parseInt(options.port);
 
@@ -269,7 +242,7 @@ export async function devCommand(options: DevCommandOptions) {
     }
 
     console.log('\n✅ Development servers started!');
-    console.log(`🎯 Watching ${validModels.length} models for changes`);
+    console.log(`🎯 Watching ${modelCount} models for changes`);
     console.log('📡 File watcher active - add/remove/edit model files to see updates');
     console.log(`\n🌐 UI Server: http://localhost:${templateServer.port}`);
     console.log(`⚙️  Pipeline Server: http://localhost:${pipelinePort}`);
@@ -288,8 +261,8 @@ export async function devCommand(options: DevCommandOptions) {
       }, 10000); // 10 second timeout
 
       const shutdownTasks = [
-        { name: 'File watcher', task: () => fileWatcher.close() },
-        { name: 'Pipeline compiler', task: () => pipelineCompiler.close() },
+        { name: 'Pipeline compiler file watcher', task: () => realPipelineCompiler.stopWatching() },
+        { name: 'Pipeline compiler server', task: () => pipelineCompiler.close() },
         { name: 'Template server', task: () => templateServer.close() }
       ];
 

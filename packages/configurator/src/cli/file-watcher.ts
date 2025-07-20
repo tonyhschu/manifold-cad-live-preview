@@ -117,12 +117,8 @@ export function createFileWatcher(options: FileWatcherOptions): FileWatcherInsta
       
       fs.writeFileSync(pipelineEntryPath, pipelineEntry, 'utf-8');
 
-      // Generate and write manifest file if path provided
-      if (manifestPath) {
-        const manifestContent = generateManifest(validModels);
-        fs.writeFileSync(manifestPath, manifestContent, 'utf-8');
-        console.log(`✅ Manifest regenerated with ${validModels.length} model(s)`);
-      }
+      // Note: Manifest generation is handled by the pipeline compiler
+      // The pipeline compiler will regenerate temp/manifest.json with rich metadata
 
       console.log(`✅ Pipeline entry regenerated with ${validModels.length} model(s)`);
       

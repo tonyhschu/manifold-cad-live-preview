@@ -375,13 +375,6 @@ export class FontResolver {
   }
 
   /**
-   * Get list of available font names
-   */
-  getAvailableFonts(): string[] {
-    return FontResolver.AVAILABLE_FONTS.map(f => f.name);
-  }
-
-  /**
    * Clear font cache
    */
   clearCache(): void {

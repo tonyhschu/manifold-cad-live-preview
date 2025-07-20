@@ -63,17 +63,17 @@ export async function compileModelToFunction(
 
     // Step 3: Import and analyze the compiled module
     const moduleUrl = pathToFileURL(compiledPath).href;
-    
-    // Clear module cache for fresh import
-    if (moduleUrl in require.cache) {
-      delete require.cache[moduleUrl];
-    }
 
-    const module = await import(moduleUrl);
+    // Add cache-busting query parameter to force fresh import
+    // This ensures we get updated metadata when files change
+    const cacheBustingUrl = `${moduleUrl}?t=${Date.now()}`;
+
+    const module = await import(cacheBustingUrl);
     const defaultExport = module.default;
-    const metadata = module.modelMetadata;
+    const metadata = module.modelMetadata || module.metadata;
 
     console.log(`📦 Module loaded, exports:`, Object.keys(module));
+    console.log(`🏷️ Metadata found:`, metadata);
 
     // Step 4: Validate and analyze the export
     const validation = validateModelExport(defaultExport);
@@ -177,8 +177,8 @@ function generateParametricFunctionCode(
   return `
 // Parametric model function: ${functionName}
 async function ${functionName}(params = {}) {
-  // Import the compiled module
-  const module = await import('${compiledPath}');
+  // Import the compiled module with cache busting
+  const module = await import('${compiledPath}?t=' + Date.now());
   const config = module.default;
   
   // Merge provided params with defaults
@@ -199,8 +199,8 @@ function generateStaticFunctionCode(
   return `
 // Static model function: ${functionName}
 async function ${functionName}(params = {}) {
-  // Import the compiled module
-  const module = await import('${compiledPath}');
+  // Import the compiled module with cache busting
+  const module = await import('${compiledPath}?t=' + Date.now());
   const createModel = module.default;
   
   // Call the model creation function

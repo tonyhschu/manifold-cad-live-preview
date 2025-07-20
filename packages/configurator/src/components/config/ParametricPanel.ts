@@ -59,15 +59,24 @@ export class ParametricPanel extends HTMLElement {
   }
 
   private handleConfigChange(config: ParametricConfig | null) {
+    console.log('ParametricPanel: handleConfigChange called with:', config);
     const resetButton = this.querySelector('#reset-parameters-btn') as HTMLButtonElement;
 
     if (config) {
+      // Validate that the config has the expected structure
+      if (!config.parameters || typeof config.parameters !== 'object' || !config.generateModel) {
+        console.warn('ParametricPanel: Received invalid config, ignoring:', config);
+        return;
+      }
+
+      console.log('ParametricPanel: Config is valid, setting up UI');
       this.setupParametricUI(config);
       // Show reset button for parametric models
       if (resetButton) {
         resetButton.style.display = 'inline-block';
       }
     } else {
+      console.log('ParametricPanel: Config is null, showing no parameters message');
       this.cleanup();
       this.showNoParametersMessage();
       // Hide reset button for non-parametric models
