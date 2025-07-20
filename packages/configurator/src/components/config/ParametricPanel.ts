@@ -32,11 +32,9 @@ export class ParametricPanel extends HTMLElement {
     if (v3Signals.isInitialized.value) {
       this.setupSubscriptions();
     } else {
-      console.log('ParametricPanel: Waiting for V3 bridge initialization...');
       // Subscribe to initialization signal
       const initUnsubscribe = v3Signals.isInitialized.subscribe(isInitialized => {
         if (isInitialized) {
-          console.log('ParametricPanel: V3 bridge initialized, setting up subscriptions');
           this.setupSubscriptions();
           initUnsubscribe(); // Unsubscribe from init signal
         }
@@ -59,7 +57,6 @@ export class ParametricPanel extends HTMLElement {
   }
 
   private handleConfigChange(config: ParametricConfig | null) {
-    console.log('ParametricPanel: handleConfigChange called with:', config);
     const resetButton = this.querySelector('#reset-parameters-btn') as HTMLButtonElement;
 
     if (config) {
@@ -69,14 +66,13 @@ export class ParametricPanel extends HTMLElement {
         return;
       }
 
-      console.log('ParametricPanel: Config is valid, setting up UI');
+
       this.setupParametricUI(config);
       // Show reset button for parametric models
       if (resetButton) {
         resetButton.style.display = 'inline-block';
       }
     } else {
-      console.log('ParametricPanel: Config is null, showing no parameters message');
       this.cleanup();
       this.showNoParametersMessage();
       // Hide reset button for non-parametric models
@@ -110,7 +106,6 @@ export class ParametricPanel extends HTMLElement {
       this.setupModelGenerationListener();
 
     } catch (error) {
-      console.error('Failed to setup parametric UI:', error);
       this.showErrorMessage(container, error);
     }
   }
@@ -123,12 +118,11 @@ export class ParametricPanel extends HTMLElement {
 
       // Store current parameters for persistence (no model reload needed - that's handled reactively)
       this.storeCurrentParameters(params);
-      console.log('🔄 ParametricPanel: Parameters updated:', params);
+
     };
 
     const handleModelError = (event: Event) => {
       const customEvent = event as CustomEvent;
-      console.error('Model generation error:', customEvent.detail.error);
       // Could show error UI here
     };
 

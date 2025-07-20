@@ -42,7 +42,7 @@ export async function discoverModelFiles(): Promise<ModelRegistryEntry[]> {
       eager: false
     });
 
-    console.log('🔍 Model Discovery: Found files:', Object.keys(modelModules));
+
 
     // Process each discovered file
     for (const [filePath, moduleLoader] of Object.entries(modelModules)) {
@@ -67,7 +67,6 @@ export async function discoverModelFiles(): Promise<ModelRegistryEntry[]> {
         // Validate the export
         const validation = validateModelExport(defaultExport);
         if (!validation.isValid) {
-          console.warn(`Skipping invalid model ${filePath}: ${validation.error}`);
           continue;
         }
 
@@ -83,15 +82,13 @@ export async function discoverModelFiles(): Promise<ModelRegistryEntry[]> {
           loader: moduleLoader
         });
       } catch (error) {
-        console.warn(`Failed to process model file ${filePath}:`, error);
         // Continue processing other files
       }
     }
   } catch (error) {
-    console.warn('Error during model discovery:', error);
+    // Error during model discovery
   }
 
-  console.log('🎯 Model Discovery: Final models:', models.map(m => m.id));
   return models;
 }
 
@@ -107,7 +104,7 @@ export async function discoverModelFiles(): Promise<ModelRegistryEntry[]> {
 export async function discoverModelFilesForCompilation(rootDir: string = '.'): Promise<string[]> {
   // This will be implemented when we build the pipeline compiler
   // For now, return empty array
-  console.warn('discoverModelFilesForCompilation not yet implemented');
+
   return [];
 }
 

@@ -44,22 +44,17 @@ export interface CompiledFunction {
  * @returns Promise that resolves to compiled function metadata
  */
 export async function compileModelToFunction(
-  filePath: string, 
+  filePath: string,
   rootDir: string
 ): Promise<CompiledFunction> {
-  console.log(`🔨 Compiling model: ${filePath}`);
-
   try {
     // Step 1: Extract model ID from file path
     const relativePath = filePath.replace(resolve(rootDir), '').replace(/^\//, '');
     const modelId = extractModelName('./' + relativePath);
     const fileName = getFileNameWithoutExtension(filePath);
-    
-    console.log(`📝 Model ID: ${modelId}, File: ${fileName}`);
 
     // Step 2: Compile TypeScript to JavaScript using Vite
     const compiledPath = await compileTypeScriptFile(filePath);
-    console.log(`✅ TypeScript compiled to: ${compiledPath}`);
 
     // Step 3: Import and analyze the compiled module
     const moduleUrl = pathToFileURL(compiledPath).href;
@@ -72,9 +67,6 @@ export async function compileModelToFunction(
     const defaultExport = module.default;
     const metadata = module.modelMetadata || module.metadata;
 
-    console.log(`📦 Module loaded, exports:`, Object.keys(module));
-    console.log(`🏷️ Metadata found:`, metadata);
-
     // Step 4: Validate and analyze the export
     const validation = validateModelExport(defaultExport);
     if (!validation.isValid) {
@@ -84,8 +76,6 @@ export async function compileModelToFunction(
     // Step 5: Extract model information
     const modelName = getModelNameFromExport(defaultExport, modelId);
     const modelType = validation.type as 'static' | 'parametric';
-    
-    console.log(`🏷️ Model: ${modelName} (${modelType})`);
 
     // Step 6: Generate function code based on type
     let functionCode: string;
@@ -96,23 +86,19 @@ export async function compileModelToFunction(
       // For parametric models, extract config and create wrapper function
       config = defaultExport;
       const defaultParams = extractDefaultParams(config);
-      
+
       functionCode = generateParametricFunctionCode(
         functionName,
         config,
         defaultParams,
         compiledPath
       );
-      
-      console.log(`🔧 Generated parametric function with ${Object.keys(config.parameters).length} parameters`);
     } else {
       // For static models, create simple wrapper function
       functionCode = generateStaticFunctionCode(
         functionName,
         compiledPath
       );
-      
-      console.log(`🔧 Generated static function`);
     }
 
     return {
@@ -127,7 +113,6 @@ export async function compileModelToFunction(
     };
 
   } catch (error) {
-    console.error(`❌ Failed to compile ${filePath}:`, error);
     throw error;
   }
 }

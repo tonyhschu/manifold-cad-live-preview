@@ -35,22 +35,12 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
     verbose = false
   } = options;
 
-  if (verbose) {
-    console.log('🎨 Template server options:', {
-      userProjectPath,
-      port,
-      pipelinePath,
-      manifestPath,
-      configuratorDevMode
-    });
-  }
+
 
   // Get template directory path
   const templatesDir = path.resolve(__dirname, '../../templates');
   
-  if (verbose) {
-    console.log('📁 Templates directory:', templatesDir);
-  }
+
 
   // Verify templates exist
   const indexTemplatePath = path.join(templatesDir, 'index.html');
@@ -100,10 +90,7 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
     const configuratorSrcPath = path.resolve(userProjectPath, '../packages/configurator/src');
     const wrapperSrcPath = path.resolve(userProjectPath, '../packages/wrapper/src');
 
-    console.log('🔧 Configurator dev mode enabled with aliases:', {
-      '@manifold-studio/configurator': configuratorSrcPath,
-      '@manifold-studio/wrapper': wrapperSrcPath
-    });
+
 
     viteConfig.resolve = {
       alias: {
@@ -112,9 +99,7 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
       }
     };
 
-    if (verbose) {
-      console.log('🔧 Configurator dev mode enabled with aliases:', viteConfig.resolve.alias);
-    }
+
   }
 
   // Create Vite server with custom middleware for template serving
@@ -199,9 +184,7 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
 
   const actualPort = server.config.server.port || port;
 
-  if (verbose) {
-    console.log(`✅ Template server started on port ${actualPort}`);
-  }
+
 
   return {
     port: actualPort,

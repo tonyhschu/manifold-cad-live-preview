@@ -19,7 +19,7 @@ import { isModelFile } from '../utils/path-utils.js';
  * @returns Promise that resolves to array of absolute file paths
  */
 export async function discoverModelFilesForCompilation(rootDir: string = '.'): Promise<string[]> {
-  console.log(`🔍 Discovering model files in: ${rootDir}`);
+
   
   try {
     // Define glob patterns for model discovery
@@ -34,7 +34,7 @@ export async function discoverModelFilesForCompilation(rootDir: string = '.'): P
     // Search for each pattern
     for (const pattern of patterns) {
       const fullPattern = join(rootDir, pattern);
-      console.log(`🔍 Searching pattern: ${fullPattern}`);
+
       
       const files = await glob(fullPattern, {
         ignore: [
@@ -52,21 +52,17 @@ export async function discoverModelFilesForCompilation(rootDir: string = '.'): P
         .filter(isModelFile);
 
       allFiles.push(...absoluteFiles);
-      console.log(`📄 Pattern "${pattern}" found ${absoluteFiles.length} files`);
+
     }
 
     // Remove duplicates
     const uniqueFiles = [...new Set(allFiles)];
     
-    console.log(`🎯 Total unique model files found: ${uniqueFiles.length}`);
-    uniqueFiles.forEach((file, index) => {
-      console.log(`  ${index + 1}. ${file}`);
-    });
+
 
     return uniqueFiles;
 
   } catch (error) {
-    console.error('❌ Error during file discovery:', error);
     return [];
   }
 }

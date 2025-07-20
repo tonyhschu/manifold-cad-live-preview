@@ -74,7 +74,7 @@ export class UIStateManager {
     const oldState = { ...this.state };
     this.state = { ...this.state, ...updates };
     
-    console.log('🔄 UI state updated:', updates);
+
     
     // Persist state
     this.saveState();
@@ -192,7 +192,7 @@ export class UIStateManager {
       // Override with URL parameters (for sharing)
       this.loadFromUrl();
       
-      console.log('✅ UI state loaded:', this.state);
+
       
     } catch (error) {
       console.warn('Failed to load UI state, using defaults:', error);
@@ -262,7 +262,7 @@ export class UIStateManager {
       try {
         listener(this.state);
       } catch (error) {
-        console.error('State listener error:', error);
+        // State listener error
       }
     });
   }
@@ -274,7 +274,7 @@ export class UIStateManager {
     this.state = { ...DEFAULT_STATE };
     this.saveState();
     this.notifyListeners(this.state);
-    console.log('🔄 UI state reset to defaults');
+
   }
 
   /**
@@ -282,7 +282,6 @@ export class UIStateManager {
    * Preserves compatible state, resets incompatible state
    */
   handlePipelineReload(newPipelineVersion?: string): void {
-    console.log('🔄 Handling pipeline reload...');
     
     // Update pipeline version
     if (newPipelineVersion) {
@@ -292,6 +291,6 @@ export class UIStateManager {
     // Note: We preserve selectedModel and parameters
     // The UI will validate if they're still compatible with the new pipeline
     
-    console.log('✅ Pipeline reload handled, state preserved');
+
   }
 }

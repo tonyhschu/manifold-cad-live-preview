@@ -57,7 +57,6 @@ export class PipelineLoaderImpl implements PipelineLoader {
       this.currentPipeline = pipeline;
 
     } catch (error) {
-      console.error('Failed to load pipeline:', error);
       throw error;
     }
   }
@@ -71,7 +70,6 @@ export class PipelineLoaderImpl implements PipelineLoader {
       await this.loadPipeline();
       return true;
     } catch (error) {
-      console.error('Initial pipeline load failed:', error);
       return false;
     }
   }

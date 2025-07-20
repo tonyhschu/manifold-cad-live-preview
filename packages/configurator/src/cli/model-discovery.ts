@@ -12,7 +12,7 @@ import type { ModelFile } from './types.js';
 export async function discoverUserModels(projectPath: string): Promise<ModelFile[]> {
   const models: ModelFile[] = [];
   
-  console.log(`🔍 Discovering models in: ${projectPath}`);
+
   
   // Find main model
   const mainFiles = await glob('main.{ts,js}', { 
@@ -31,9 +31,6 @@ export async function discoverUserModels(projectPath: string): Promise<ModelFile
       exportName: 'mainModel'
     });
     
-    console.log(`  ✅ Found main model: ${mainFile}`);
-  } else {
-    console.log(`  ⚠️  No main model found (looking for main.ts or main.js)`);
   }
   
   // Find component models
@@ -58,10 +55,10 @@ export async function discoverUserModels(projectPath: string): Promise<ModelFile
       exportName
     });
     
-    console.log(`  ✅ Found component: ${file} → ${exportName}`);
+
   }
   
-  console.log(`🎯 Discovered ${models.length} model(s) total`);
+
   
   return models;
 }

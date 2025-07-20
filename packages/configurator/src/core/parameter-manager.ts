@@ -58,9 +58,6 @@ export class ParameterManager {
         this.renderModel();
       });
     } catch (error) {
-      console.error(`Failed to setup parameter ${key}:`, error);
-      console.log('Parameter value:', this.params[key]);
-      console.log('Parameter config:', paramConfig);
       throw error;
     }
   }
@@ -93,11 +90,8 @@ export class ParameterManager {
         this.customCleanupFunctions.push(cleanup);
       }
     } catch (error) {
-      console.warn(`Custom parameter '${key}' setup failed:`, error);
-
       // Fall back to standard parameter if available
       if (paramConfig.fallback) {
-        console.info(`Using fallback parameter for '${key}'`);
         element.removeChild(container);
         this.setupTweakpaneParameter(key, paramConfig.fallback);
       } else {
@@ -118,7 +112,7 @@ export class ParameterManager {
       if (modelService && typeof modelService.getUIStateManager === 'function') {
         const uiStateManager = modelService.getUIStateManager();
         uiStateManager.setParameters({ ...this.params });
-        console.log('🔧 ParameterManager: Updated UIStateManager with parameters:', this.params);
+
       }
 
       // Still emit event for backward compatibility and other listeners
@@ -128,8 +122,6 @@ export class ParameterManager {
       document.dispatchEvent(event);
 
     } catch (error) {
-      console.error('Model generation failed:', error);
-
       // Emit error event
       const errorEvent = new CustomEvent('modelGenerationError', {
         detail: { error, params: { ...this.params } }
@@ -148,8 +140,6 @@ export class ParameterManager {
       this.params[key] = value;
       this.renderModel();
       // TODO: Update UI to reflect programmatic changes
-    } else {
-      console.warn(`Parameter '${key}' does not exist in config`);
     }
   }
 

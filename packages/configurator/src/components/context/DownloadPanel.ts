@@ -15,12 +15,9 @@ export class DownloadPanel extends HTMLElement {
   
   constructor() {
     super();
-    console.log('DownloadPanel: Constructed');
   }
-  
-  connectedCallback() {
-    console.log('DownloadPanel: Connected (V3)');
 
+  connectedCallback() {
     // Find existing container or create it
     this.containerElement = this.querySelector('.download-container') ||
                            this.createContainerElement();
@@ -29,11 +26,9 @@ export class DownloadPanel extends HTMLElement {
     if (v3Signals.isInitialized.value) {
       this.setupSubscriptions();
     } else {
-      console.log('DownloadPanel: Waiting for V3 bridge initialization...');
       // Subscribe to initialization signal
       const initUnsubscribe = v3Signals.isInitialized.subscribe(isInitialized => {
         if (isInitialized) {
-          console.log('DownloadPanel: V3 bridge initialized, setting up subscriptions');
           this.setupSubscriptions();
           initUnsubscribe(); // Unsubscribe from init signal
         }
@@ -52,7 +47,6 @@ export class DownloadPanel extends HTMLElement {
   }
   
   disconnectedCallback() {
-    console.log('DownloadPanel: Disconnected');
     
     // Clean up subscription when element is removed
     if (this.unsubscribe) {
@@ -65,7 +59,6 @@ export class DownloadPanel extends HTMLElement {
    * Create the container element if it doesn't exist
    */
   private createContainerElement() {
-    console.log('DownloadPanel: Creating container element');
     const container = document.createElement('div');
     container.className = 'download-container';
     this.appendChild(container);
@@ -78,7 +71,7 @@ export class DownloadPanel extends HTMLElement {
   private renderDownloadLinks(objUrl: string, glbUrl: string) {
     if (!this.containerElement) return;
     
-    console.log('DownloadPanel: Rendering download links', { objUrl, glbUrl });
+
     
     // Clear existing links
     this.containerElement.innerHTML = '';
@@ -97,7 +90,7 @@ export class DownloadPanel extends HTMLElement {
       
       // Add analytics event
       objDownloadLink.addEventListener('click', () => {
-        console.log('OBJ download started');
+
       });
     }
     
@@ -112,7 +105,7 @@ export class DownloadPanel extends HTMLElement {
       
       // Add analytics event
       glbDownloadLink.addEventListener('click', () => {
-        console.log('GLB download started');
+
       });
     }
   }

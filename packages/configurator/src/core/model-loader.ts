@@ -169,22 +169,19 @@ export async function loadModelById(
     let modelModule;
     if (modelDef.loader) {
       // Use the custom loader function for user project models
-      console.log(`Loading model "${modelId}" using custom loader`);
-      console.log(`🔍 DEBUG: Using custom loader (import.meta.glob)`);
 
       // CRITICAL: Custom loaders (import.meta.glob) are cached by Vite!
       // We need to force cache invalidation for HMR
       if (import.meta.env.DEV) {
-        console.log(`🔄 DEV MODE: Attempting to force fresh load for custom loader`);
         // Unfortunately, we can't easily cache-bust import.meta.glob loaders
         // But we can try to invalidate the module cache
         try {
           // Force Vite to reload by clearing any internal caches
           if (import.meta.hot) {
-            console.log(`🔄 Attempting HMR invalidation for custom loader`);
+            // Attempting HMR invalidation for custom loader
           }
         } catch (error) {
-          console.warn('⚠️ Could not invalidate custom loader cache:', error);
+          // Could not invalidate custom loader cache
         }
       }
 
@@ -237,10 +234,7 @@ export async function loadModelById(
       };
     } else {
       // Static model - execute the function
-      console.log(`🔍 DEBUG: Processing static model "${modelId}"`);
       const createModel = defaultExport as ModelCreator;
-      console.log(`🔍 DEBUG: createModel function:`, createModel);
-      console.log(`🔍 DEBUG: createModel type:`, typeof createModel);
 
       if (typeof createModel !== 'function') {
         throw new Error(`createModel is not a function`);
@@ -251,7 +245,6 @@ export async function loadModelById(
 
       // Create the model
       const model = createModel();
-      console.log(`🔍 DEBUG: Model constructor:`, model?.constructor?.name);
 
       return {
         model,
@@ -260,7 +253,6 @@ export async function loadModelById(
       };
     }
   } catch (error) {
-    console.error(`Error loading model "${modelId}":`, error);
     throw error;
   }
 }
@@ -343,12 +335,10 @@ async function scanForUserModels(): Promise<ModelRegistryEntry[]> {
           type: modelType
         });
       } catch (error) {
-        console.warn(`Failed to process model file ${filePath}:`, error);
         // Continue processing other files
       }
     }
   } catch (error) {
-    console.warn('Error during model discovery:', error);
     // Re-throw errors about missing main.ts since it's required
     if (error instanceof Error && error.message.includes('main.ts is required')) {
       throw error;
@@ -365,11 +355,8 @@ async function scanForUserModels(): Promise<ModelRegistryEntry[]> {
  */
 export function setupModelDiscoveryHMR(onRefresh?: () => void) {
   if (import.meta.hot) {
-    console.log('🔥 Setting up Model Discovery HMR...');
-
     // Listen for any HMR updates and refresh model discovery
     import.meta.hot.on('vite:afterUpdate', (data) => {
-      console.log('🔄 HMR afterUpdate detected, refreshing model discovery...', data);
       if (onRefresh) {
         onRefresh();
       }
@@ -377,17 +364,13 @@ export function setupModelDiscoveryHMR(onRefresh?: () => void) {
 
     // Also listen for file additions/removals specifically
     import.meta.hot.on('vite:beforeUpdate', (data) => {
-      console.log('🔄 HMR beforeUpdate:', data);
+      // HMR beforeUpdate
     });
 
     // Listen for other HMR events
     import.meta.hot.on('vite:error', (data) => {
-      console.log('❌ HMR error:', data);
+      // HMR error
     });
-
-    console.log('✅ Model Discovery HMR setup complete');
-  } else {
-    console.log('❌ HMR not available - model discovery will not auto-refresh');
   }
 }
 

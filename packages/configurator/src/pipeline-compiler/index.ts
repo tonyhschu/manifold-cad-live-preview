@@ -43,51 +43,40 @@ export class PipelineCompilerImpl implements PipelineCompiler {
     const warnings: string[] = [];
 
     try {
-      console.log('🔨 Starting pipeline compilation...');
+
 
       // Ensure output directory exists
       await this.ensureOutputDirectory();
 
       // Step 1: Discover model files
-      console.log('🔍 Discovering model files...');
+
       const modelFiles = await discoverModelFilesForCompilation(this.rootDir);
       
       if (modelFiles.length === 0) {
         warnings.push('No model files found');
-        console.log('⚠️ No model files found in project');
-      } else {
-        console.log(`📄 Found ${modelFiles.length} model files:`, modelFiles);
       }
 
       // Step 2: Compile each model to function
-      console.log('🏗️ Compiling models to functions...');
       const compiledFunctions = [];
       
       for (const filePath of modelFiles) {
         try {
           const compiledFunction = await compileModelToFunction(filePath, this.rootDir);
           compiledFunctions.push(compiledFunction);
-          console.log(`✅ Compiled: ${filePath}`);
         } catch (error) {
           const errorMsg = `Failed to compile ${filePath}: ${error instanceof Error ? error.message : error}`;
           errors.push(errorMsg);
-          console.error(`❌ ${errorMsg}`);
         }
       }
 
       // Step 3: Generate pipeline.js code
-      console.log('📦 Generating pipeline code...');
-      console.log(`📊 Compiled functions count: ${compiledFunctions.length}`);
       const pipelineCode = generatePipelineCode(compiledFunctions);
-      console.log(`📄 Generated pipeline code length: ${pipelineCode.length}`);
 
       // Step 4: Write pipeline.js
       const pipelinePath = join(this.outputDir, 'pipeline.js');
       await writeFile(pipelinePath, pipelineCode);
-      console.log(`✅ Pipeline written to: ${pipelinePath}`);
 
       // Step 5: Generate manifest.json
-      console.log('📋 Generating manifest from compiled functions:', compiledFunctions.map(f => ({ id: f.id, name: f.name, metadata: f.metadata })));
       const manifest: PipelineManifest = {
         models: compiledFunctions.map(f => ({
           id: f.id,
@@ -108,13 +97,13 @@ export class PipelineCompilerImpl implements PipelineCompiler {
 
       const manifestPath = join(this.outputDir, 'manifest.json');
       await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
-      console.log(`✅ Manifest written to: ${manifestPath}`);
+
 
       // Step 6: Generate user-pipeline-entry.ts for pipeline server compatibility
       const userPipelineEntry = this.generateUserPipelineEntry(compiledFunctions);
       const userPipelineEntryPath = join(this.outputDir, 'user-pipeline-entry.ts');
       await writeFile(userPipelineEntryPath, userPipelineEntry);
-      console.log(`✅ User pipeline entry written to: ${userPipelineEntryPath}`);
+
 
       const result: PipelineCompilationResult = {
         pipelinePath,
@@ -124,13 +113,12 @@ export class PipelineCompilerImpl implements PipelineCompiler {
         warnings
       };
 
-      console.log(`🎉 Pipeline compilation complete! (${result.modelCount} models, ${Date.now() - startTime}ms)`);
+
       return result;
 
     } catch (error) {
       const errorMsg = `Pipeline compilation failed: ${error instanceof Error ? error.message : error}`;
       errors.push(errorMsg);
-      console.error(`💥 ${errorMsg}`);
       
       return {
         pipelinePath: '',
@@ -147,11 +135,8 @@ export class PipelineCompilerImpl implements PipelineCompiler {
    */
   startWatching(onChange?: (result: PipelineCompilationResult) => void): void {
     if (this.isWatching) {
-      console.log('👀 Already watching for changes');
       return;
     }
-
-    console.log('👀 Starting file watcher...');
     
     const watchPatterns = [
       join(this.rootDir, 'main.{ts,js}'),
@@ -169,11 +154,10 @@ export class PipelineCompilerImpl implements PipelineCompiler {
     this.watcher.on('unlink', (filePath) => this.handleFileChange('unlink', filePath, onChange));
 
     this.watcher.on('error', (error) => {
-      console.error('👀 File watcher error:', error);
+      // File watcher error
     });
 
     this.isWatching = true;
-    console.log('✅ File watcher started');
   }
 
   /**
@@ -185,7 +169,6 @@ export class PipelineCompilerImpl implements PipelineCompiler {
       this.watcher = null;
     }
     this.isWatching = false;
-    console.log('🛑 File watcher stopped');
   }
 
   /**
@@ -202,16 +185,13 @@ export class PipelineCompilerImpl implements PipelineCompiler {
     }
 
     this.debounceTimer = setTimeout(async () => {
-      console.log(`🔄 File ${event}: ${filePath}`);
-      
       try {
         const result = await this.compile();
         onChange?.(result);
-        console.log(`✨ Pipeline updated for ${event}: ${filePath}`);
       } catch (error) {
-        console.error(`Failed to handle ${event} event:`, error);
+        // Failed to handle file change event
       }
-      
+
       this.debounceTimer = null;
     }, 300); // 300ms debounce
   }
@@ -222,7 +202,6 @@ export class PipelineCompilerImpl implements PipelineCompiler {
   private async ensureOutputDirectory(): Promise<void> {
     if (!existsSync(this.outputDir)) {
       await mkdir(this.outputDir, { recursive: true });
-      console.log(`📁 Created output directory: ${this.outputDir}`);
     }
   }
 

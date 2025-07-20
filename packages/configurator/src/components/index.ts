@@ -13,5 +13,4 @@ import './context/ModelSelector';
 import './context/ModelMetadata';
 import './config/ParametricPanel';
 
-// Log initialization
-console.log('ManifoldCAD: Web Components initialized');
+// Web Components initialized

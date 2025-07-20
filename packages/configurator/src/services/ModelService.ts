@@ -43,7 +43,6 @@ export class ModelService implements IModelService {
       // Try to fetch the manifest to get model info
       const manifestResponse = await fetch('./temp/manifest.json');
       if (!manifestResponse.ok) {
-        console.log('📂 No temp/manifest.json found, skipping temp folder loading');
         return null;
       }
 
@@ -51,7 +50,6 @@ export class ModelService implements IModelService {
       const modelInfo = manifest.models.find((m: any) => m.id === modelId && m.status === 'compiled');
 
       if (!modelInfo || !modelInfo.blobPath) {
-        console.log(`📂 Model "${modelId}" not found in temp folder or not compiled`);
         return null;
       }
 
@@ -62,7 +60,6 @@ export class ModelService implements IModelService {
       const glbResponse = await fetch(glbPath);
 
       if (!glbResponse.ok) {
-        console.log(`📂 GLB file not found at ${glbPath}`);
         return null;
       }
 
@@ -88,13 +85,11 @@ export class ModelService implements IModelService {
         }
       };
 
-      console.log(`✅ ModelService: Loaded "${modelId}" from temp folder GLB (${modelInfo.blobSize} bytes)`);
       onProgress?.(100, 'Model loaded from temp folder');
 
       return result;
 
     } catch (error) {
-      console.log(`📂 Error loading from temp folder:`, error);
       return null;
     }
   }
@@ -113,7 +108,6 @@ export class ModelService implements IModelService {
         // Check cache first (production mode)
         const cached = this.getCachedModel(modelId);
         if (cached) {
-          console.log(`🎯 ModelService: Loading "${modelId}" from cache (cache hit)`);
           onProgress?.(100, 'Model loaded from cache');
           return {
             model: cached.model,
@@ -123,8 +117,6 @@ export class ModelService implements IModelService {
             exports: cached.exports!
           };
         }
-      } else {
-        console.log(`🎯 ModelService: Skipping cache for "${modelId}" (HMR mode)`);
       }
 
       // Load from temp folder (primary path)
@@ -180,11 +172,6 @@ export class ModelService implements IModelService {
    * Clear model cache
    */
   clearCache(): void {
-    const cacheSize = this.cache.size;
-    const cachedModels = Array.from(this.cache.keys());
-
-    console.log(`🗑️ ModelService: Clearing cache (${cacheSize} entries):`, cachedModels);
-
     // Clean up any URLs from cached exports
     for (const entry of this.cache.values()) {
       if (entry.exports) {
@@ -193,7 +180,6 @@ export class ModelService implements IModelService {
     }
 
     this.cache.clear();
-    console.log(`✅ ModelService: Cache cleared (now ${this.cache.size} entries)`);
   }
 
   /**

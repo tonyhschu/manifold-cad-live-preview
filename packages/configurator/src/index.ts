@@ -105,8 +105,6 @@ function loadModelViewerScript(): Promise<void> {
  * Initialize V3 Pipeline System
  */
 async function initializeV3(pipelinePath: string = '/temp/pipeline.js') {
-  console.log("🔧 Initializing V3 Pipeline System...");
-
   // Initialize all services first (including ExportService, UrlService)
   initializeServices();
 
@@ -118,8 +116,6 @@ async function initializeV3(pipelinePath: string = '/temp/pipeline.js') {
   // Replace only the model service with V3 service
   const { setModelService } = await import('./services');
   setModelService(v3ModelService);
-
-  console.log("✅ V3 Pipeline System initialized");
 }
 
 /**
@@ -127,13 +123,11 @@ async function initializeV3(pipelinePath: string = '/temp/pipeline.js') {
  */
 async function initializeConfigurator(pipelinePath?: string) {
   // V3 Pipeline Mode (only supported mode)
-  console.log('🚀 Initializing V3 Pipeline Configurator...');
   await initializeV3(pipelinePath);
 
   // Initialize V3 state bridge for UI components
   const { initializeV3StateBridge } = await import('./state/v3-bridge');
   await initializeV3StateBridge();
-  console.log('✅ V3 state bridge initialized');
 
   // Get DOM elements
   const modelViewerElement = document.getElementById("viewer") as any;
@@ -147,12 +141,12 @@ async function initializeConfigurator(pipelinePath?: string) {
   if (modelViewerElement) {
     // Model loaded event
     modelViewerElement.addEventListener('load', () => {
-      console.log('Model viewer: Model loaded');
+      // Model loaded
     });
 
     // Error handling
-    modelViewerElement.addEventListener('error', (error: any) => {
-      console.error('Model viewer error:', error);
+    modelViewerElement.addEventListener('error', () => {
+      // Model viewer error
     });
   }
 
@@ -208,7 +202,6 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
 
   // Set up custom model registry if provided
   if (modelRegistry) {
-    console.log('🔍 Using custom model registry');
     const { configureModelDiscovery } = await import('./core/model-loader');
 
     // Convert model registry to the format expected by the configurator
@@ -220,18 +213,16 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
       loader: model.loader
     }));
 
-    console.log('🎯 Custom registry has models:', registryModels.map(m => m.id));
     configureModelDiscovery({ customModels: registryModels });
 
     // Refresh available models using V3 system
     const { v3Actions } = await import('./state/v3-bridge');
     await v3Actions.refreshAvailableModels();
-    console.log('✅ V3 system updated with custom models');
   }
 
   // Register models if provided (for future enhancement)
   if (Object.keys(models).length > 0) {
-    console.log('Custom models provided:', Object.keys(models));
+    // Custom models provided
   }
 
   // Load default model using V3 system
@@ -244,25 +235,17 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
     const urlModel = url.searchParams.get('m_model');
 
     if (urlModel) {
-      console.log('🔗 Loading model from URL (V3):', urlModel);
       await modelService.loadModel(urlModel);
-      console.log('✅ Model loaded from URL via V3 system');
     } else if (defaultModel) {
-      console.log('🎯 Loading default model (V3):', defaultModel);
       await modelService.loadModel(defaultModel);
-      console.log('✅ Default model loaded via V3 system');
     } else {
       // Load first available model
       const models = modelService.getAvailableModels();
       if (models.length > 0) {
-        console.log('🎯 Loading first available model (V3):', models[0].id);
         await modelService.loadModel(models[0].id);
-        console.log('✅ First available model loaded via V3 system');
       }
     }
-    console.log('Configurator started successfully');
   } catch (error) {
-    console.error('Failed to load default model:', error);
     // Use V3 bridge to update status
     const { v3Actions } = await import('./state/v3-bridge');
     v3Actions.updateStatus('Failed to load model', true);

@@ -15,11 +15,11 @@ export class StatusBar extends HTMLElement {
   
   constructor() {
     super();
-    console.log('StatusBar: Constructed');
+
   }
   
   connectedCallback() {
-    console.log('StatusBar: Connected (V3)');
+
 
     // Find existing status element or create if needed
     this.statusElement = this.querySelector('#status') || this.createStatusElement();
@@ -28,11 +28,11 @@ export class StatusBar extends HTMLElement {
     if (v3Signals.isInitialized.value) {
       this.setupSubscriptions();
     } else {
-      console.log('StatusBar: Waiting for V3 bridge initialization...');
+
       // Subscribe to initialization signal
       const initUnsubscribe = v3Signals.isInitialized.subscribe(isInitialized => {
         if (isInitialized) {
-          console.log('StatusBar: V3 bridge initialized, setting up subscriptions');
+
           this.setupSubscriptions();
           initUnsubscribe(); // Unsubscribe from init signal
         }
@@ -57,7 +57,7 @@ export class StatusBar extends HTMLElement {
   }
   
   disconnectedCallback() {
-    console.log('StatusBar: Disconnected');
+
     
     // Clean up subscription when element is removed
     if (this.unsubscribe) {
@@ -70,7 +70,7 @@ export class StatusBar extends HTMLElement {
    * Create the status element if it doesn't exist
    */
   private createStatusElement() {
-    console.log('StatusBar: Creating status element');
+
     const element = document.createElement('div');
     element.id = 'status';
     this.appendChild(element);

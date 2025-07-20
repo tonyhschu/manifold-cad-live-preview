@@ -40,18 +40,14 @@ export class V3ModelService implements IModelService {
       return true;
     }
 
-    console.log('🚀 Initializing V3 Model Service...');
-
     try {
       // Initialize pipeline loader without auto-check (using custom HMR instead)
       const success = await this.pipelineLoader.initialize(false);
-      
+
       this.isInitialized = true;
-      console.log('✅ V3 Model Service initialized');
-      
+
       return success;
     } catch (error) {
-      console.error('❌ Failed to initialize V3 Model Service:', error);
       return false;
     }
   }
@@ -60,11 +56,10 @@ export class V3ModelService implements IModelService {
    * Load a model using the current pipeline
    */
   async loadModel(
-    modelId: string, 
-    params: any = {}, 
+    modelId: string,
+    params: any = {},
     onProgress?: ProgressCallback
   ): Promise<ModelLoadResult> {
-    console.log(`🔨 Loading model: ${modelId}`, params);
 
     onProgress?.(0, 'Getting pipeline...');
 
@@ -137,11 +132,9 @@ export class V3ModelService implements IModelService {
         }
       };
 
-      console.log(`✅ Model loaded: ${modelId} (${modelConfig.type})`);
       return result;
 
     } catch (error) {
-      console.error(`❌ Failed to generate model ${modelId}:`, error);
       throw new Error(`Model generation failed: ${error instanceof Error ? error.message : error}`);
     }
   }
@@ -227,7 +220,6 @@ export class V3ModelService implements IModelService {
     
     // For now, we'll handle this through the auto-check mechanism
     // In a full implementation, this would integrate with the UI framework
-    console.log('🔄 Pipeline reload handler set up');
   }
 
   /**
@@ -253,7 +245,6 @@ export class V3ModelService implements IModelService {
     try {
       await this.pipelineLoader.reloadPipeline();
     } catch (error) {
-      console.error('Pipeline reload failed:', error);
       throw error;
     }
   }
@@ -278,7 +269,6 @@ export class V3ModelService implements IModelService {
    */
   destroy(): void {
     this.pipelineLoader.destroy();
-    console.log('🧹 V3 Model Service destroyed');
   }
 }
 

@@ -13,14 +13,11 @@ async function main() {
   const rootDir = args[1] || process.cwd();
 
   console.log('🚀 Pipeline Compiler CLI');
-  console.log(`📁 Root directory: ${rootDir}`);
-  console.log(`⚡ Command: ${command}`);
 
   const compiler = createPipelineCompiler(rootDir);
 
   switch (command) {
     case 'build':
-      console.log('🔨 Building pipeline...');
       const result = await compiler.compile();
       
       if (result.errors.length > 0) {
@@ -35,26 +32,24 @@ async function main() {
       }
       
       console.log(`✅ Pipeline compiled successfully!`);
-      console.log(`📦 Models: ${result.modelCount}`);
-      console.log(`📄 Output: ${result.pipelinePath}`);
       break;
 
     case 'watch':
       console.log('👀 Starting watch mode...');
-      
+
       // Initial build
       await compiler.compile();
-      
+
       // Start watching
       compiler.startWatching((result) => {
         if (result.errors.length > 0) {
           console.error('❌ Compilation errors:');
           result.errors.forEach(error => console.error(`  - ${error}`));
         } else {
-          console.log(`✅ Pipeline updated! (${result.modelCount} models)`);
+          console.log(`✅ Pipeline updated!`);
         }
       });
-      
+
       // Keep process alive
       console.log('Press Ctrl+C to stop watching...');
       process.on('SIGINT', () => {

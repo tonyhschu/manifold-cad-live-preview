@@ -33,15 +33,12 @@ export class V3Configurator {
    * Initialize the configurator
    */
   private async initialize(): Promise<void> {
-    console.log('🚀 Initializing V3 Configurator...');
-
     try {
       // Initialize model service
       await this.modelService.initialize();
 
       // Setup pipeline change listener
       this.modelService.onPipelineChange(() => {
-        console.log('🔄 Pipeline changed, updating UI...');
         this.handlePipelineUpdate();
       });
 
@@ -57,10 +54,8 @@ export class V3Configurator {
       }
 
       this.isInitialized = true;
-      console.log('✅ V3 Configurator initialized');
 
     } catch (error) {
-      console.error('❌ Failed to initialize V3 Configurator:', error);
       this.showError('Failed to initialize configurator');
     }
   }
@@ -245,8 +240,6 @@ export class V3Configurator {
    * Handle pipeline updates
    */
   private async handlePipelineUpdate(): Promise<void> {
-    console.log('🔄 Handling pipeline update...');
-
     // Update model list
     this.updateModelList();
 
@@ -258,9 +251,7 @@ export class V3Configurator {
     if (uiState.selectedModel) {
       try {
         await this.loadModel(uiState.selectedModel, uiState.parameters);
-        console.log('✅ Current model reloaded after pipeline update');
       } catch (error) {
-        console.warn('⚠️ Failed to reload current model after pipeline update:', error);
         this.showError('Model no longer available after pipeline update');
       }
     }
@@ -273,7 +264,6 @@ export class V3Configurator {
    * Handle UI state changes
    */
   private handleStateChange(state: UIState): void {
-    console.log('🔄 UI state changed:', state);
     // In a real implementation, this would update the UI to reflect state changes
   }
 
@@ -341,7 +331,7 @@ export class V3Configurator {
    * Select a model
    */
   private async selectModel(modelId: string): Promise<void> {
-    console.log(`🎯 Selecting model: ${modelId}`);
+
 
     try {
       // Get default parameters for parametric models
@@ -361,7 +351,6 @@ export class V3Configurator {
       this.updateParameterPanel(modelId);
 
     } catch (error) {
-      console.error(`❌ Failed to select model ${modelId}:`, error);
       this.showError(`Failed to load model: ${error instanceof Error ? error.message : error}`);
     }
   }
@@ -370,8 +359,6 @@ export class V3Configurator {
    * Load a model
    */
   private async loadModel(modelId: string, params: any = {}): Promise<void> {
-    console.log(`🔨 Loading model: ${modelId}`, params);
-
     try {
       const result = await this.modelService.loadModel(modelId, params, (progress, message) => {
         this.updateStatus(`${Math.round(progress)}% - ${message}`);
@@ -382,7 +369,6 @@ export class V3Configurator {
       this.updateStatus(`✅ Loaded: ${result.metadata?.name || modelId}`);
 
     } catch (error) {
-      console.error(`❌ Failed to load model ${modelId}:`, error);
       this.showError(`Failed to load model: ${error instanceof Error ? error.message : error}`);
     }
   }
@@ -466,7 +452,6 @@ export class V3Configurator {
    * Handle refresh button
    */
   private async handleRefresh(): Promise<void> {
-    console.log('🔄 Manual refresh requested');
     this.updateStatus('🔄 Refreshing models...');
 
     // In V3, refresh is handled by HMR events, so we just refresh the model list
@@ -479,7 +464,6 @@ export class V3Configurator {
    */
   private showError(message: string): void {
     this.updateStatus(`❌ ${message}`);
-    console.error(message);
   }
 
   /**

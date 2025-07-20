@@ -25,11 +25,9 @@ export class ModelMetadata extends HTMLElement {
     if (v3Signals.isInitialized.value) {
       this.setupSubscriptions();
     } else {
-      console.log('ModelMetadata: Waiting for V3 bridge initialization...');
       // Subscribe to initialization signal
       const initUnsubscribe = v3Signals.isInitialized.subscribe(isInitialized => {
         if (isInitialized) {
-          console.log('ModelMetadata: V3 bridge initialized, setting up subscriptions');
           this.setupSubscriptions();
           initUnsubscribe(); // Unsubscribe from init signal
         }

@@ -14,7 +14,6 @@ export async function detectConfiguratorDevelopment(projectPath: string = proces
     const hasConfiguratorSource = fs.existsSync(configuratorSrc);
     
     if (hasConfiguratorSource) {
-      console.log('🔧 Configurator development mode detected (source directory found)');
       return true;
     }
     
@@ -28,12 +27,11 @@ export async function detectConfiguratorDevelopment(projectPath: string = proces
       const configuratorDep = devDeps['@manifold-studio/configurator'] || deps['@manifold-studio/configurator'];
       
       if (configuratorDep && (configuratorDep.includes('file:') || configuratorDep.includes('link:'))) {
-        console.log('🔧 Configurator development mode detected (local dependency found)');
         return true;
       }
     }
     
-    console.log('👤 User project mode detected');
+
     return false;
     
   } catch (error) {

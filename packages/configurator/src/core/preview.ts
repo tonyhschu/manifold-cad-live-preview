@@ -45,9 +45,6 @@ export class ModelViewer {
       this.modelViewer.autoRotate = true;
       this.modelViewer.exposure = 1.0;
 
-      console.log(`ManifoldCAD: Model viewer initialized (init count: ${getInitCount()})`);
-    } else {
-      console.error("ManifoldCAD: Model viewer element not found");
     }
   }
 
@@ -65,7 +62,7 @@ export class ModelViewer {
         const srcWithoutQuery = currentSrc.split('?')[0];
         this.modelViewer.src = `${srcWithoutQuery}${cacheBust}`;
 
-        console.log("ManifoldCAD: View refreshed");
+
       }
     }
   }

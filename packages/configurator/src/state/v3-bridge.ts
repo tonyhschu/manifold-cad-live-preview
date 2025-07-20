@@ -39,7 +39,6 @@ export class V3StateBridge {
 
   constructor() {
     // Don't initialize immediately - wait for explicit initialization
-    console.log('🔄 V3 State Bridge created, waiting for initialization...');
   }
 
   /**
@@ -57,17 +56,14 @@ export class V3StateBridge {
           this.uiStateManager = modelService.getUIStateManager();
           this.setupStateSync();
           this.isInitialized.value = true;
-          console.log('✅ V3 State Bridge initialized with UIStateManager');
           return;
         } else {
           throw new Error('ModelService not available or missing getUIStateManager method');
         }
       } catch (error) {
         retryCount++;
-        console.warn(`⚠️ V3 State Bridge initialization attempt ${retryCount}/${maxRetries} failed:`, error);
 
         if (retryCount >= maxRetries) {
-          console.error('❌ V3 State Bridge failed to initialize after maximum retries');
           return;
         }
 
@@ -90,17 +86,13 @@ export class V3StateBridge {
 
     // If there's a selected model from URL/localStorage, load it automatically
     if (initialState.selectedModel) {
-      console.log('🔄 V3 Bridge: Auto-loading model from initial state:', initialState.selectedModel);
       this.loadModel(initialState.selectedModel, initialState.parameters).catch(error => {
-        console.error('❌ Failed to auto-load model from initial state:', error);
         this.status.value = { message: `Failed to load model: ${error.message}`, isError: true };
       });
     }
 
     // Listen to UIStateManager changes and update signals
     this.uiStateManager.addListener((state) => {
-      console.log('🔄 V3 Bridge: UIStateManager state changed:', state);
-
       const previousModel = this.selectedModel.value;
       const previousParams = this.modelParameters.value;
 
@@ -111,10 +103,9 @@ export class V3StateBridge {
       if (state.selectedModel &&
           state.selectedModel === previousModel &&
           JSON.stringify(state.parameters) !== JSON.stringify(previousParams)) {
-        console.log('🔄 V3 Bridge: Parameters changed, reloading model reactively:', state.parameters);
         this.isParameterDrivenReload = true;
-        this.loadModel(state.selectedModel, state.parameters).catch(error => {
-          console.error('❌ Failed to reload model after parameter change:', error);
+        this.loadModel(state.selectedModel, state.parameters).catch(() => {
+          // Failed to reload model after parameter change
         }).finally(() => {
           this.isParameterDrivenReload = false;
         });
@@ -134,10 +125,9 @@ export class V3StateBridge {
       if (modelService && typeof modelService.getAvailableModels === 'function') {
         const models = modelService.getAvailableModels();
         this.availableModels.value = models;
-        console.log('✅ V3 Bridge: Available models updated:', models.map(m => m.id));
       }
     } catch (error) {
-      console.warn('⚠️ Failed to update available models in V3 bridge:', error);
+      // Failed to update available models in V3 bridge
     }
   }
 
@@ -152,29 +142,23 @@ export class V3StateBridge {
           objUrl: modelResult.exports.objUrl || '',
           glbUrl: modelResult.exports.glbUrl || ''
         };
-        console.log('✅ V3 Bridge: Updated model URLs:', this.modelUrls.value);
       }
 
       // Update model metadata
       if (modelResult.metadata) {
         this.modelMetadata.value = modelResult.metadata;
-        console.log('✅ V3 Bridge: Updated model metadata:', this.modelMetadata.value);
       }
 
       // Update parametric config for parametric models
       // Skip this if it's a parameter-driven reload to prevent Tweakpane rebuilding
       if (modelResult.isParametric && modelResult.config && !this.isParameterDrivenReload) {
-        console.log('🔧 V3 Bridge: Updating parametric config (model-driven reload)');
         this.debouncedUpdateParametricConfig(modelResult.config);
-      } else if (modelResult.isParametric && this.isParameterDrivenReload) {
-        console.log('🔧 V3 Bridge: Skipping parametric config update (parameter-driven reload)');
-      } else {
+      } else if (!modelResult.isParametric) {
         // Clear parametric config for non-parametric models
         this.parametricConfig.value = null;
-        console.log('✅ V3 Bridge: Cleared parametric config (static model)');
       }
     } catch (error) {
-      console.warn('⚠️ Failed to update model data from result in V3 bridge:', error);
+      // Failed to update model data from result in V3 bridge
     }
   }
 
@@ -199,23 +183,18 @@ export class V3StateBridge {
    */
   private updateParametricConfigImmediate(pipelineConfig: any): void {
     try {
-      console.log('🔧 V3 Bridge: Converting pipeline config:', pipelineConfig);
-
       // Deep clone the parameters to prevent reference issues
       const clonedParameters = JSON.parse(JSON.stringify(pipelineConfig.parameters || {}));
-      console.log('🔧 V3 Bridge: Cloned parameters:', clonedParameters);
 
       // Preserve current parameter values if they exist
       const currentParameters = this.modelParameters.value;
       if (currentParameters && Object.keys(currentParameters).length > 0) {
-        console.log('🔧 V3 Bridge: Preserving current parameter values:', currentParameters);
         // Update the cloned parameters with current values while keeping the structure
         for (const [key, currentValue] of Object.entries(currentParameters)) {
           if (clonedParameters[key] && typeof clonedParameters[key] === 'object') {
             clonedParameters[key] = { ...clonedParameters[key], value: currentValue };
           }
         }
-        console.log('🔧 V3 Bridge: Parameters after preserving values:', clonedParameters);
       }
 
       const wrappedConfig = {
@@ -236,12 +215,9 @@ export class V3StateBridge {
         description: pipelineConfig.description
       };
 
-      console.log('🔧 V3 Bridge: Final wrapped config:', wrappedConfig);
-
       this.parametricConfig.value = wrappedConfig;
-      console.log('✅ V3 Bridge: Updated parametric config:', this.parametricConfig.value);
     } catch (error) {
-      console.error('❌ Failed to update parametric config:', error);
+      // Failed to update parametric config
     }
   }
 
@@ -269,12 +245,10 @@ export class V3StateBridge {
       this.updateModelDataFromResult(modelResult);
 
       this.status.value = { message: 'Model loaded successfully', isError: false };
-      console.log('✅ V3 Bridge: Model loaded:', modelId);
-      
+
     } catch (error: any) {
       const errorMessage = `Error loading model: ${error.message}`;
       this.status.value = { message: errorMessage, isError: true };
-      console.error('❌ V3 Bridge: Failed to load model:', error);
       throw error;
     }
   }
@@ -290,7 +264,7 @@ export class V3StateBridge {
         modelService.refreshAvailableModels();
       }
     } catch (error) {
-      console.warn('⚠️ Failed to refresh model service cache:', error);
+      // Failed to refresh model service cache
     }
 
     // Update our local signals

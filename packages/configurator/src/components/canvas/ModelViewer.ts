@@ -17,12 +17,9 @@ export class ModelViewer extends HTMLElement {
 
   constructor() {
     super();
-    console.log("ModelViewer: Constructed");
   }
 
   connectedCallback() {
-    console.log("ModelViewer: Connected (V3)");
-
     // Find the model viewer element - this could be the element itself or a child
     this.viewerElement =
       this.id === "viewer"
@@ -30,9 +27,6 @@ export class ModelViewer extends HTMLElement {
         : this.querySelector<ModelViewerElement>("#viewer");
 
     if (!this.viewerElement) {
-      console.error(
-        'ModelViewer: No model-viewer element found with id "viewer"'
-      );
       return;
     }
 
@@ -40,11 +34,9 @@ export class ModelViewer extends HTMLElement {
     if (v3Signals.isInitialized.value) {
       this.setupSubscriptions();
     } else {
-      console.log('ModelViewer: Waiting for V3 bridge initialization...');
       // Subscribe to initialization signal
       const initUnsubscribe = v3Signals.isInitialized.subscribe(isInitialized => {
         if (isInitialized) {
-          console.log('ModelViewer: V3 bridge initialized, setting up subscriptions');
           this.setupSubscriptions();
           initUnsubscribe(); // Unsubscribe from init signal
         }
@@ -75,7 +67,6 @@ export class ModelViewer extends HTMLElement {
     // Subscribe to V3 modelMetadata signal to update the alt text
     this.unsubscribeMetadata = v3Signals.modelMetadata.subscribe((metadata) => {
       if (this.viewerElement && metadata) {
-        console.log("ModelViewer: Updating model alt text (V3)");
         this.viewerElement.alt = metadata.description || "A 3D model";
       }
     });
@@ -92,7 +83,6 @@ export class ModelViewer extends HTMLElement {
   }
 
   disconnectedCallback() {
-    console.log("ModelViewer: Disconnected");
 
     // Clean up subscriptions when element is removed
     if (this.unsubscribeUrls) {
