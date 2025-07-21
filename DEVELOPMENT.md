@@ -178,6 +178,51 @@ npm run dev  # Should use CLI automatically
 # → Add/remove model files → Verify automatic pipeline regeneration
 ```
 
+#### End-to-End (E2E) Testing with Playwright
+
+The project includes comprehensive browser-based E2E tests using Playwright to verify the complete user experience:
+
+```bash
+# Run all E2E tests
+npm run test:e2e
+
+# Run E2E tests with UI (interactive mode)
+npm run test:e2e:ui
+
+# Run E2E tests in headed mode (see browser)
+npm run test:e2e:headed
+
+# Debug E2E tests step by step
+npm run test:e2e:debug
+
+# View test reports
+npm run test:e2e:report
+```
+
+**What E2E Tests Cover:**
+
+- **HMR Browser Tests**: Verify Hot Module Replacement works without 504 dependency optimization errors
+- **Model Switching Tests**: Test model selector functionality and 3D viewer updates
+- **Parameter Editing Tests**: Validate parameter controls, real-time updates, and error handling
+- **UI Integration Tests**: Ensure all DOM elements load correctly and interact properly
+
+**E2E Test Architecture:**
+
+- **Test Target**: Uses the existing `test-v3-development` project as the test environment
+- **Real Browser Testing**: Tests run against the actual configurator UI in Chromium
+- **Automatic Setup**: Global setup starts the dev server and waits for it to be ready
+- **Comprehensive Coverage**: Tests verify the complete single-server architecture (V3.1)
+
+**E2E Test Files:**
+
+- `tests/e2e/hmr-browser.spec.ts` - HMR functionality and error detection
+- `tests/e2e/model-switching.spec.ts` - Model selector and viewer integration
+- `tests/e2e/parameter-editing.spec.ts` - Parameter controls and validation
+- `tests/e2e/global-setup.ts` - Test environment setup and dev server management
+- `tests/e2e/global-teardown.ts` - Cleanup and server shutdown
+
+The E2E tests are essential for validating the V3.1 single-server architecture and ensuring that the critical HMR functionality works correctly without the 504 dependency optimization errors that were problematic during the dual-server to single-server migration.
+
 #### Create-App Testing
 
 ```bash
@@ -400,7 +445,9 @@ cd packages/wrapper && npm run build:lib -- --watch  # Only if changing wrapper
 cd packages/create-app && npm run test:scaffold       # Create-app scaffolding test
 
 # Testing
-npm test                           # All tests
+npm test                           # All unit tests
+npm run test:e2e                   # End-to-end browser tests
+npm run test:e2e:ui                # E2E tests with interactive UI
 cd packages/create-app && npm run test:scaffold   # Test scaffolding
 
 # Troubleshooting

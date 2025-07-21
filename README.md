@@ -30,6 +30,7 @@ This single command automatically:
 - **Export Tools**: Download STL, OBJ, GLB files instantly
 - **Hot Reloading**: Edit code and see changes immediately
 - **Automatic Model Discovery**: Add new .ts files and they appear instantly
+- **End-to-End Testing**: Comprehensive browser-based testing with Playwright
 
 ## Overview
 
@@ -431,7 +432,8 @@ npm run dev:create-app            # Create-app in watch mode
 
 # Building and testing
 npm run build                     # Build all packages
-npm run test                      # Test all packages
+npm run test                      # Test all packages (unit tests)
+npm run test:e2e                  # End-to-end browser tests with Playwright
 npm run test:wrapper              # Test wrapper package only
 npm run test:configurator         # Test configurator package only
 npm run test:create-app           # Test create-app package only
