@@ -16,6 +16,7 @@
     "build": "npm run build:lib && npm run build:cli",
     "build:lib": "vite build --config vite.config.lib.ts",
     "build:cli": "vite build --config vite.config.cli.ts",
+    "pretest": "node ../../scripts/check-build-before-test.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },

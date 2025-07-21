@@ -122,8 +122,19 @@ export async function compileModelToFunction(
  */
 async function compileTypeScriptFile(filePath: string): Promise<string> {
   const fileName = basename(filePath, '.ts');
-  const tempDir = join(process.cwd(), 'temp', 'compilation');
-  
+
+  // CRITICAL: Use unique temp directory to prevent cross-test contamination
+  //
+  // Previously used shared directory: join(process.cwd(), 'temp', 'compilation')
+  // This caused race conditions where:
+  // 1. Test A compiles main.ts → writes to temp/compilation/main.js
+  // 2. Test B compiles main.ts → overwrites temp/compilation/main.js with different content
+  // 3. Test A imports compiled file → gets Test B's content instead!
+  //
+  // Solution: Each compilation gets its own unique directory to prevent interference
+  const uniqueId = `${Date.now()}-${process.hrtime.bigint()}-${Math.random().toString(36).substr(2, 9)}`;
+  const tempDir = join(process.cwd(), 'temp', 'compilation', uniqueId);
+
   // Ensure temp directory exists
   if (!existsSync(tempDir)) {
     await mkdir(tempDir, { recursive: true });

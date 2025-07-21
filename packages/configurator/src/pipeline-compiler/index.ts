@@ -57,14 +57,14 @@ export class PipelineCompilerImpl implements PipelineCompiler {
       // Step 1: Discover model files
 
       const modelFiles = await discoverModelFilesForCompilation(this.rootDir, this.customIgnorePatterns);
-      
+
       if (modelFiles.length === 0) {
         warnings.push('No model files found');
       }
 
       // Step 2: Compile each model to function
       const compiledFunctions = [];
-      
+
       for (const filePath of modelFiles) {
         try {
           const compiledFunction = await compileModelToFunction(filePath, this.rootDir);
@@ -256,9 +256,10 @@ export class PipelineCompilerImpl implements PipelineCompiler {
     await writeFile(userPipelineEntryPath, userPipelineEntry);
     console.log('✅ User pipeline entry written to:', userPipelineEntryPath);
 
-    // Step 2: Create Vite configuration (same as pipeline server)
+    // Step 2: Create Vite configuration (optimized for CLI/test environments)
     const viteConfig: InlineConfig = {
       root: this.rootDir,
+      mode: 'production', // Explicit mode for CLI builds
 
       // Build configuration for pipeline compilation
       build: {
@@ -282,7 +283,9 @@ export class PipelineCompilerImpl implements PipelineCompiler {
         outDir: this.outputDir,
         target: 'esnext',
         minify: false, // Keep readable for debugging
-        sourcemap: true
+        sourcemap: true,
+        watch: null, // Explicitly disable watching in CLI builds
+        emptyOutDir: false // Don't clear directory (preserve manifest.json)
       },
 
       // Resolve configuration (same as pipeline server)
@@ -296,8 +299,14 @@ export class PipelineCompilerImpl implements PipelineCompiler {
         }
       },
 
-      // Logging
-      logLevel: 'warn'
+      // Use unique cache directory to prevent cross-test contamination
+      cacheDir: join(this.outputDir, '.vite-cache'),
+
+      // CLI/test environment optimizations
+      logLevel: 'warn',
+      clearScreen: false, // Don't clear screen in CLI/test environments
+      server: false, // Explicitly disable dev server
+      preview: false // Explicitly disable preview server
     };
 
     // Step 3: Build using Vite API
@@ -324,7 +333,8 @@ export class PipelineCompilerImpl implements PipelineCompiler {
     let searchDir = currentDir;
     for (let i = 0; i < 10; i++) { // Limit search depth
       const candidatePath = join(searchDir, 'src');
-      if (existsSync(join(candidatePath, 'pipeline-runtime', 'types.ts'))) {
+      const typesPath = join(candidatePath, 'pipeline-runtime', 'types.ts');
+      if (existsSync(typesPath)) {
         return candidatePath;
       }
       const parentDir = dirname(searchDir);

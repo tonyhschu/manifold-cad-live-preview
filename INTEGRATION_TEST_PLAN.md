@@ -128,6 +128,43 @@ packages/configurator/tests/
 - ✅ **Real Behavior Tests**: All individual tests pass when run in isolation
 - ⚠️ **Minor Issue**: Test isolation problem when running all tests together (likely Vite caching)
 - 🎯 **Key Insight**: TDD approach successfully exposed and fixed real architectural problems!
+- ✅ **Integration Test Success**: Core pipeline compilation works end-to-end in isolated environments
+  - File discovery, model compilation, Vite build API, and manifest generation all working
+  - Single-server architecture validated through integration tests
+
+**🚨 Critical Learnings for LLM Development:**
+
+1. **Build-Before-Test Requirement**: Tests must run against compiled JavaScript, not TypeScript source files
+
+   - **Problem**: Tests fail with confusing module resolution errors when TypeScript files aren't compiled
+   - **Result**: `Error: Failed to load url ./file-discovery.js (resolved id: ./file-discovery.js) in .../index.ts. Does the file exist?`
+   - **Solution**: Always run `npm run build` before running tests
+   - **Prevention**: Added pre-test build check script that validates compiled files exist and provides clear error messages
+   - **Implementation**: `scripts/check-build-before-test.js` with `pretest` hooks in package.json
+
+2. **Version Matching Anti-Pattern**: When generating test `package.json` files, LLMs commonly hallucinate incompatible dependency versions
+
+   - **Problem**: Test used `manifold-3d: "^2.5.1"` while production uses `manifold-3d: "^3.1.0"`
+   - **Result**: `SyntaxError: The requested module 'manifold-3d' does not provide an export named 'Manifold'`
+   - **Solution**: Always check production dependencies and use exact same versions in tests
+   - **Prevention**: Create a utility to extract dependency versions from production package.json
+
+3. **External Dependency Complexity**: Real integration tests with external dependencies require careful environment setup
+
+   - Need proper `npm install` in test projects
+   - Module resolution works differently in isolated test directories
+   - Consider using simpler test models without external dependencies for core functionality validation
+
+4. **Test Environment Isolation**: CLI tests need realistic project structures
+
+   - Can't use temp directories (excluded by default ignore patterns)
+   - Need proper package.json, node_modules, and dependency installation
+   - Test projects should mirror real user project structures
+
+5. **Vite Build Hanging in Tests**: Full CLI server integration can have Vite build timeouts in test environments
+   - Core pipeline compilation works fine in isolation
+   - Issue likely related to Vite configuration or process management in test context
+   - Consider separating core functionality tests from full server integration tests
 
 ### Phase 3: Add Playwright Tests (Critical for HMR)
 
@@ -322,3 +359,42 @@ tests/fixtures/test-project/
 2. **Short-term**: Implement Phase 2 (integration tests)
 3. **Medium-term**: Implement Phase 3 (Playwright tests)
 4. **Long-term**: Add performance regression tests and CI/CD integration
+
+## Build Check System
+
+**Added in Phase 2**: Automatic build validation before running tests to prevent confusing module resolution errors.
+
+### Implementation
+
+- **Script**: `scripts/check-build-before-test.js`
+- **Integration**: `pretest` hooks in package.json files
+- **Coverage**: Validates existence of critical compiled files before test execution
+
+### Usage
+
+```bash
+# All test commands now include automatic build check
+npm test                    # Root-level tests with build check
+npm run test:configurator   # Configurator tests with build check
+npm run test:integration    # Integration tests with build check
+
+# Manual build check (useful for debugging)
+node scripts/check-build-before-test.js
+```
+
+### Error Messages
+
+When build files are missing:
+
+```
+❌ BUILD REQUIRED: Missing compiled files
+
+Missing files:
+  - packages/configurator/dist/cli/index.js
+  - packages/configurator/dist/lib/index.js
+
+💡 Solution: Run the build command first:
+   npm run build
+
+   Then run tests again.
+```
