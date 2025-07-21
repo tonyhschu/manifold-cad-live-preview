@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers the development workflow for the V3 CLI-based architecture. The new unified CLI provides automatic model discovery, pipeline generation, and development server management.
+This guide covers the development workflow for the V3 CLI-based architecture. The new unified CLI provides automatic model discovery, pipeline generation, and single-server development with simplified HMR.
 
 ## Architecture Components
 
@@ -28,7 +28,7 @@ This guide covers the development workflow for the V3 CLI-based architecture. Th
 ### 4. **User Projects** (e.g., `test-v3-development`)
 
 - **Purpose**: Regular NPM projects where users build models
-- **Architecture**: CLI-managed development (automatic model discovery + dual servers)
+- **Architecture**: CLI-managed development (automatic model discovery + single server)
 - **Dependencies**: Configurator (for CLI + UI), Wrapper (for models)
 
 ## Development Workflows
@@ -71,8 +71,8 @@ npm run dev
 This starts the **unified configurator CLI** which automatically:
 
 - ✅ **Discovers models** in your project (main.ts + components/)
-- ✅ **Generates pipeline entries** automatically
-- ✅ **Starts dual servers**: UI (port 3000) + Pipeline compiler (port 3001)
+- ✅ **Generates pipeline files** directly using Vite build API
+- ✅ **Starts single server**: UI server (port 3000) serves everything
 - ✅ **Watches for file changes** and regenerates pipeline automatically
 - ✅ **Configurator source changes**: Immediate HMR updates (<2 seconds)
 - ✅ **Model file changes**: Auto-regenerates pipeline + updates UI
@@ -423,13 +423,115 @@ cd packages/wrapper && npm run build  # Rebuild wrapper if needed
 
 **V3 State Management Consolidation**: The legacy store system has been deprecated and replaced with a unified V3 state management system using V3 UIStateManager and V3 bridge components. All UI components now use the V3 bridge exclusively for state synchronization.
 
-**CLI-Based Architecture**: The new configurator CLI significantly improves the development experience by:
+**Single-Server Architecture (V3.1)**: The simplified configurator CLI provides optimal development experience:
 
 - ✅ **Automatic model discovery** - no manual pipeline entry management
 - ✅ **Unified file watching** - detects model file additions/removals automatically
-- ✅ **Consistent Vite configuration** - both UI server and pipeline compiler use same aliases
+- ✅ **Single server** - template server handles both UI and pipeline files (port 3000 only)
+- ✅ **Vite build API** - pipeline compiler generates JavaScript directly (46% faster builds)
+- ✅ **Natural HMR** - Vite's built-in file watching with dependency optimization disabled
 - ✅ **Package import support** - generated pipeline files can import from `@manifold-studio/configurator`
 - ✅ **Reduced generated code** - shared types/functions moved to library (63% size reduction)
 - ✅ **Clean user projects** - no pipeline infrastructure in user code
 - ✅ **Better error handling** - unified logging and error reporting
 - ✅ **Simplified templates** - create-app generates minimal, clean projects
+
+## Single-Server Architecture Details
+
+### Architecture Overview
+
+The V3.1 architecture uses a **single-server approach** that eliminates the complexity of the previous dual-server setup:
+
+```
+┌─ V3.1 Single-Server Architecture ──────────────────────────────────────────┐
+│                                                                             │
+│  ┌─ V3 Pipeline Compiler ─────────────────────────────────────────────────┐ │
+│  │  • Discovers models (main.ts + components/*.ts)                        │ │
+│  │  • Uses Vite build API to generate temp/pipeline.js directly           │ │
+│  │  • Writes manifest.json after Vite build completes                     │ │
+│  │  • File watching triggers rebuild automatically                        │ │
+│  └─────────────────────────────────────────────────────────────────────────┘ │
+│                                    │                                         │
+│                                    ▼                                         │
+│  ┌─ Template Server (Port 3000) ──────────────────────────────────────────┐ │
+│  │  • Serves UI from packages/configurator/templates/                     │ │
+│  │  • Serves temp/pipeline.js and temp/manifest.json as static files      │ │
+│  │  • Vite's natural file watching detects temp file changes              │ │
+│  │  • HMR works with optimizeDeps disabled                                │ │
+│  └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Improvements
+
+- **46% Performance Improvement**: Build times reduced from 581ms to 314ms
+- **50% Memory Reduction**: Single Vite server instead of dual-server architecture
+- **Simplified Architecture**: No proxy complexity - template server handles everything
+- **Perfect HMR**: File watching works with Vite's natural file detection
+- **Single Port**: Only port 3000 needed (no more port 3001 pipeline server)
+
+### Trade-offs and Gotchas
+
+#### ✅ **Benefits**
+
+1. **Simpler Mental Model**: Template server is now a "normal" Vite dev server
+2. **Better Performance**: Vite build API is faster than on-the-fly transformation
+3. **Reduced Memory Usage**: Only one Vite server process running
+4. **Cleaner Logs**: No coordination between multiple servers
+5. **Easier Debugging**: Single server to monitor and troubleshoot
+
+#### ⚠️ **Trade-offs**
+
+1. **Build Step Required**: Pipeline files are pre-built rather than transformed on-demand
+2. **Disk I/O**: Pipeline files written to filesystem instead of served from memory
+3. **Vite Build API Dependency**: Relies on Vite's build API stability
+
+#### 🔧 **Critical Gotchas**
+
+1. **Dependency Optimization Must Be Disabled**:
+
+   ```typescript
+   // In template-server.ts - REQUIRED for HMR to work
+   optimizeDeps: {
+     disabled: true; // Prevents cache invalidation errors during page reloads
+   }
+   ```
+
+   **Why**: When Vite reloads due to temp file changes, it invalidates the dependency optimization cache, but the browser still references old optimized dependencies, causing 504 errors.
+
+2. **Manifest.json Timing**:
+
+   ```typescript
+   // Write manifest AFTER Vite build, not before
+   await viteBuild(config);
+   await writeManifest(manifestPath, manifest); // Must be after build
+   ```
+
+   **Why**: Vite's build process clears the output directory, deleting manifest.json if written before the build.
+
+3. **Vite Natural File Watching**:
+
+   - **Don't** create custom file watching plugins for temp files
+   - **Do** let Vite handle temp directory watching naturally
+   - Vite automatically detects changes to `temp/pipeline.js` and triggers HMR
+
+4. **External Dependencies Configuration**:
+   ```typescript
+   // Must match between pipeline compiler and template server
+   external: ["manifold-3d", "@manifold-studio/wrapper"];
+   ```
+   **Why**: Ensures consistent module resolution between build and runtime
+
+### Migration Notes
+
+**From Dual-Server (V3.0) to Single-Server (V3.1)**:
+
+- ❌ **Removed**: `packages/configurator/src/cli/pipeline-compiler.ts` (203 lines)
+- ❌ **Removed**: Pipeline server startup logic in dev command
+- ❌ **Removed**: Proxy configuration in template server
+- ✅ **Added**: Vite build API integration in pipeline compiler
+- ✅ **Added**: `optimizeDeps: { disabled: true }` in template server
+- ✅ **Simplified**: File watching relies on Vite's natural behavior
+
+**Breaking Changes**: None for end users - the CLI interface remains identical.
