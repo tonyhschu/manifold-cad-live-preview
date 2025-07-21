@@ -10,6 +10,7 @@ packages/create-app/bin/
 # Generated test projects
 test-*-project/
 packages/create-app/test-*/
+tests/temp/
 
 # Source maps
 *.js.map
@@ -46,6 +47,11 @@ coverage/
 
 # Vitest cache
 .vitest/
+
+# Playwright test outputs
+test-results/
+playwright-report/
+playwright/.cache/
 
 # References
 references/

@@ -14,6 +14,11 @@
     "test:configurator": "npm run test --workspace @manifold-studio/configurator",
     "test:create-app": "npm run test --workspace @manifold-studio/create-app",
     "test:integration": "node scripts/check-build-before-test.js && npx vitest run tests/integration/",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:headed": "npx playwright test --headed",
+    "test:e2e:debug": "npx playwright test --debug",
+    "test:e2e:report": "npx playwright show-report",
     "dev": "npm run dev --workspace @manifold-studio/wrapper & npm run dev:configurator",
     "devAll": "REPO_HMR=true npm run dev --workspace @manifold-studio/wrapper & REPO_HMR=true npm run dev:configurator",
     "dev:libs": "concurrently \"npm run dev:wrapper-lib\" \"npm run dev:configurator-lib\"",
@@ -24,6 +29,7 @@
     "dev:create-app": "npm run dev --workspace @manifold-studio/create-app"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.1",
     "concurrently": "^8.0.0",
     "typescript": "^5.0.2",
     "vitest": "^1.0.0"
