@@ -18,7 +18,7 @@ This starts the Manifold Studio CLI which automatically:
 
 - **Discovers Models**: Finds your models (`main.ts` + `components/*.ts`)
 - **Compiles Pipeline**: Generates pipeline entries automatically
-- **Starts Servers**: UI server (port 3000) and pipeline compiler (port 3001)
+- **Starts Server**: Single server (port 3000) with integrated pipeline compiler
 - **Watches Files**: Updates automatically when you change model files
 - **Live Preview**: Opens your browser with real-time 3D rendering
 - **Parameter Controls**: Adjust model parameters using the control panel

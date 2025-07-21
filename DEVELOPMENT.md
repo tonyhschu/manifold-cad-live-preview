@@ -245,19 +245,18 @@ The new configurator CLI (`npm run dev`) provides unified file watching:
 ┌─ Configurator CLI ──────────────────────────────────────────────────────┐
 │  manifold-studio dev (auto-detects development mode)                   │
 │                                                                         │
-│  ┌─ File Watcher ─────────────┐  ┌─ Pipeline Compiler ─────────────────┐ │
-│  │  Watches: main.ts,         │  │  Port: 3001                         │ │
-│  │  components/*.ts           │  │  Auto-regenerates pipeline entry   │ │
-│  │  ↓                         │  │  Vite aliases: @manifold-studio/*  │ │
-│  │  Auto-regenerates pipeline │  │  ↓                                  │ │
-│  │  entry when files change   │  │  temp/user-pipeline-entry.ts       │ │
-│  └────────────────────────────┘  └─────────────────────────────────────┘ │
+│  ┌─ File Watcher & Pipeline Compiler ─────────────────────────────────┐ │
+│  │  Watches: main.ts, components/*.ts                                 │ │
+│  │  Auto-regenerates pipeline entry when files change                 │ │
+│  │  Uses Vite build API to generate temp/pipeline.js directly         │ │
+│  │  Vite aliases: @manifold-studio/*                                  │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
 │                                                                         │
-│  ┌─ UI Server ────────────────────────────────────────────────────────┐ │
+│  ┌─ Template Server ──────────────────────────────────────────────────┐ │
 │  │  Port: 3000                                                        │ │
 │  │  Source-based configurator imports (packages/configurator/src/)   │ │
 │  │  HMR for configurator changes                                     │ │
-│  │  Polls pipeline compiler for model updates                       │ │
+│  │  Serves temp/pipeline.js and temp/manifest.json as static files   │ │
 │  └────────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -281,7 +280,7 @@ New projects created with create-app use the CLI by default:
 │  ┌─ CLI Auto-Discovery ─────────────────────────────────────────────────┐ │
 │  │  Scans: main.ts, components/*.ts                                    │ │
 │  │  Generates: temp/user-pipeline-entry.ts                             │ │
-│  │  Starts: UI Server (3000) + Pipeline Compiler (3001)               │ │
+│  │  Starts: Single Server (3000) with integrated pipeline compiler     │ │
 │  └─────────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────┘
 ```

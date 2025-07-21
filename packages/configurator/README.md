@@ -18,10 +18,10 @@ graph TD
     A[User runs: npm run dev] --> B[manifold-studio CLI]
     B --> C[Model Discovery]
     C --> D[Pipeline Generation]
-    D --> E[Pipeline Compiler Server :3001]
-    D --> F[UI Template Server :3000]
-    E --> G[Compiled Pipeline /temp/pipeline.js]
-    F --> H[Configurator UI]
+    D --> E[Single Template Server :3000]
+    E --> F[Integrated Pipeline Compiler]
+    F --> G[Compiled Pipeline /temp/pipeline.js]
+    E --> H[Configurator UI]
     H --> I[User Browser]
 
     J[File Watcher] --> C
@@ -102,7 +102,7 @@ This package **cannot be developed standalone**. Use the CLI development environ
 The V3 architecture uses the **Manifold Studio CLI** to coordinate:
 
 - **Automatic model discovery**: Detects .ts files and generates pipeline entries
-- **Dual-server management**: Coordinates pipeline compiler (port 3001) + UI server (port 3000)
+- **Single-server management**: Runs template server (port 3000) with integrated pipeline compiler
 - **Source-based imports**: No build chain during development (auto-detected)
 - **Cross-package HMR**: Hot module replacement works across package boundaries
 - **File watching**: Monitors model files and regenerates pipeline automatically
@@ -148,8 +148,8 @@ import { startConfigurator } from "@manifold-studio/configurator";
 
 // Initialize configurator (typically handled by CLI-generated HTML)
 await startConfigurator({
-  pipelineUrl: "http://localhost:3001/temp/pipeline.js",
-  manifestUrl: "http://localhost:3001/temp/manifest.json",
+  pipelineUrl: "http://localhost:3000/temp/pipeline.js",
+  manifestUrl: "http://localhost:3000/temp/manifest.json",
 });
 ```
 

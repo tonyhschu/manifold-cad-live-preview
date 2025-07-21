@@ -27,8 +27,8 @@ Investigation revealed **4 separate model discovery systems** and **3 different 
 User Project
 ├── Model Source Files (main.ts, components/*.ts)
 ├── manifold-studio dev command
-│   ├── Pipeline Compiler (port 3001) → temp/pipeline.js + temp/manifest.json
-│   └── UI Server (port 3000) → Serves UI + Pipeline artifacts
+│   └── Single Server (port 3000) → Serves UI + Pipeline artifacts
+│       └── Integrated Pipeline Compiler → temp/pipeline.js + temp/manifest.json
 └── Configurator Library → Consumes pipeline artifacts ONLY
 ```
 

@@ -314,7 +314,7 @@ Model selection → Event → Config UI loads new parameters → Pipeline execut
 
 **Working in `test-v3-development/`**:
 
-1. `npm run dev` → Dual servers start → Edit `main.ts` → See changes immediately
+1. `npm run dev` → Single server starts → Edit `main.ts` → See changes immediately
 2. **File Change Flow**: Source edit → Pipeline rebuild → HMR event → UI reload → GLB update → 3D viewer refresh
 3. **Error Handling**: Compilation errors in status bar, graceful degradation for failures
 

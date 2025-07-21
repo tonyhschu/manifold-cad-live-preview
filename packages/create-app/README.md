@@ -22,7 +22,7 @@ npm run dev
 This single command automatically:
 
 - **Discovers your models** (main.ts + components/)
-- **Starts dual servers** (UI server + pipeline compiler)
+- **Starts development server** (single server with integrated pipeline compiler)
 - **Watches for changes** and regenerates pipeline entries
 - **Opens browser** with live 3D preview and parameter controls
 
@@ -44,9 +44,9 @@ The `npm run dev` command in generated projects runs the Manifold Studio CLI, wh
 
 1. **Automatically discovers models** in your project (main.ts + components/)
 2. **Generates pipeline entries** dynamically without manual management
-3. **Starts coordinated dual servers**:
-   - **UI Server** (port 3000): Configurator interface with HMR
-   - **Pipeline Compiler** (port 3001): Model compilation and manifest generation
+3. **Starts single development server** (port 3000):
+   - **Template Server**: Configurator interface with HMR
+   - **Integrated Pipeline Compiler**: Model compilation and manifest generation
 4. **Watches for file changes** and regenerates pipeline automatically
 5. **Provides source-based configurator imports** for immediate feedback
 
@@ -355,12 +355,11 @@ Error: Cannot find type definitions
 Error: Port 3000 is already in use
 ```
 
-**Solution**: The CLI uses ports 3000 (UI) and 3001 (pipeline). Stop other servers or check for conflicts:
+**Solution**: The CLI uses port 3000 for the development server. Stop other servers or check for conflicts:
 
 ```bash
-# Check what's using the ports
+# Check what's using the port
 lsof -i :3000
-lsof -i :3001
 
 # Kill processes if needed
 kill -9 <PID>

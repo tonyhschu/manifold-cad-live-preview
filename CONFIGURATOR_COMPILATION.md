@@ -661,7 +661,7 @@ This starts the Manifold Studio CLI which:
 
 - Discovers your models (main.ts + components/)
 - Generates pipeline entries automatically
-- Starts UI server (port 3000) and pipeline compiler (port 3001)
+- Starts single server (port 3000) with integrated pipeline compiler
 - Watches for file changes and updates automatically
 
 ### Adding Models
@@ -700,7 +700,7 @@ No manual pipeline management required!
 
 - ✅ **Reduced template complexity** - Centralized logic in CLI
 - ✅ **Easier updates** - CLI updates benefit all projects automatically
-- ✅ **Better testing** - Single process instead of dual servers
+- ✅ **Better testing** - Single server process instead of multiple servers
 - ✅ **No legacy users** - Clean implementation (new project, no backward compatibility needed)
 
 #### Implementation Order

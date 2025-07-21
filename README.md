@@ -19,7 +19,7 @@ npm run dev
 This single command automatically:
 
 - **Discovers your models** (main.ts + components/)
-- **Starts development servers** (UI server on port 3000 + pipeline compiler on port 3001)
+- **Starts development server** (single server on port 3000 with integrated pipeline compiler)
 - **Watches for changes** and regenerates pipeline entries
 - **Opens browser** with live 3D preview and parameter controls
 
@@ -395,7 +395,7 @@ npm run dev
 
 #### CLI Development Benefits
 
-- **Single command**: `npm run dev` handles model discovery, pipeline generation, and dual servers
+- **Single command**: `npm run dev` handles model discovery, pipeline generation, and server startup
 - **Automatic model discovery**: New .ts files are detected and integrated instantly
 - **No manual pipeline management**: CLI generates pipeline entries automatically
 - **Cross-package HMR**: Hot module replacement works across package boundaries

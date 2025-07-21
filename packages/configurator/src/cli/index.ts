@@ -13,8 +13,7 @@ program
 program
   .command('dev')
   .description('Start development server')
-  .option('-p, --port <port>', 'UI server port', '3000')
-  .option('--pipeline-port <port>', 'Pipeline server port', '3001')
+  .option('-p, --port <port>', 'Server port', '3000')
   .option('--configurator-dev-mode', 'Enable configurator source-based development')
   .option('--verbose', 'Enable verbose logging')
   .action(devCommand);
