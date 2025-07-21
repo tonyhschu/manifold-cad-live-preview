@@ -1,0 +1,13 @@
+{
+  "name": "test-project",
+  "version": "1.0.0",
+  "description": "Minimal test project for integration testing",
+  "type": "module",
+  "dependencies": {
+    "manifold-3d": "^2.5.1",
+    "@manifold-studio/wrapper": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.2"
+  }
+}

@@ -11,14 +11,18 @@ import { isModelFile } from '../utils/path-utils.js';
 
 /**
  * Discover model files for compilation using Node.js glob
- * 
+ *
  * This is the Node.js version used by the pipeline compiler,
  * as opposed to the browser version in utils/file-discovery.ts
- * 
+ *
  * @param rootDir - Root directory to search from
+ * @param customIgnorePatterns - Optional custom ignore patterns (for testing)
  * @returns Promise that resolves to array of absolute file paths
  */
-export async function discoverModelFilesForCompilation(rootDir: string = '.'): Promise<string[]> {
+export async function discoverModelFilesForCompilation(
+  rootDir: string = '.',
+  customIgnorePatterns?: string[]
+): Promise<string[]> {
 
   
   try {
@@ -31,19 +35,24 @@ export async function discoverModelFilesForCompilation(rootDir: string = '.'): P
 
     const allFiles: string[] = [];
 
+    // Default ignore patterns - can be overridden for testing
+    const defaultIgnorePatterns = [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/temp/**',
+      '**/scripts/**',
+      '**/.git/**'
+    ];
+
+    const ignorePatterns = customIgnorePatterns ?? defaultIgnorePatterns;
+
     // Search for each pattern
     for (const pattern of patterns) {
       const fullPattern = join(rootDir, pattern);
 
-      
+
       const files = await glob(fullPattern, {
-        ignore: [
-          '**/node_modules/**',
-          '**/dist/**',
-          '**/temp/**',
-          '**/scripts/**',
-          '**/.git/**'
-        ]
+        ignore: ignorePatterns
       });
 
       // Convert to absolute paths and filter

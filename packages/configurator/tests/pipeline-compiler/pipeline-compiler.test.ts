@@ -1,182 +1,281 @@
 /**
- * Pipeline Compiler V3.1 Tests
+ * Pipeline Compiler Real Behavior Tests
  *
- * Unit tests for the V3.1 pipeline compiler with Vite build API integration.
- * These tests focus on the logic without requiring actual file compilation.
+ * Tests that verify actual pipeline compiler behavior with real file system operations.
+ * These tests use temporary directories and test actual compilation results.
  *
- * Updated: 2025-01-21 - Reflects Vite build API integration and single-server architecture
+ * Updated: 2025-01-21 - Real tests that verify actual behavior
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-describe('Pipeline Compiler V3.1', () => {
-  describe('Core Functionality', () => {
-    it('should be importable', async () => {
-      // Test that the pipeline compiler module can be imported
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+describe('Pipeline Compiler Real Behavior', () => {
+  let tempDir: string;
+  let testProjectDir: string;
+
+  beforeEach(async () => {
+    // Create temporary directory for each test
+    tempDir = path.join(__dirname, '../temp', `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+    testProjectDir = path.join(tempDir, 'project');
+    await fs.mkdir(testProjectDir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    // Clean up temporary directory
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch (error) {
+      // Ignore cleanup errors
+    }
+  });
+
+  describe('Basic Functionality', () => {
+    it('should be importable and create instances', async () => {
       const { createPipelineCompiler } = await import('../../src/pipeline-compiler/index');
       expect(createPipelineCompiler).toBeDefined();
       expect(typeof createPipelineCompiler).toBe('function');
-    });
 
-    it('should create a compiler instance', async () => {
-      const { createPipelineCompiler } = await import('../../src/pipeline-compiler/index');
-      const compiler = createPipelineCompiler('/test/project', '/test/output');
-      
+      // Use custom ignore patterns for testing
+      const testIgnorePatterns = ['**/node_modules/**', '**/dist/**', '**/scripts/**', '**/.git/**'];
+      const compiler = createPipelineCompiler(testProjectDir, path.join(tempDir, 'output'), testIgnorePatterns);
       expect(compiler).toBeDefined();
       expect(typeof compiler.compile).toBe('function');
     });
   });
 
-  describe('Vite Build API Integration', () => {
-    it('should understand Vite build API concepts', () => {
-      // Test that we understand the Vite build API integration
-      const viteBuildConcepts = {
-        replacesOnTheFlyTransformation: true,
-        generatesPipelineJSDirectly: true,
-        usesInlineConfig: true,
-        matchesPipelineServerConfig: true,
-        externalDependencies: ['manifold-3d', '@manifold-studio/wrapper'],
-        outputFormat: 'ES modules',
-        performanceImprovement: '46% faster than dual-server'
-      };
+  describe('File System Operations', () => {
+    it('should handle empty project (no model files)', async () => {
+      const { createPipelineCompiler } = await import('../../src/pipeline-compiler/index');
+      const outputDir = path.join(tempDir, 'output');
 
-      expect(viteBuildConcepts.replacesOnTheFlyTransformation).toBe(true);
-      expect(viteBuildConcepts.generatesPipelineJSDirectly).toBe(true);
-      expect(viteBuildConcepts.usesInlineConfig).toBe(true);
-      expect(viteBuildConcepts.matchesPipelineServerConfig).toBe(true);
-      expect(viteBuildConcepts.externalDependencies).toContain('manifold-3d');
-      expect(viteBuildConcepts.externalDependencies).toContain('@manifold-studio/wrapper');
-      expect(viteBuildConcepts.outputFormat).toBe('ES modules');
-      expect(viteBuildConcepts.performanceImprovement).toContain('46%');
+      // Use custom ignore patterns that don't exclude temp directories (for testing)
+      const testIgnorePatterns = [
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/scripts/**',
+        '**/.git/**'
+      ];
+
+      const compiler = createPipelineCompiler(testProjectDir, outputDir, testIgnorePatterns);
+
+      const result = await compiler.compile();
+
+      // Should complete without errors but with warnings
+      expect(result.errors).toEqual([]); // No errors means success
+      expect(result.warnings).toContain('No model files found');
+
+      // Should still create manifest.json (even if empty)
+      const manifestPath = path.join(outputDir, 'manifest.json');
+      const manifestExists = await fs.access(manifestPath).then(() => true).catch(() => false);
+      expect(manifestExists).toBe(true);
+
+      // Manifest should have empty models array
+      const manifestContent = await fs.readFile(manifestPath, 'utf-8');
+      const manifest = JSON.parse(manifestContent);
+      expect(manifest.models).toEqual([]);
     });
 
-    it('should understand manifest timing requirements', () => {
-      // Test the critical manifest.json timing requirement
-      const manifestTiming = {
-        writtenAfterViteBuild: true,
-        reasonForTiming: 'Vite build clears output directory',
-        preventsDeletion: true,
-        ensuresCoexistence: 'Both pipeline.js and manifest.json exist'
-      };
+    it('should create output directory if it does not exist', async () => {
+      const { createPipelineCompiler } = await import('../../src/pipeline-compiler/index');
+      const outputDir = path.join(tempDir, 'nonexistent', 'output');
+      const testIgnorePatterns = ['**/node_modules/**', '**/dist/**', '**/scripts/**', '**/.git/**'];
+      const compiler = createPipelineCompiler(testProjectDir, outputDir, testIgnorePatterns);
 
-      expect(manifestTiming.writtenAfterViteBuild).toBe(true);
-      expect(manifestTiming.reasonForTiming).toContain('clears output directory');
-      expect(manifestTiming.preventsDeletion).toBe(true);
-      expect(manifestTiming.ensuresCoexistence).toContain('Both pipeline.js and manifest.json');
-    });
-  });
+      await compiler.compile();
 
-  describe('generateUserPipelineEntry() concept', () => {
-    it('should understand the expected user-pipeline-entry.ts structure', () => {
-      // Test that we understand the expected structure of the generated file
-      const expectedStructure = {
-        staticImports: true,
-        modelDefinitions: true,
-        pipelineExport: true,
-        getModelConfigMethod: true
-      };
-
-      // This test documents the expected structure
-      expect(expectedStructure.staticImports).toBe(true); // Should have import * as statements
-      expect(expectedStructure.modelDefinitions).toBe(true); // Should export modelDefinitions
-      expect(expectedStructure.pipelineExport).toBe(true); // Should export default pipeline
-      expect(expectedStructure.getModelConfigMethod).toBe(true); // Should have getModelConfig method
-    });
-
-    it('should understand parameter configuration object format', () => {
-      // Test that we understand the expected parameter format
-      const expectedParameterFormat = {
-        value: 10,
-        min: 1,
-        max: 50,
-        step: 1
-      };
-
-      // This documents the V3 fix: return {value, min, max, step} instead of just default values
-      expect(expectedParameterFormat).toHaveProperty('value');
-      expect(expectedParameterFormat).toHaveProperty('min');
-      expect(expectedParameterFormat).toHaveProperty('max');
-      expect(expectedParameterFormat).toHaveProperty('step');
+      // Output directory should be created
+      const outputExists = await fs.access(outputDir).then(() => true).catch(() => false);
+      expect(outputExists).toBe(true);
     });
   });
 
-  describe('Cache-busting concept', () => {
-    it('should understand cache-busting requirements', () => {
-      // Test that we understand the cache-busting requirements
-      const cacheBustingConcepts = {
-        dynamicImportsNeedTimestamps: true,
-        staticImportsDoNot: true,
-        formatIsQueryParameter: true,
-        usesDateNow: true
-      };
+  describe('Project with Simple Model', () => {
+    it('should compile project with main.ts', async () => {
+      // Create a simple main.ts file
+      const mainContent = `
+import { Manifold } from 'manifold-3d';
 
-      expect(cacheBustingConcepts.dynamicImportsNeedTimestamps).toBe(true);
-      expect(cacheBustingConcepts.staticImportsDoNot).toBe(true);
-      expect(cacheBustingConcepts.formatIsQueryParameter).toBe(true);
-      expect(cacheBustingConcepts.usesDateNow).toBe(true);
-    });
+export interface MainParams {
+  size: number;
+}
 
-    it('should understand the cache-busting format', () => {
-      // Test the expected cache-busting format
-      const timestamp = Date.now();
-      const cacheBustedImport = `./model.js?t=${timestamp}`;
-      
-      expect(cacheBustedImport).toContain('?t=');
-      expect(cacheBustedImport).toContain(timestamp.toString());
-    });
+export const parameters: MainParams = {
+  size: 10
+};
+
+export default function main({ size }: MainParams): Manifold {
+  return Manifold.cube([size, size, size]);
+}
+
+export const metadata = {
+  name: 'Test Cube',
+  description: 'A simple test cube'
+};
+`;
+
+      await fs.writeFile(path.join(testProjectDir, 'main.ts'), mainContent);
+
+      const { createPipelineCompiler } = await import('../../src/pipeline-compiler/index');
+      const outputDir = path.join(tempDir, 'output');
+      const testIgnorePatterns = ['**/node_modules/**', '**/dist/**', '**/scripts/**', '**/.git/**'];
+      const compiler = createPipelineCompiler(testProjectDir, outputDir, testIgnorePatterns);
+
+      const result = await compiler.compile();
+
+      // Should succeed
+      expect(result.errors).toEqual([]); // No errors means success
+
+      // Should create both files
+      const pipelineExists = await fs.access(path.join(outputDir, 'pipeline.js')).then(() => true).catch(() => false);
+      const manifestExists = await fs.access(path.join(outputDir, 'manifest.json')).then(() => true).catch(() => false);
+
+      expect(pipelineExists).toBe(true);
+      expect(manifestExists).toBe(true);
+
+      // Manifest should contain the model
+      const manifestContent = await fs.readFile(path.join(outputDir, 'manifest.json'), 'utf-8');
+      const manifest = JSON.parse(manifestContent);
+
+      expect(manifest.models).toHaveLength(1);
+      expect(manifest.models[0].id).toBe('main');
+      expect(manifest.models[0].name).toBe('Test Cube');
+      expect(manifest.models[0].description).toBe('A simple test cube');
+    }, 15000); // Longer timeout for Vite build
   });
 
-  describe('V3.1 Single-Server Architecture Concepts', () => {
-    it('should understand the V3.1 single-server pipeline architecture', () => {
-      // Test that we understand the V3.1 architecture principles
-      const v31Concepts = {
-        singleSourceOfTruth: true,
-        pipelineCompilerGeneratesAll: true,
-        eliminatesParallelImplementations: true,
-        cachesBustingPreventsNodeCaching: true,
-        viteBuildAPIIntegration: true,
-        singleServerArchitecture: true,
-        eliminatedPipelineServer: true,
-        naturalViteFileWatching: true
-      };
+  describe('Project with Components', () => {
+    it('should compile project with main.ts and components', async () => {
+      // Create main.ts
+      const mainContent = `
+import { Manifold } from 'manifold-3d';
+import simpleCube from './components/simple-cube.js';
 
-      expect(v31Concepts.singleSourceOfTruth).toBe(true);
-      expect(v31Concepts.pipelineCompilerGeneratesAll).toBe(true);
-      expect(v31Concepts.eliminatesParallelImplementations).toBe(true);
-      expect(v31Concepts.cachesBustingPreventsNodeCaching).toBe(true);
-      expect(v31Concepts.viteBuildAPIIntegration).toBe(true);
-      expect(v31Concepts.singleServerArchitecture).toBe(true);
-      expect(v31Concepts.eliminatedPipelineServer).toBe(true);
-      expect(v31Concepts.naturalViteFileWatching).toBe(true);
-    });
+export interface MainParams {
+  cubeSize: number;
+}
 
-    it('should understand the generated files in single-server architecture', () => {
-      // Test that we understand what files are generated and how they're served
-      const generatedFiles = {
-        'pipeline.js': {
-          generatedBy: 'Vite build API',
-          contains: 'Compiled ES modules with external dependencies',
-          servedBy: 'Template server as static file',
-          replaces: 'On-the-fly transformation by pipeline server'
-        },
-        'manifest.json': {
-          generatedBy: 'Pipeline compiler after Vite build',
-          contains: 'Rich metadata for all models',
-          servedBy: 'Template server as static file',
-          timing: 'Written after Vite build to prevent deletion'
-        },
-        'user-pipeline-entry.ts': {
-          generatedBy: 'Pipeline compiler',
-          contains: 'Static imports and pipeline runtime',
-          purpose: 'Intermediate file for Vite build API input',
-          notServed: 'Internal build artifact'
-        }
-      };
+export const parameters: MainParams = {
+  cubeSize: 5
+};
 
-      expect(Object.keys(generatedFiles)).toHaveLength(3);
-      expect(generatedFiles['pipeline.js'].generatedBy).toBe('Vite build API');
-      expect(generatedFiles['manifest.json'].timing).toContain('after Vite build');
-      expect(generatedFiles['user-pipeline-entry.ts'].purpose).toContain('Vite build API input');
-    });
+export default function main({ cubeSize }: MainParams): Manifold {
+  return simpleCube({ size: cubeSize });
+}
+
+export const metadata = {
+  name: 'Main with Component',
+  description: 'Uses a component'
+};
+`;
+
+      // Create components directory and file
+      await fs.mkdir(path.join(testProjectDir, 'components'), { recursive: true });
+      const componentContent = `
+import { Manifold } from 'manifold-3d';
+
+export interface SimpleCubeParams {
+  size: number;
+}
+
+export const parameters: SimpleCubeParams = {
+  size: 10
+};
+
+export default function simpleCube({ size }: SimpleCubeParams): Manifold {
+  return Manifold.cube([size, size, size]);
+}
+
+export const metadata = {
+  name: 'Simple Cube Component',
+  description: 'A reusable cube component'
+};
+`;
+
+      await fs.writeFile(path.join(testProjectDir, 'main.ts'), mainContent);
+      await fs.writeFile(path.join(testProjectDir, 'components', 'simple-cube.ts'), componentContent);
+
+      const { createPipelineCompiler } = await import('../../src/pipeline-compiler/index');
+      const outputDir = path.join(tempDir, 'output');
+      const testIgnorePatterns = ['**/node_modules/**', '**/dist/**', '**/scripts/**', '**/.git/**'];
+      const compiler = createPipelineCompiler(testProjectDir, outputDir, testIgnorePatterns);
+
+      const result = await compiler.compile();
+
+      // Should succeed
+      expect(result.errors).toEqual([]); // No errors means success
+
+      // Manifest should contain both models
+      const manifestContent = await fs.readFile(path.join(outputDir, 'manifest.json'), 'utf-8');
+      const manifest = JSON.parse(manifestContent);
+
+      expect(manifest.models).toHaveLength(2);
+
+      const mainModel = manifest.models.find(m => m.id === 'main');
+      const componentModel = manifest.models.find(m => m.id === 'components/simple-cube');
+
+      expect(mainModel).toBeDefined();
+      expect(mainModel.name).toBe('Main with Component');
+
+      expect(componentModel).toBeDefined();
+      expect(componentModel.name).toBe('Simple Cube Component');
+    }, 15000); // Longer timeout for Vite build
+  });
+
+  describe('Error Handling', () => {
+    it('should handle invalid TypeScript in model files', async () => {
+      // Create invalid TypeScript file
+      const invalidContent = `
+import { Manifold } from 'manifold-3d';
+
+// Invalid syntax - missing closing brace
+export default function main() {
+  return Manifold.cube([1, 1, 1]);
+// Missing closing brace
+`;
+
+      await fs.writeFile(path.join(testProjectDir, 'main.ts'), invalidContent);
+
+      const { createPipelineCompiler } = await import('../../src/pipeline-compiler/index');
+      const outputDir = path.join(tempDir, 'output');
+      const testIgnorePatterns = ['**/node_modules/**', '**/dist/**', '**/scripts/**', '**/.git/**'];
+      const compiler = createPipelineCompiler(testProjectDir, outputDir, testIgnorePatterns);
+
+      const result = await compiler.compile();
+
+      // Should fail with compilation errors
+      expect(result.errors).toBeDefined();
+      expect(result.errors!.length).toBeGreaterThan(0);
+      expect(result.errors![0]).toContain('Failed to compile');
+    }, 15000);
+
+    it('should handle missing dependencies gracefully', async () => {
+      // Create file with missing import
+      const contentWithMissingImport = `
+import { NonExistentFunction } from './non-existent-module.js';
+
+export default function main() {
+  return NonExistentFunction();
+}
+`;
+
+      await fs.writeFile(path.join(testProjectDir, 'main.ts'), contentWithMissingImport);
+
+      const { createPipelineCompiler } = await import('../../src/pipeline-compiler/index');
+      const outputDir = path.join(tempDir, 'output');
+      const testIgnorePatterns = ['**/node_modules/**', '**/dist/**', '**/scripts/**', '**/.git/**'];
+      const compiler = createPipelineCompiler(testProjectDir, outputDir, testIgnorePatterns);
+
+      const result = await compiler.compile();
+
+      // Should fail with compilation errors
+      expect(result.errors).toBeDefined();
+      expect(result.errors!.length).toBeGreaterThan(0);
+    }, 15000);
   });
 });

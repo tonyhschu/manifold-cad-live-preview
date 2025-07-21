@@ -6,9 +6,10 @@
  */
 
 import { build, type InlineConfig } from 'vite';
-import { resolve, join } from 'path';
+import { resolve, join, dirname, relative } from 'path';
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
+import { fileURLToPath } from 'url';
 import chokidar from 'chokidar';
 
 import type { 
@@ -27,10 +28,16 @@ export class PipelineCompilerImpl implements PipelineCompiler {
   private isWatching = false;
   private rootDir: string;
   private outputDir: string;
+  private customIgnorePatterns?: string[];
 
-  constructor(rootDir: string = '.', outputDir: string = './temp') {
+  constructor(
+    rootDir: string = '.',
+    outputDir: string = './temp',
+    customIgnorePatterns?: string[]
+  ) {
     this.rootDir = rootDir;
     this.outputDir = outputDir;
+    this.customIgnorePatterns = customIgnorePatterns;
   }
 
   /**
@@ -49,7 +56,7 @@ export class PipelineCompilerImpl implements PipelineCompiler {
 
       // Step 1: Discover model files
 
-      const modelFiles = await discoverModelFilesForCompilation(this.rootDir);
+      const modelFiles = await discoverModelFilesForCompilation(this.rootDir, this.customIgnorePatterns);
       
       if (modelFiles.length === 0) {
         warnings.push('No model files found');
@@ -283,9 +290,9 @@ export class PipelineCompilerImpl implements PipelineCompiler {
         alias: {
           // Allow relative imports in user model files
           '@': join(this.rootDir, 'src'),
-          // Add configurator aliases for development
-          '@manifold-studio/configurator': resolve(this.rootDir, '../packages/configurator/src'),
-          '@manifold-studio/wrapper': resolve(this.rootDir, '../packages/wrapper/src')
+          // Add configurator aliases - resolve dynamically to handle different project structures
+          '@manifold-studio/configurator': this.resolveConfiguratorPath(),
+          '@manifold-studio/wrapper': this.resolveWrapperPath()
         }
       },
 
@@ -305,6 +312,52 @@ export class PipelineCompilerImpl implements PipelineCompiler {
   }
 
   /**
+   * Resolve the path to the configurator package
+   * This handles different project structures (monorepo, standalone, test environments)
+   */
+  private resolveConfiguratorPath(): string {
+    // First, try to find the configurator package from the current module location
+    const currentModulePath = fileURLToPath(import.meta.url);
+    const currentDir = dirname(currentModulePath);
+
+    // Walk up from current module to find the configurator src directory
+    let searchDir = currentDir;
+    for (let i = 0; i < 10; i++) { // Limit search depth
+      const candidatePath = join(searchDir, 'src');
+      if (existsSync(join(candidatePath, 'pipeline-runtime', 'types.ts'))) {
+        return candidatePath;
+      }
+      const parentDir = dirname(searchDir);
+      if (parentDir === searchDir) break; // Reached filesystem root
+      searchDir = parentDir;
+    }
+
+    // Fallback: try monorepo structure relative to rootDir
+    const monorepoPath = resolve(this.rootDir, '../packages/configurator/src');
+    if (existsSync(join(monorepoPath, 'pipeline-runtime', 'types.ts'))) {
+      return monorepoPath;
+    }
+
+    // Final fallback: assume current package structure
+    return join(currentDir, '..');
+  }
+
+  /**
+   * Resolve the path to the wrapper package
+   */
+  private resolveWrapperPath(): string {
+    // Try monorepo structure first
+    const monorepoPath = resolve(this.rootDir, '../packages/wrapper/src');
+    if (existsSync(monorepoPath)) {
+      return monorepoPath;
+    }
+
+    // Fallback: relative to configurator
+    const configuratorPath = this.resolveConfiguratorPath();
+    return resolve(configuratorPath, '../wrapper/src');
+  }
+
+  /**
    * Generate user-pipeline-entry.ts file for build API
    * This creates a TypeScript file with static imports that Vite can build
    */
@@ -312,9 +365,16 @@ export class PipelineCompilerImpl implements PipelineCompiler {
     // Generate import statements for each model
     const imports = compiledFunctions
       .map(f => {
-        // Convert absolute path to relative path from temp directory
-        const relativePath = f.filePath.replace(resolve(this.rootDir) + '/', '');
-        return `import * as ${f.id.replace(/[\/\-\.]/g, '_')}Model from '../${relativePath}';`;
+        // f.filePath is relative to rootDir, so convert to absolute first
+        const absoluteFilePath = resolve(this.rootDir, f.filePath);
+
+        // Calculate correct relative path from user-pipeline-entry.ts to the model file
+        const userPipelineEntryPath = join(this.outputDir, 'user-pipeline-entry.ts');
+        const relativePath = relative(dirname(userPipelineEntryPath), absoluteFilePath);
+        // Ensure forward slashes for ES module imports
+        const normalizedPath = relativePath.replace(/\\/g, '/');
+
+        return `import * as ${f.id.replace(/[\/\-\.]/g, '_')}Model from './${normalizedPath}';`;
       })
       .join('\n');
 
@@ -411,8 +471,12 @@ export default pipeline;
 /**
  * Factory function to create pipeline compiler
  */
-export function createPipelineCompiler(rootDir?: string, outputDir?: string): PipelineCompiler {
-  return new PipelineCompilerImpl(rootDir, outputDir);
+export function createPipelineCompiler(
+  rootDir?: string,
+  outputDir?: string,
+  customIgnorePatterns?: string[]
+): PipelineCompiler {
+  return new PipelineCompilerImpl(rootDir, outputDir, customIgnorePatterns);
 }
 
 /**
