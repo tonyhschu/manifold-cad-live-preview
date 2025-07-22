@@ -197,6 +197,7 @@ export class DownloadPanel extends HTMLElement {
 
     const selectedModelId = v3Signals.selectedModel.value;
     const currentModel = v3Signals.currentModel.value;
+    const modelMetadata = v3Signals.modelMetadata.value;
 
     if (!selectedModelId) {
       v3Actions.updateStatus('No model selected for export', true);
@@ -207,6 +208,10 @@ export class DownloadPanel extends HTMLElement {
       v3Actions.updateStatus('Model not available for export', true);
       return;
     }
+
+    // Generate filename using model name if available, fallback to model ID
+    const modelName = modelMetadata?.name || selectedModelId;
+    const filename = `${modelName}.${formatId}`;
 
     this.isExporting = true;
     this.updateExportAvailability(true);
@@ -220,7 +225,7 @@ export class DownloadPanel extends HTMLElement {
       const exportResult = await exportService.exportModel(
         currentModel,
         formatId,
-        `${selectedModelId}.${formatId}`,
+        filename,
         (progress, message) => {
           if (message) {
             v3Actions.updateStatus(message, false);
