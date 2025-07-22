@@ -6,7 +6,7 @@
  */
 
 import { IExportService, IUrlService, ExportFormat, ExportResult, ProgressCallback } from './interfaces';
-import { exportToOBJ, manifoldToGLB } from '@manifold-studio/wrapper';
+import { exportToOBJ, manifoldToGLB, exportTo3MF } from '@manifold-studio/wrapper';
 
 /**
  * Export format definitions
@@ -25,15 +25,14 @@ const EXPORT_FORMATS: ExportFormat[] = [
     extension: 'glb',
     mimeType: 'model/gltf-binary',
     description: 'Binary glTF format for 3D scenes'
+  },
+  {
+    id: '3mf',
+    name: '3D Manufacturing Format',
+    extension: '3mf',
+    mimeType: 'application/vnd.ms-package.3dmanufacturing-3dmodel+xml',
+    description: '3MF format for 3D printing and manufacturing'
   }
-  // Future formats can be added here:
-  // {
-  //   id: '3mf',
-  //   name: '3D Manufacturing Format',
-  //   extension: '3mf',
-  //   mimeType: 'model/3mf',
-  //   description: '3MF format for 3D printing'
-  // }
 ];
 
 /**
@@ -74,6 +73,9 @@ export class ExportService implements IExportService {
           break;
         case 'glb':
           blob = await this.exportToGLBInternal(model, onProgress);
+          break;
+        case '3mf':
+          blob = await this.exportTo3MFInternal(model, onProgress);
           break;
         default:
           throw new Error(`Export function not implemented for format: ${formatId}`);
@@ -117,6 +119,13 @@ export class ExportService implements IExportService {
   }
 
   /**
+   * Export to 3MF format (convenience method)
+   */
+  async exportTo3MF(model: any, filename?: string, onProgress?: ProgressCallback): Promise<ExportResult> {
+    return this.exportModel(model, '3mf', filename, onProgress);
+  }
+
+  /**
    * Cleanup export resources
    */
   cleanup(): void {
@@ -147,6 +156,19 @@ export class ExportService implements IExportService {
 
     onProgress?.(75, 'GLB export complete');
     return glbBlob;
+  }
+
+  /**
+   * Internal 3MF export implementation
+   */
+  private async exportTo3MFInternal(model: any, onProgress?: ProgressCallback): Promise<Blob> {
+    onProgress?.(25, 'Converting model to 3MF format...');
+
+    // Use library function to export to 3MF (this is async)
+    const threeMFBlob = await exportTo3MF(model);
+
+    onProgress?.(75, '3MF export complete');
+    return threeMFBlob;
   }
 
   /**

@@ -22,7 +22,9 @@ export default defineConfig({
       external: [
         'manifold-3d',
         '@gltf-transform/core',
-        'tweakpane'
+        'tweakpane',
+        '@jscadui/3mf-export',
+        'fflate'
       ],
       output: {
         // Preserve directory structure for better imports

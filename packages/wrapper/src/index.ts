@@ -49,6 +49,16 @@ export {
   manifoldToGLB
 } from './lib/gltf-export';
 
+// 3MF export (optional dependency)
+export {
+  manifoldTo3MF,
+  exportTo3MF
+} from './lib/3mf-export';
+
+export type {
+  Export3MFOptions
+} from './lib/3mf-export';
+
 // Operation tracking
 export {
   getOperationRegistry
