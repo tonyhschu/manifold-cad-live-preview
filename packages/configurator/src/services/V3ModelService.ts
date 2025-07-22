@@ -84,11 +84,10 @@ export class V3ModelService implements IModelService {
       // Generate the model using the pipeline
       const model = await pipeline.generateModel(modelId, params);
 
-      onProgress?.(75, 'Generating exports...');
+      onProgress?.(75, 'Generating GLB for viewer...');
 
-      // Generate exports (GLB and OBJ)
+      // Generate GLB for the 3D viewer (OBJ will be generated on-demand)
       const exportService = getExportService();
-      const objResult = await exportService.exportToOBJ(model, `${modelId}.obj`);
       const glbResult = await exportService.exportToGLB(model, `${modelId}.glb`);
 
       // Get parametric config if available
@@ -127,8 +126,8 @@ export class V3ModelService implements IModelService {
         isParametric: modelConfig.type === 'parametric',
         config: parametricConfig || undefined,
         exports: {
-          objUrl: objResult.url,
-          glbUrl: glbResult.url
+          objUrl: '', // Generated on-demand
+          glbUrl: glbResult.url // Pre-generated for viewer
         }
       };
 

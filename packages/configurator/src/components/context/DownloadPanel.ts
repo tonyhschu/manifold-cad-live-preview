@@ -1,18 +1,24 @@
 /**
  * DownloadPanel Web Component
  *
- * Provides download links for OBJ and GLB models.
+ * Provides a dropdown interface for exporting models in different formats.
  * Uses the Light DOM approach (no Shadow DOM).
  *
- * Updated to use V3 state management system.
+ * Updated to use V3 state management system and ExportService.
  */
 
-import { v3Signals } from '../../state/v3-bridge';
+import { v3Signals, v3Actions } from '../../state/v3-bridge';
+import { getExportService, getModelService } from '../../services';
+import type { ExportFormat } from '../../services/interfaces';
 
 export class DownloadPanel extends HTMLElement {
   private containerElement: HTMLElement | null = null;
+  private downloadButton: HTMLButtonElement | null = null;
+  private dropdownMenu: HTMLElement | null = null;
   private unsubscribe: (() => void) | null = null;
-  
+  private isExporting: boolean = false;
+  private isMenuOpen: boolean = false;
+
   constructor() {
     super();
   }
@@ -37,13 +43,24 @@ export class DownloadPanel extends HTMLElement {
   }
 
   private setupSubscriptions() {
-    // Subscribe to V3 modelUrls signal
-    this.unsubscribe = v3Signals.modelUrls.subscribe(urls => {
-      this.renderDownloadLinks(urls.objUrl, urls.glbUrl);
+    // Subscribe to both selectedModel and currentModel signals to enable/disable export
+    const selectedModelUnsubscribe = v3Signals.selectedModel.subscribe(modelId => {
+      this.updateExportAvailability(!!modelId && !!v3Signals.currentModel.value);
     });
 
+    const currentModelUnsubscribe = v3Signals.currentModel.subscribe(model => {
+      this.updateExportAvailability(!!v3Signals.selectedModel.value && !!model);
+    });
+
+    // Combine unsubscribe functions
+    this.unsubscribe = () => {
+      selectedModelUnsubscribe();
+      currentModelUnsubscribe();
+    };
+
     // Initial render
-    this.renderDownloadLinks(v3Signals.modelUrls.value.objUrl, v3Signals.modelUrls.value.glbUrl);
+    this.renderDownloadButton();
+    this.updateExportAvailability(!!v3Signals.selectedModel.value && !!v3Signals.currentModel.value);
   }
   
   disconnectedCallback() {
@@ -64,50 +81,180 @@ export class DownloadPanel extends HTMLElement {
     this.appendChild(container);
     return container;
   }
-  
+
   /**
-   * Render download links based on available URLs
+   * Render the download button with dropdown menu
    */
-  private renderDownloadLinks(objUrl: string, glbUrl: string) {
+  private renderDownloadButton() {
     if (!this.containerElement) return;
-    
 
-    
-    // Clear existing links
+    // Clear existing content
     this.containerElement.innerHTML = '';
-    
-    // Only render if we have URLs
-    if (!objUrl && !glbUrl) return;
-    
-    // Create OBJ download link if URL exists
-    if (objUrl) {
-      const objDownloadLink = document.createElement("a");
-      objDownloadLink.href = objUrl;
-      objDownloadLink.download = "manifold-model.obj";
-      objDownloadLink.textContent = "Download OBJ";
-      objDownloadLink.className = "download-btn";
-      this.containerElement.appendChild(objDownloadLink);
-      
-      // Add analytics event
-      objDownloadLink.addEventListener('click', () => {
 
-      });
-    }
-    
-    // Create GLB download link if URL exists
-    if (glbUrl) {
-      const glbDownloadLink = document.createElement("a");
-      glbDownloadLink.href = glbUrl;
-      glbDownloadLink.download = "manifold-model.glb";
-      glbDownloadLink.textContent = "Download GLB";
-      glbDownloadLink.className = "download-btn";
-      this.containerElement.appendChild(glbDownloadLink);
-      
-      // Add analytics event
-      glbDownloadLink.addEventListener('click', () => {
+    try {
+      const exportService = getExportService();
+      const supportedFormats = exportService.getSupportedFormats();
 
+      // Create download button container
+      const buttonContainer = document.createElement('div');
+      buttonContainer.className = 'download-button-container';
+
+      // Create download button
+      const button = document.createElement('button');
+      button.textContent = 'Download';
+      button.className = 'download-btn';
+      button.addEventListener('click', (e) => this.toggleDropdownMenu(e));
+
+      buttonContainer.appendChild(button);
+      this.downloadButton = button;
+
+      // Create dropdown menu
+      const menu = document.createElement('div');
+      menu.className = 'download-dropdown-menu';
+      menu.style.display = 'none';
+
+      // Add menu items for each supported format
+      supportedFormats.forEach(format => {
+        const menuItem = document.createElement('div');
+        menuItem.className = 'download-menu-item';
+        menuItem.textContent = `${format.name} (.${format.extension})`;
+        menuItem.title = format.description;
+        menuItem.addEventListener('click', () => this.handleFormatDownload(format.id));
+        menu.appendChild(menuItem);
       });
+
+      buttonContainer.appendChild(menu);
+      this.dropdownMenu = menu;
+
+      this.containerElement.appendChild(buttonContainer);
+
+      // Close menu when clicking outside
+      document.addEventListener('click', (e) => this.handleOutsideClick(e));
+
+    } catch (error) {
+      // Fallback if export service is not available
+      this.renderFallbackMessage();
     }
+  }
+
+  /**
+   * Render fallback message when export service is not available
+   */
+  private renderFallbackMessage() {
+    if (!this.containerElement) return;
+
+    this.containerElement.innerHTML = '<p class="no-export-message">Export service not available</p>';
+  }
+
+  /**
+   * Update export availability based on model selection
+   */
+  private updateExportAvailability(hasModel: boolean) {
+    if (this.downloadButton) {
+      this.downloadButton.disabled = !hasModel || this.isExporting;
+      this.downloadButton.textContent = this.isExporting ? 'Exporting...' : 'Download';
+    }
+  }
+
+  /**
+   * Toggle dropdown menu visibility
+   */
+  private toggleDropdownMenu(event: Event) {
+    event.stopPropagation();
+
+    if (!this.dropdownMenu || this.isExporting) return;
+
+    this.isMenuOpen = !this.isMenuOpen;
+    this.dropdownMenu.style.display = this.isMenuOpen ? 'block' : 'none';
+  }
+
+  /**
+   * Handle clicks outside the dropdown to close it
+   */
+  private handleOutsideClick(event: Event) {
+    if (!this.dropdownMenu || !this.isMenuOpen) return;
+
+    const target = event.target as Element;
+    const container = this.containerElement?.querySelector('.download-button-container');
+
+    if (container && !container.contains(target)) {
+      this.isMenuOpen = false;
+      this.dropdownMenu.style.display = 'none';
+    }
+  }
+
+  /**
+   * Handle download for a specific format
+   */
+  private async handleFormatDownload(formatId: string) {
+    if (this.isExporting) return;
+
+    // Close the dropdown menu
+    this.isMenuOpen = false;
+    if (this.dropdownMenu) {
+      this.dropdownMenu.style.display = 'none';
+    }
+
+    const selectedModelId = v3Signals.selectedModel.value;
+    const currentModel = v3Signals.currentModel.value;
+
+    if (!selectedModelId) {
+      v3Actions.updateStatus('No model selected for export', true);
+      return;
+    }
+
+    if (!currentModel) {
+      v3Actions.updateStatus('Model not available for export', true);
+      return;
+    }
+
+    this.isExporting = true;
+    this.updateExportAvailability(true);
+
+    try {
+      const exportService = getExportService();
+
+      // Export the current model in the selected format
+      v3Actions.updateStatus(`Exporting to ${formatId.toUpperCase()}...`, false);
+
+      const exportResult = await exportService.exportModel(
+        currentModel,
+        formatId,
+        `${selectedModelId}.${formatId}`,
+        (progress, message) => {
+          if (message) {
+            v3Actions.updateStatus(message, false);
+          }
+        }
+      );
+
+      // Trigger download
+      const link = document.createElement('a');
+      link.href = exportResult.url;
+      link.download = exportResult.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      v3Actions.updateStatus(`Export completed: ${exportResult.filename}`, false);
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Export failed';
+      v3Actions.updateStatus(`Export failed: ${errorMessage}`, true);
+    } finally {
+      this.isExporting = false;
+      this.updateExportAvailability(!!selectedModelId);
+    }
+  }
+
+  disconnectedCallback() {
+    // Clean up subscriptions
+    if (this.unsubscribe) {
+      this.unsubscribe();
+    }
+
+    // Clean up document event listener
+    document.removeEventListener('click', this.handleOutsideClick);
   }
 }
 

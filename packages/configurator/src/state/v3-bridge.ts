@@ -29,6 +29,7 @@ export class V3StateBridge {
   public readonly selectedModel = signal<string | null>(null);
   public readonly availableModels = signal<Array<{id: string; name: string; type: 'static' | 'parametric'}>>([]);
   public readonly modelParameters = signal<Record<string, any>>({});
+  public readonly currentModel = signal<any>(null);
   public readonly modelUrls = signal<{objUrl: string; glbUrl: string}>({ objUrl: '', glbUrl: '' });
   public readonly modelMetadata = signal<any>(null);
   public readonly parametricConfig = signal<any>(null);
@@ -136,7 +137,12 @@ export class V3StateBridge {
    */
   private updateModelDataFromResult(modelResult: any): void {
     try {
-      // Update model URLs from the exports
+      // Store the current model object for on-demand exports
+      if (modelResult.model) {
+        this.currentModel.value = modelResult.model;
+      }
+
+      // Update model URLs from the exports (for viewer)
       if (modelResult.exports) {
         this.modelUrls.value = {
           objUrl: modelResult.exports.objUrl || '',
@@ -319,6 +325,7 @@ export const v3Signals = {
   get selectedModel() { return getV3StateBridge().selectedModel; },
   get availableModels() { return getV3StateBridge().availableModels; },
   get modelParameters() { return getV3StateBridge().modelParameters; },
+  get currentModel() { return getV3StateBridge().currentModel; },
   get modelUrls() { return getV3StateBridge().modelUrls; },
   get modelMetadata() { return getV3StateBridge().modelMetadata; },
   get parametricConfig() { return getV3StateBridge().parametricConfig; },
