@@ -127,7 +127,7 @@ packages/
 
 ### Phase 1: Set Up Create-App Development Environment
 
-1. **Copy V3 setup** from `test-v3-development` to `packages/create-app`
+1. **Copy V3 setup** from `reference-project` to `packages/create-app`
 2. **Add source-based aliases** for configurator development
 3. **Update npm scripts** for dual-server development
 4. **Add example models** for testing configurator features

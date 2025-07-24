@@ -1,4 +1,4 @@
-# test-v3-development
+# reference-project
 
 A Manifold Studio project
 
@@ -70,7 +70,7 @@ The CLI automatically detects this file and adds it to your configurator!
 ### Project Structure
 
 ```
-test-v3-development/
+reference-project/
 ├── src/
 │   └── main.ts          # UI entry point (simplified)
 ├── main.ts              # Your main 3D model

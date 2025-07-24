@@ -384,7 +384,7 @@ The configurator package **cannot be developed standalone**. Use the CLI develop
 
 ```bash
 # Navigate to test project
-cd test-v3-development
+cd reference-project
 
 # Start CLI (automatically detects development mode)
 npm run dev
@@ -419,7 +419,7 @@ For monorepo development when working on the framework itself:
 
 ```bash
 # V3 CLI Development (Recommended)
-cd test-v3-development
+cd reference-project
 npm run dev                    # Start CLI (auto-detects configurator dev mode)
 
 # Monorepo Development (for framework development)
@@ -445,7 +445,7 @@ npm run test:create-app           # Test create-app package only
 
 ```bash
 # Single terminal - CLI handles everything
-cd test-v3-development
+cd reference-project
 npm run dev
 ```
 

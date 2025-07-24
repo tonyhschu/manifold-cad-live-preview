@@ -25,7 +25,7 @@ This guide covers the development workflow for the V3 CLI-based architecture. Th
 - **Build**: TypeScript → CLI tool
 - **Creates**: Clean user projects with CLI-based development workflow
 
-### 4. **User Projects** (e.g., `test-v3-development`)
+### 4. **User Projects** (e.g., `reference-project`)
 
 - **Purpose**: Regular NPM projects where users build models
 - **Architecture**: CLI-managed development (automatic model discovery + single server)
@@ -39,7 +39,7 @@ This guide covers the development workflow for the V3 CLI-based architecture. Th
 
 ```bash
 # 1. Install dependencies in test project
-cd test-v3-development
+cd reference-project
 npm install
 cd ..
 
@@ -64,7 +64,7 @@ For day-to-day development (after initial setup):
 
 ```bash
 # V3 CLI approach (recommended)
-cd test-v3-development
+cd reference-project
 npm run dev
 ```
 
@@ -93,7 +93,7 @@ npm run dev  # Runs manifold-studio CLI automatically
 cd packages/wrapper && npm run dev
 
 # Terminal 2: V3 CLI approach
-cd test-v3-development && npm run dev
+cd reference-project && npm run dev
 ```
 
 ### 🔧 **Individual Package Development**
@@ -115,7 +115,7 @@ npm test
 
 ```bash
 # V3 CLI approach (recommended)
-cd test-v3-development
+cd reference-project
 npm run dev
 
 # Test configurator changes
@@ -166,7 +166,7 @@ npm run test:create-app
 
 ```bash
 # Test V3 CLI workflow (recommended)
-cd test-v3-development
+cd reference-project
 npm run dev
 # → Add/remove model files → Verify automatic pipeline regeneration → Verify UI updates
 
@@ -208,7 +208,7 @@ npm run test:e2e:report
 
 **E2E Test Architecture:**
 
-- **Test Target**: Uses the existing `test-v3-development` project as the test environment
+- **Test Target**: Uses the existing `reference-project` project as the test environment
 - **Real Browser Testing**: Tests run against the actual configurator UI in Chromium
 - **Automatic Setup**: Global setup starts the dev server and waits for it to be ready
 - **Comprehensive Coverage**: Tests verify the complete single-server architecture (V3.1)
@@ -294,7 +294,7 @@ New projects created with create-app use the CLI by default:
 3. **Edit model source** → Pipeline compiler rebuilds → Configurator detects change → GLB updates
 4. **Edit UI config** → Configurator executes pipeline → GLB updates
 
-**Development Project Approach** (test-v3-development):
+**Development Project Approach** (reference-project):
 
 1. **Edit wrapper source** → Wrapper rebuilds → Project picks up changes
 2. **Edit configurator source** → Source imports provide immediate HMR updates
@@ -309,29 +309,29 @@ New projects created with create-app use the CLI by default:
 
 1. **Edit configurator source** (`packages/configurator/src/`)
 2. **Changes appear immediately** via source imports and HMR
-3. **Test in V3 project** (`npm run dev` in `test-v3-development`)
+3. **Test in V3 project** (`npm run dev` in `reference-project`)
 4. **Verify changes** in browser at http://localhost:3000
 
 **Legacy Approach**:
 
 1. **Edit configurator source** (`packages/configurator/src/`)
 2. **Changes appear immediately** via source imports and HMR
-3. **Test in V3 project** (`npm run dev` in `test-v3-development`)
+3. **Test in V3 project** (`npm run dev` in `reference-project`)
 4. **Verify changes** in browser
 
 ### Adding New Model Features
 
 **V3 CLI Approach (Recommended)**:
 
-1. **Add/edit model files** (`test-v3-development/main.ts` or `components/`)
+1. **Add/edit model files** (`reference-project/main.ts` or `components/`)
 2. **File watcher detects changes** and auto-regenerates pipeline entry
 3. **Pipeline compiler rebuilds** automatically
 4. **Configurator detects change** and reloads pipeline
 5. **GLB regenerates** with new model
 
-**Development Project Approach** (test-v3-development):
+**Development Project Approach** (reference-project):
 
-1. **Edit model files** (`test-v3-development/main.ts` or `components/`)
+1. **Edit model files** (`reference-project/main.ts` or `components/`)
 2. **Pipeline auto-rebuilds** (if CLI dev server is running)
 3. **Configurator detects change** and reloads pipeline
 4. **GLB regenerates** with new model
@@ -355,7 +355,7 @@ New projects created with create-app use the CLI by default:
 
 ```bash
 # Fix permissions for the CLI binary
-chmod +x test-v3-development/node_modules/@manifold-studio/configurator/dist/cli/index.js
+chmod +x reference-project/node_modules/@manifold-studio/configurator/dist/cli/index.js
 
 # Or for any project directory:
 chmod +x node_modules/@manifold-studio/configurator/dist/cli/index.js
@@ -373,7 +373,7 @@ chmod +x node_modules/@manifold-studio/configurator/dist/cli/index.js
 2. **For wrapper changes**: Check if wrapper build is running (`npm run dev` in packages/wrapper)
 3. **Clear Vite cache**: `rm -rf node_modules/.vite` in test project
 4. **Restart dev server**:
-   - Development project: `npm run dev` in test-v3-development
+   - Development project: `npm run dev` in reference-project
    - Generated project: `npm run dev` in user project
 5. **Check browser console**: Look for TypeScript compilation errors
 6. **Check Vite alias configuration**: If package imports fail, verify both UI server and pipeline compiler have the same aliases
@@ -399,7 +399,7 @@ chmod +x node_modules/@manifold-studio/configurator/dist/cli/index.js
 2. **Check Vite HMR**: Look for HMR messages in browser console
 3. **Hard refresh**: Browser cache might be stale (Cmd+Shift+R / Ctrl+Shift+R)
 4. **Check TypeScript errors**: Compilation errors prevent updates
-5. **Restart dev server**: `npm run dev` in test-v3-development
+5. **Restart dev server**: `npm run dev` in reference-project
 
 ## Best Practices
 
@@ -430,14 +430,14 @@ chmod +x node_modules/@manifold-studio/configurator/dist/cli/index.js
 
 ```bash
 # Start development (CLI approach - recommended)
-cd test-v3-development && npm run dev  # Development project with source imports
+cd reference-project && npm run dev  # Development project with source imports
 
 # Generated project development
 cd my-project && npm run dev              # Uses CLI automatically
 
 # If also developing wrapper
 cd packages/wrapper && npm run dev        # Terminal 1: Wrapper auto-rebuild
-cd test-v3-development && npm run dev  # Terminal 2: CLI approach
+cd reference-project && npm run dev  # Terminal 2: CLI approach
 
 # Individual package development
 cd packages/wrapper && npm run build:lib -- --watch  # Only if changing wrapper
@@ -461,7 +461,7 @@ cd packages/wrapper && npm run build  # Rebuild wrapper if needed
 - **Configurator CLI**: `packages/configurator/dist/cli/` (built)
 - **Pipeline output**: `*/temp/` (generated by CLI, gitignored)
 - **Create-app templates**: `packages/create-app/templates/`
-- **Test projects**: `test-v3-development/`, `/tmp/test-project`
+- **Test projects**: `reference-project/`, `/tmp/test-project`
 
 ### Architecture Notes
 

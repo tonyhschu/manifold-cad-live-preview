@@ -119,7 +119,7 @@ Eliminate the redundant Pipeline Server (port 3001) by using Vite's build API di
 
 ```bash
 # Create isolated test for build API
-cd test-v3-development
+cd reference-project
 node test-build-speed.js  # Already created - 314ms result ✅
 ```
 
@@ -211,7 +211,7 @@ node test-build-speed.js  # Already created - 314ms result ✅
 
 - `packages/configurator/src/cli/pipeline-compiler.ts` - Entire pipeline server implementation
 - `temp-file-watch-plugin.js` - Temporary prototype file
-- `test-v3-development/test-build-speed.js` - Temporary test script
+- `reference-project/test-build-speed.js` - Temporary test script
 
 ### Code to Remove
 

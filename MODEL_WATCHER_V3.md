@@ -32,7 +32,7 @@ V3 represents a fundamental shift from dynamic model imports to **compiled pipel
 
 - **Configurator is library-only** - No standalone app needed since development happens in user projects
 - **Single build system** - Configurator has one Vite config for library build only
-- **Test in user context** - Configurator development happens in `test-v3-development`, not as standalone app
+- **Test in user context** - Configurator development happens in `reference-project`, not as standalone app
 
 ## What Didn't Work in V1 & V2
 
@@ -169,7 +169,7 @@ User Project (Regular NPM)
 
 #### 4. Configurator Library
 
-**Pure Library Architecture**: The configurator is now a library-only package (no standalone app) since development happens in user projects like `test-v3-development`.
+**Pure Library Architecture**: The configurator is now a library-only package (no standalone app) since development happens in user projects like `reference-project`.
 
 The configurator is composed of separate modules that communicate via events:
 
@@ -231,20 +231,20 @@ Model selection → Event → Config UI loads new parameters → Pipeline execut
 
 ### 🎯 **Current Priority: Create-App Integration**
 
-**Goal**: Port the working V3 setup from `test-v3-development` to `create-app` templates so users can scaffold projects with the complete V3 workflow.
+**Goal**: Port the working V3 setup from `reference-project` to `create-app` templates so users can scaffold projects with the complete V3 workflow.
 
 **Success Criteria**:
 
 - `npx @manifold-studio/create-app my-project` → `cd my-project` → `npm run dev` → edit models → see changes immediately
 - No manual setup required - everything works out of the box
-- Same reliable HMR experience as `test-v3-development`
+- Same reliable HMR experience as `reference-project`
 
 ### **Create-App Integration Plan**
 
 #### **Phase 1: Copy Working V3 Setup**
 
 1. **Examine Current Templates** - Understand existing `create-app` structure and identify what needs updating
-2. **Copy Essential V3 Files** from `test-v3-development`:
+2. **Copy Essential V3 Files** from `reference-project`:
    - `vite.config.ts` - Source-based development with configurator aliases
    - `vite-plugins/pipeline-hmr.ts` - Custom HMR plugin for pipeline changes
    - `package.json` - Updated scripts for dual-server development
@@ -277,7 +277,7 @@ Model selection → Event → Config UI loads new parameters → Pipeline execut
 
 ### ✅ Dual Vite Architecture (Implemented)
 
-**Working Implementation**: See `test-v3-development/` for complete dual-server setup with:
+**Working Implementation**: See `reference-project/` for complete dual-server setup with:
 
 - `vite.config.ts` - UI server with source-based configurator development
 - `vite.pipeline.config.ts` - Pipeline build server with manifest generation
@@ -312,7 +312,7 @@ Model selection → Event → Config UI loads new parameters → Pipeline execut
 
 ## ✅ Complete Development Workflow (Implemented)
 
-**Working in `test-v3-development/`**:
+**Working in `reference-project/`**:
 
 1. `npm run dev` → Single server starts → Edit `main.ts` → See changes immediately
 2. **File Change Flow**: Source edit → Pipeline rebuild → HMR event → UI reload → GLB update → 3D viewer refresh
@@ -331,7 +331,7 @@ Model selection → Event → Config UI loads new parameters → Pipeline execut
 
 The V3 core system is complete and validated. The final step is testing the end-to-end create-app workflow:
 
-1. **Port Working V3 Setup** - Copy `test-v3-development` configuration to create-app templates
+1. **Port Working V3 Setup** - Copy `reference-project` configuration to create-app templates
 2. **Test Complete Workflow** - `npx create-app` → `npm run dev` → edit models → see changes immediately
 3. **Verify Template Integration** - Ensure all V3 features work in scaffolded projects
 4. **Cross-Platform Testing** - Validate workflow on different operating systems
@@ -373,7 +373,7 @@ The V3 core system is complete and validated. The final step is testing the end-
 **Immediate Actions**:
 
 1. **Examine Current Templates** - Understand `packages/create-app/templates/` structure
-2. **Copy Working V3 Setup** - Port essential files from `test-v3-development`:
+2. **Copy Working V3 Setup** - Port essential files from `reference-project`:
    - Vite configurations with source-based development
    - HMR plugins and pipeline compilation setup
    - Package.json scripts for dual-server workflow

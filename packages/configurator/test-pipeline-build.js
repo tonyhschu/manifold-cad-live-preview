@@ -4,7 +4,7 @@ async function testPipelineBuild() {
   console.log('🔄 Testing pipeline build with Vite API...');
   
   try {
-    const compiler = new PipelineCompilerImpl('/Users/tchu/code/manifold-cad-live-preview/test-v3-development');
+    const compiler = new PipelineCompilerImpl('/Users/tchu/code/manifold-cad-live-preview/reference-project');
     
     console.log('📁 Compiler created, starting compilation...');
     const result = await compiler.compile();

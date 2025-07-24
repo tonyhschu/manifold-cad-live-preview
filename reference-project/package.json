@@ -1,5 +1,5 @@
 {
-  "name": "test-v3-development",
+  "name": "reference-project",
   "version": "1.0.0",
   "type": "module",
   "description": "A Manifold Studio project with font loading capabilities",

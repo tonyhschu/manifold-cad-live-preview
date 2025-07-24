@@ -747,7 +747,7 @@ When developing the configurator itself, the CLI automatically detects the devel
 
 ```bash
 # In our monorepo
-cd test-v3-development
+cd reference-project
 npm run dev  # CLI detects development mode automatically
 
 # Make changes to packages/configurator/src/components/ModelViewer.ts

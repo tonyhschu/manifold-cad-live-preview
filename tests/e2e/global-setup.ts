@@ -11,7 +11,7 @@ import path from 'path';
  */
 
 let devServerProcess: ChildProcess | null = null;
-const TEST_PROJECT_DIR = path.join(process.cwd(), 'test-v3-development');
+const TEST_PROJECT_DIR = path.join(process.cwd(), 'reference-project');
 
 async function globalSetup(config: FullConfig) {
   console.log('🚀 Setting up E2E test environment...');

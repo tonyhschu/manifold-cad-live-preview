@@ -6,7 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
  * Tests the V3.1 single-server architecture with focus on:
  * - HMR (Hot Module Replacement) functionality
  * - Model switching and parameter editing
- * - Browser-based verification of the CLI workflow
+ * - Browser-based verification of the CLI workflow using reference-project
  */
 export default defineConfig({
   // Test directory

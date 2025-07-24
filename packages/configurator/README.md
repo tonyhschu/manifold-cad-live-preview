@@ -76,7 +76,7 @@ This package **cannot be developed standalone**. Use the CLI development environ
 1. **Navigate to test project**:
 
    ```bash
-   cd test-v3-development
+   cd reference-project
    ```
 
 2. **Start CLI development server**:
