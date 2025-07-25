@@ -273,7 +273,8 @@ export class PipelineCompilerImpl implements PipelineCompiler {
           external: [
             // External dependencies that should not be bundled
             'manifold-3d',
-            '@manifold-studio/wrapper'
+            '@manifold-studio/wrapper',
+            '@manifold-studio/typeface'
           ],
           output: {
             dir: this.outputDir,
@@ -295,7 +296,8 @@ export class PipelineCompilerImpl implements PipelineCompiler {
           '@': join(this.rootDir, 'src'),
           // Add configurator aliases - resolve dynamically to handle different project structures
           '@manifold-studio/configurator': this.resolveConfiguratorPath(),
-          '@manifold-studio/wrapper': this.resolveWrapperPath()
+          '@manifold-studio/wrapper': this.resolveWrapperPath(),
+          '@manifold-studio/typeface': this.resolveTypefacePath()
         }
       },
 
@@ -365,6 +367,21 @@ export class PipelineCompilerImpl implements PipelineCompiler {
     // Fallback: relative to configurator
     const configuratorPath = this.resolveConfiguratorPath();
     return resolve(configuratorPath, '../wrapper/src');
+  }
+
+  /**
+   * Resolve the path to the typeface package
+   */
+  private resolveTypefacePath(): string {
+    // Try monorepo structure first
+    const monorepoPath = resolve(this.rootDir, '../packages/typeface/src');
+    if (existsSync(monorepoPath)) {
+      return monorepoPath;
+    }
+
+    // Fallback: relative to configurator
+    const configuratorPath = this.resolveConfiguratorPath();
+    return resolve(configuratorPath, '../typeface/src');
   }
 
   /**

@@ -55,3 +55,4 @@ playwright/.cache/
 
 # References
 references/
+.augment

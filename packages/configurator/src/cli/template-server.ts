@@ -94,10 +94,13 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
 
 
 
+    const typefaceSrcPath = path.resolve(userProjectPath, '../packages/typeface/src');
+
     viteConfig.resolve = {
       alias: {
         '@manifold-studio/configurator': configuratorSrcPath,
-        '@manifold-studio/wrapper': wrapperSrcPath
+        '@manifold-studio/wrapper': wrapperSrcPath,
+        '@manifold-studio/typeface': typefaceSrcPath
       }
     };
 
