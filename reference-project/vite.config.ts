@@ -7,6 +7,7 @@ export default defineConfig({
     alias: {
       '@manifold-studio/configurator': resolve(__dirname, '../packages/configurator/src'),
       '@manifold-studio/configurator/pipeline-runtime/types': resolve(__dirname, '../packages/configurator/src/pipeline-runtime/types.ts'),
+      '@manifold-studio/typeface': resolve(__dirname, '../packages/typeface/src'),
     }
   },
   // Basic configuration for building the project

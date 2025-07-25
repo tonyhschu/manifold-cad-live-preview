@@ -338,18 +338,18 @@ function pathToPolygons(path: any, subdivisionSteps: number): Polygon[] {
           polygons.push([...currentPolygon]);
           currentPolygon = [];
         }
-        currentPolygon.push({ x: command.x, y: command.y });
+        currentPolygon.push({ x: command.x, y: -command.y }); // Flip Y axis
         break;
 
       case 'L': // Line to
-        currentPolygon.push({ x: command.x, y: command.y });
+        currentPolygon.push({ x: command.x, y: -command.y }); // Flip Y axis
         break;
 
       case 'Q': // Quadratic curve
         const quadPoints = subdivideQuadratic(
           currentPolygon[currentPolygon.length - 1],
-          { x: command.x1, y: command.y1 },
-          { x: command.x, y: command.y },
+          { x: command.x1, y: -command.y1 }, // Flip Y axis
+          { x: command.x, y: -command.y }, // Flip Y axis
           subdivisionSteps
         );
         currentPolygon.push(...quadPoints.slice(1)); // Skip first point (already in polygon)
@@ -358,9 +358,9 @@ function pathToPolygons(path: any, subdivisionSteps: number): Polygon[] {
       case 'C': // Cubic curve
         const cubicPoints = subdivideCubic(
           currentPolygon[currentPolygon.length - 1],
-          { x: command.x1, y: command.y1 },
-          { x: command.x2, y: command.y2 },
-          { x: command.x, y: command.y },
+          { x: command.x1, y: -command.y1 }, // Flip Y axis
+          { x: command.x2, y: -command.y2 }, // Flip Y axis
+          { x: command.x, y: -command.y }, // Flip Y axis
           subdivisionSteps
         );
         currentPolygon.push(...cubicPoints.slice(1)); // Skip first point (already in polygon)

@@ -90,7 +90,7 @@ export class FontResolver {
   // Fonts available - using proven working URLs from prototype testing
   static readonly AVAILABLE_FONTS: FontInfo[] = [
     {
-      name: 'Inter Variable Font',
+      name: 'Inter',  // Match the name in font-registry.ts
       family: 'Inter',
       weight: 'Variable',
       url: 'https://cdn.jsdelivr.net/npm/inter-font@3.19.0/Inter-VariableFont_slnt,wght.ttf'
