@@ -120,14 +120,12 @@ export class FontResolver {
     // Check cache first
     const cached = this.fontCache.get(fontName);
     if (cached) {
-      console.log(`Font '${fontName}' loaded from cache`);
       return cached;
     }
 
     // Check if already loading
     const loadingPromise = this.loadingPromises.get(fontName);
     if (loadingPromise) {
-      console.log(`Font '${fontName}' already loading, waiting...`);
       return loadingPromise;
     }
 
@@ -235,19 +233,15 @@ export class FontResolver {
       };
 
       try {
-        console.log(`🔄 Starting font load for '${fontInfo.name}' from ${fontInfo.url}`);
         if (this.isBrowser()) {
           // Browser environment - use fetch
-          console.log(`🌐 Using browser environment for font loading`);
           this.loadFontInBrowser(fontInfo, startTime, handleSuccess, handleError);
         } else {
           // Node.js environment - use opentype.js load method directly
-          console.log(`🖥️ Using Node.js environment for font loading`);
           this.loadFontInNode(fontInfo, startTime, handleSuccess, handleError).catch(handleError);
         }
       } catch (error) {
         const fontError = error instanceof Error ? error : new Error(String(error));
-        console.error(`❌ Font loading setup error for '${fontInfo.name}':`, fontError.message);
         handleError(new Error(`Failed to load font '${fontInfo.name}': ${fontError.message}`));
       }
     });
@@ -283,9 +277,6 @@ export class FontResolver {
         throw new Error('Invalid font file - OpenType.js could not parse the font');
       }
 
-      const loadTime = Date.now() - startTime;
-      console.log(`Font '${fontInfo.name}' loaded successfully in ${loadTime}ms (browser)`);
-
       resolve({
         info: fontInfo,
         font,
@@ -314,16 +305,12 @@ export class FontResolver {
       if (typeof process !== 'undefined' && process.versions?.node) {
         try {
           // Use fetch to download the font (Node.js 18+ has built-in fetch)
-          console.log(`📥 Fetching font from URL: ${fontInfo.url}`);
           const response = await fetch(fontInfo.url);
 
           if (!response.ok) {
-            console.error(`❌ Font download failed: ${response.status} ${response.statusText}`);
             reject(new Error(`Failed to download font '${fontInfo.name}': ${response.status} ${response.statusText}`));
             return;
           }
-
-          console.log(`✅ Font download successful, parsing...`);
 
           // Get the font data as ArrayBuffer
           const arrayBuffer = await response.arrayBuffer();
@@ -335,9 +322,6 @@ export class FontResolver {
             reject(new Error(`Font parsing failed for '${fontInfo.name}': No font object returned`));
             return;
           }
-
-          const loadTime = Date.now() - startTime;
-          console.log(`Font '${fontInfo.name}' loaded successfully in ${loadTime}ms (Node.js)`);
 
           resolve({
             info: fontInfo,

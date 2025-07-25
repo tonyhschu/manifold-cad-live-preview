@@ -9,8 +9,6 @@ export default createConfig(
     segments: P.number(16, 3, 64, 1)
   },
   ({ radius, height, segments }) => {
-  console.log('🔧 Building test cylinder with:', { radius, height, segments });
-  
   // Create a simple cylinder
   const cylinder = Manifold.cylinder(height, radius, radius, segments);
 

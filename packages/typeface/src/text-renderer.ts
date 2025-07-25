@@ -58,47 +58,34 @@ export function textToCrossSection(
   // Convert text to polygons
   const polygons = textToPolygons(text, loadedFont, fontSize, letterSpacing, subdivisionSteps);
 
-  console.log(`🔤 Text "${text}" generated ${polygons.length} polygons`);
-
   if (polygons.length === 0) {
-    console.log('⚠️ No polygons generated, returning empty CrossSection');
     // Return empty CrossSection for empty text
     return new CrossSection();
   }
 
   // Classify polygons to determine holes
   const classifications = classifyFontPolygons(polygons);
-  console.log(`🔍 Classified ${classifications.length} polygons: ${classifications.filter(c => !c.isHole).length} solids, ${classifications.filter(c => c.isHole).length} holes`);
-  
-  // Build CrossSection from classified polygons
-  console.log('🏗️ Building CrossSection from classified polygons...');
 
   if (classifications.length === 0) {
-    console.log('⚠️ No polygons to process, returning empty CrossSection');
     return new CrossSection([]);
   }
 
   // Use the original working approach: single CrossSection with all polygons
   // Apply correct winding order based on hole classification
-  console.log('🏗️ Using original approach: single CrossSection with proper winding order');
 
   const allPolygons: [number, number][][] = [];
 
   for (let i = 0; i < classifications.length; i++) {
     const classification = classifications[i];
 
-    console.log(`🔧 Processing polygon ${i + 1}/${classifications.length}: ${classification.polygon.length} points, isHole: ${classification.isHole}`);
-
     // Validate polygon data
     if (!classification.polygon || classification.polygon.length < 3) {
-      console.warn(`⚠️ Skipping invalid polygon ${i + 1}: insufficient points`);
       continue;
     }
 
     // Check for undefined points
     const hasUndefinedPoints = classification.polygon.some(point => !point || point.x === undefined || point.y === undefined);
     if (hasUndefinedPoints) {
-      console.warn(`⚠️ Skipping polygon ${i + 1}: contains undefined points`);
       continue;
     }
 
@@ -111,122 +98,39 @@ export function textToCrossSection(
     const signedArea = calculateSignedArea(manifoldPolygon);
     const isCounterClockwise = signedArea > 0;
 
-    console.log(`🔄 Polygon ${i + 1}: ${isCounterClockwise ? 'CCW' : 'CW'}, signed area: ${signedArea.toFixed(2)}, isHole: ${classification.isHole}`);
-
     if (classification.isHole) {
       // Holes should be clockwise (negative area)
       if (isCounterClockwise) {
         manifoldPolygon.reverse();
-        console.log(`🔄 Reversed hole polygon ${i + 1} to clockwise`);
       }
     } else {
       // Solids should be counter-clockwise (positive area)
       if (!isCounterClockwise) {
         manifoldPolygon.reverse();
-        console.log(`🔄 Reversed solid polygon ${i + 1} to counter-clockwise`);
       }
     }
 
     allPolygons.push(manifoldPolygon);
-    console.log(`✅ Added polygon ${i + 1} with correct winding order`);
   }
 
   if (allPolygons.length === 0) {
-    console.log('⚠️ No valid polygons to process, returning empty CrossSection');
-    return new CrossSection([]);
-  }
-
-  console.log(`🏗️ Creating single CrossSection with ${allPolygons.length} properly-wound polygons`);
-  // If no valid polygons were processed, return empty CrossSection
-  if (allPolygons.length === 0) {
-    console.log('⚠️ No valid polygons processed, returning empty CrossSection');
     return new CrossSection([]);
   }
 
   // Create single CrossSection with all properly-wound polygons (original working approach)
-  console.log(`🔍 About to create CrossSection with ${allPolygons.length} polygons`);
-
-  // Validate polygon data for NaN or invalid values
-  for (let i = 0; i < allPolygons.length; i++) {
-    const polygon = allPolygons[i];
-    console.log(`🔍 Polygon ${i + 1}: ${polygon.length} points`);
-
-    for (let j = 0; j < Math.min(polygon.length, 3); j++) {
-      const point = polygon[j];
-      if (!Array.isArray(point) || point.length !== 2) {
-        console.log(`❌ Invalid point structure at polygon ${i + 1}, point ${j + 1}:`, point);
-      } else if (isNaN(point[0]) || isNaN(point[1])) {
-        console.log(`❌ NaN coordinates at polygon ${i + 1}, point ${j + 1}:`, point);
-      } else {
-        console.log(`✅ Valid point at polygon ${i + 1}, point ${j + 1}:`, point);
-      }
-    }
-
-    if (polygon.length > 3) {
-      console.log(`... (${polygon.length - 3} more points)`);
-    }
-  }
-
-  // Test with a simple square first to verify CrossSection works
-  const testSquare = [[[0, 0], [10, 0], [10, 10], [0, 10]]];
-  console.log(`🧪 Testing with simple square:`, testSquare);
-  const testCrossSection = new CrossSection(testSquare);
-  try {
-    const testArea = testCrossSection.area();
-    console.log(`🧪 Test square area: ${testArea}`);
-  } catch (testError) {
-    console.log(`❌ Test square failed:`, testError.message);
-  }
-
-  // Test each polygon individually to find the problematic one
-  for (let i = 0; i < allPolygons.length; i++) {
-    try {
-      const singlePolygon = [allPolygons[i]];
-      const testCS = new CrossSection(singlePolygon);
-      const area = testCS.area();
-      console.log(`✅ Polygon ${i + 1} individual area: ${area}`);
-    } catch (error) {
-      console.log(`❌ Polygon ${i + 1} failed individually:`, error.message);
-    }
-  }
-
-  // Try with just the first polygon to test
-  console.log(`🧪 Testing with just first polygon...`);
-  const firstPolygonOnly = [allPolygons[0]];
-  const firstResult = new CrossSection(firstPolygonOnly);
-  try {
-    const firstArea = firstResult.area();
-    console.log(`🧪 First polygon only area: ${firstArea}`);
-  } catch (error) {
-    console.log(`❌ First polygon only failed:`, error.message);
-  }
 
   // Use actual font polygons now that we fixed the alignment issue
   let result = new CrossSection(allPolygons);
-  console.log(`✅ CrossSection created with ${allPolygons.length} polygons`);
-
-  // TEMPORARY: Skip alignment to test if it's causing the issue
-  console.log(`🚧 TEMPORARY: Skipping alignment to test CrossSection validity`);
-
-  // Test area immediately after creation
-  try {
-    const immediateArea = result.area();
-    console.log(`🧪 Immediate area after creation: ${immediateArea}`);
-  } catch (error) {
-    console.log(`❌ Immediate area failed:`, error.message);
-  }
 
   // Apply horizontal alignment (with proper error handling)
   if (align !== 'left') {
     try {
       const bounds = result.bounds();
-      console.log(`🔍 Bounds:`, bounds);
       // bounds.min and bounds.max are arrays, not objects with x/y properties
       const width = bounds.max[0] - bounds.min[0];
-      console.log(`🔍 Width calculation: ${bounds.max[0]} - ${bounds.min[0]} = ${width}`);
 
       if (isNaN(width) || !isFinite(width)) {
-        console.log(`⚠️ Invalid width (${width}), skipping alignment`);
+        // Skip alignment if width is invalid
       } else {
         let offsetX = 0;
         if (align === 'center') {
@@ -237,23 +141,11 @@ export function textToCrossSection(
 
         if (offsetX !== 0 && isFinite(offsetX)) {
           result = result.translate([offsetX, 0]);
-          console.log(`📐 Applied alignment offset: ${offsetX}`);
         }
       }
     } catch (boundsError) {
-      console.log(`⚠️ Skipping alignment due to bounds error:`, boundsError.message);
+      // Skip alignment if bounds calculation fails
     }
-  }
-
-  // Debug the final result
-  console.log('🎯 Final CrossSection created');
-  try {
-    const area = result.area ? result.area() : 'unknown';
-    const numVert = result.numVert ? result.numVert() : 'unknown';
-    console.log(`📊 CrossSection stats: area=${area}, vertices=${numVert}`);
-  } catch (statsError) {
-    const errorMessage = statsError instanceof Error ? statsError.message : String(statsError);
-    console.log('⚠️ Could not get CrossSection stats:', errorMessage);
   }
 
   return result;

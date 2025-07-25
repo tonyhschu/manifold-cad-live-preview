@@ -124,9 +124,9 @@ export class FontRegistry {
       try {
         const loadedFont = await this.fontResolver.loadFont(fontName);
         this.loadedFonts.set(fontName, loadedFont);
-        console.log(`✓ Font '${fontName}' loaded successfully`);
+        // Font loaded successfully
       } catch (error) {
-        console.warn(`✗ Failed to load font '${fontName}':`, error);
+        // Font loading failed - continue with other fonts
         // Don't throw - allow other fonts to load
       }
     });
@@ -137,7 +137,7 @@ export class FontRegistry {
       throw new Error('Failed to load any fonts. Check your network connection.');
     }
 
-    console.log(`Font registry initialized with ${this.loadedFonts.size}/${allFontNames.length} fonts loaded`);
+    // Font registry initialization complete
   }
 
   /**

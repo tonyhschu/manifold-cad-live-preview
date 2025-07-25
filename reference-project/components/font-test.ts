@@ -14,18 +14,13 @@ export default createConfig(
     height: P.number(3, 1, 10, 0.5, 'Extrusion height')
   },
   async (params) => {
-    console.log('🔤 Font Test: Starting font loading...');
-
     try {
       // Ensure fonts are loaded
       await fonts.ensureReady();
-      console.log('✅ Font Test: Fonts loaded successfully');
 
       // Hardcode font and fontSize to bypass parameter issues
       const fontName = 'Inter';
       const fontSize = 16;
-
-      console.log(`🎨 Font Test: Using hardcoded font "${fontName}"`);
 
       // Create text renderer
       const renderText = fontLoader(fontName);
@@ -38,12 +33,10 @@ export default createConfig(
 
       // Extrude to 3D
       const textManifold = textCrossSection.extrude(params.height);
-      console.log('🏗️ Font Test: Text extruded to 3D');
 
       return textManifold;
 
     } catch (error) {
-      console.error('❌ Font Test: Font loading failed:', error);
       throw new Error(`Font loading failed: ${error.message}`);
     }
   },
