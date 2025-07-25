@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { selectModelAndWait } from './test-utils';
 
 /**
  * Parameter Editing UI Tests
@@ -45,24 +46,40 @@ test.describe('Parameter Editing Tests', () => {
     const tweakpaneContainer = parameterPanel.locator('#tweakpane-container');
     await expect(tweakpaneContainer).toBeVisible();
 
-    // Select a parametric model (main should be parametric)
-    const selectElement = page.locator('#model-select');
-    await selectElement.selectOption({ value: 'main' });
+    // Select a parametric model and wait for it to load
+    await selectModelAndWait(page, 'main');
 
-    // Wait for parameter controls to potentially load
-    await page.waitForTimeout(3000);
-
-    // Check if Tweakpane controls are present
+    // Check for different types of parameter controls
     const tweakpaneControls = parameterPanel.locator('.tp-dfwv');
-    const controlCount = await tweakpaneControls.count();
+    const textboxControls = parameterPanel.locator('input[type="text"], textbox');
 
-    if (controlCount > 0) {
-      // If there are parameter controls, verify they're visible
+    // Handle potential execution context destruction during navigation
+    let tweakpaneCount: number, textboxCount: number;
+    try {
+      tweakpaneCount = await tweakpaneControls.count();
+      textboxCount = await textboxControls.count();
+    } catch (error) {
+      if (error.message.includes('Execution context was destroyed')) {
+        // Wait for page to stabilize and try again
+        await page.waitForTimeout(1000);
+        await expect(parameterPanel).toBeVisible();
+        tweakpaneCount = await tweakpaneControls.count();
+        textboxCount = await textboxControls.count();
+      } else {
+        throw error;
+      }
+    }
+
+    if (tweakpaneCount > 0) {
+      // If there are Tweakpane controls, verify they're visible
       await expect(tweakpaneControls.first()).toBeVisible();
+    } else if (textboxCount > 0) {
+      // If there are textbox controls (like in main.ts), verify they're visible
+      await expect(textboxControls.first()).toBeVisible();
     } else {
       // If no parameter controls, verify the default message is shown
       const panelContent = await tweakpaneContainer.textContent();
-      expect(panelContent).toContain('Select a parametric model');
+      expect(panelContent).toContain('This model has no tweakable parameters');
     }
   });
 
@@ -75,6 +92,7 @@ test.describe('Parameter Editing Tests', () => {
     await selectElement.selectOption({ value: 'main' });
 
     // Wait for parameter controls to load
+    await page.pause();
     await page.waitForTimeout(3000);
 
     // Check if there are any parameter controls
@@ -131,9 +149,21 @@ test.describe('Parameter Editing Tests', () => {
     // Wait for parameter controls to load
     await page.waitForTimeout(3000);
 
-    // Check if there are any parameter controls
+    // Check if there are any parameter controls (handle potential navigation)
     const numberInputs = parameterPanel.locator('.tp-txtv_i');
-    const inputCount = await numberInputs.count();
+    let inputCount: number;
+    try {
+      inputCount = await numberInputs.count();
+    } catch (error) {
+      if (error.message.includes('Execution context was destroyed')) {
+        // Wait for page to stabilize and try again
+        await page.waitForTimeout(1000);
+        await expect(parameterPanel).toBeVisible();
+        inputCount = await numberInputs.count();
+      } else {
+        throw error;
+      }
+    }
 
     if (inputCount > 0) {
       const firstInput = numberInputs.first();

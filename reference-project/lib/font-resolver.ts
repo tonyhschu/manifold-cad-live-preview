@@ -21,8 +21,6 @@
  */
 
 import opentype from 'opentype.js';
-import * as path from 'path';
-import * as fs from 'fs';
 
 /**
  * Font metadata and loading configuration

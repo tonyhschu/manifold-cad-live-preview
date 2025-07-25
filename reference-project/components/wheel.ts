@@ -1,5 +1,5 @@
 /**
- * Wheel Component - V3 Version
+ * Modified Modified Wheel Component - V3 Version
  *
  * A parametric wheel model with tire and rim.
  * Adapted for V3 pipeline architecture.

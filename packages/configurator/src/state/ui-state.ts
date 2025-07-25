@@ -159,10 +159,8 @@ export class UIStateManager {
       url.searchParams.set('m_model', this.state.selectedModel);
     }
     
-    // Add parameters if any
-    if (Object.keys(this.state.parameters).length > 0) {
-      url.searchParams.set('m_params', JSON.stringify(this.state.parameters));
-    }
+    // Parameters are now stored only in localStorage, not URL
+    // This prevents multiple URL navigations during parameter updates
     
     // Update URL without page reload
     window.history.replaceState({}, '', url.toString());
@@ -212,15 +210,8 @@ export class UIStateManager {
       this.state.selectedModel = modelFromUrl;
     }
     
-    // Load parameters
-    const paramsFromUrl = url.searchParams.get('m_params');
-    if (paramsFromUrl) {
-      try {
-        this.state.parameters = JSON.parse(paramsFromUrl);
-      } catch (error) {
-        console.warn('Failed to parse parameters from URL:', error);
-      }
-    }
+    // Parameters are now loaded only from localStorage, not URL
+    // This prevents URL pollution and navigation issues
   }
 
   /**

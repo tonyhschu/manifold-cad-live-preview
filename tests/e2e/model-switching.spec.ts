@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { evaluateWithRetry, waitForParametricPanelStable } from './test-utils';
 
 /**
  * Model Switching UI Tests
@@ -88,8 +89,8 @@ test.describe('Model Switching Tests', () => {
       const selectedValue = await selectElement.inputValue();
       expect(selectedValue).toBe(secondOptionValue);
 
-      // Verify no console errors during model switching
-      const consoleErrors = await page.evaluate(() => (window as any).consoleErrors || []);
+      // Verify no console errors during model switching (handle potential navigation)
+      const consoleErrors = await evaluateWithRetry(page, () => (window as any).consoleErrors || []);
       const relevantErrors = consoleErrors.filter((error: string) =>
         !error.includes('404') &&
         !error.includes('Failed to load resource')
@@ -114,8 +115,8 @@ test.describe('Model Switching Tests', () => {
       for (let i = 0; i < Math.min(optionCount, 3); i++) {
         await selectElement.selectOption({ index: i });
 
-        // Wait for potential parameter panel updates
-        await page.waitForTimeout(2000);
+        // Wait for parameter panel to stabilize after model switch
+        await waitForParametricPanelStable(page);
 
         // Verify parameter panel is still visible
         await expect(parameterPanel).toBeVisible();
@@ -135,8 +136,8 @@ test.describe('Model Switching Tests', () => {
     const selectElement = page.locator('#model-select');
     const viewer = page.locator('#viewer');
 
-    // Get initial model source
-    const initialSrc = await viewer.getAttribute('src');
+    // Get initial model source (use JavaScript property, not HTML attribute)
+    const initialSrc = await viewer.evaluate((el: any) => el.src);
 
     // Get all available options
     const options = selectElement.locator('option');
@@ -159,8 +160,20 @@ test.describe('Model Switching Tests', () => {
       // Verify the model viewer is still visible and functional
       await expect(viewer).toBeVisible();
 
-      // Verify the src attribute changed
-      const newSrc = await viewer.getAttribute('src');
+      // Verify the src property changed (handle potential navigation)
+      let newSrc;
+      try {
+        newSrc = await viewer.evaluate((el: any) => el.src);
+      } catch (error) {
+        // If execution context was destroyed, wait for page to stabilize and try again
+        if (error.message.includes('Execution context was destroyed')) {
+          await page.waitForTimeout(1000);
+          await expect(viewer).toBeVisible();
+          newSrc = await viewer.evaluate((el: any) => el.src);
+        } else {
+          throw error;
+        }
+      }
       expect(newSrc).not.toBe(initialSrc);
       expect(newSrc).toBeTruthy();
 

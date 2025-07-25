@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { evaluateWithRetry, selectModelAndWait } from './test-utils';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -12,7 +13,7 @@ import path from 'path';
  * - Parameter controls remain functional after HMR
  */
 
-const TEST_PROJECT_DIR = path.join(process.cwd(), 'tests/temp/e2e-test-project');
+const TEST_PROJECT_DIR = path.join(process.cwd(), 'reference-project');
 
 test.describe('HMR Browser Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -85,21 +86,18 @@ test.describe('HMR Browser Tests', () => {
     // Get initial model source
     const initialSrc = await page.locator('#viewer').getAttribute('src');
 
-    // Modify the sphere component file to trigger HMR
-    const sphereFilePath = path.join(TEST_PROJECT_DIR, 'components', 'sphere.ts');
-    const originalContent = await fs.readFile(sphereFilePath, 'utf-8');
+    // Modify the wheel component file to trigger HMR
+    const wheelFilePath = path.join(TEST_PROJECT_DIR, 'components', 'wheel.ts');
+    const originalContent = await fs.readFile(wheelFilePath, 'utf-8');
 
     try {
-      // Modify the sphere radius default value
+      // Modify the wheel radius default value
       const modifiedContent = originalContent.replace(
-        'radius = 10',
-        'radius = 15'
-      ).replace(
-        'P.number(10, 5, 25, 1)',
-        'P.number(15, 5, 25, 1)'
+        'P.number(15, 5, 30, 1)',
+        'P.number(20, 5, 30, 1)'
       );
 
-      await fs.writeFile(sphereFilePath, modifiedContent);
+      await fs.writeFile(wheelFilePath, modifiedContent);
 
       // Wait for HMR to trigger - look for console messages indicating pipeline rebuild
       // The dev server should log when models are recompiled
@@ -129,7 +127,8 @@ test.describe('HMR Browser Tests', () => {
       // Verify model selector still works
       await expect(page.locator('#model-select')).toBeVisible();
       const options = page.locator('#model-select option');
-      await expect(options).toHaveCountGreaterThan(0);
+      const optionCount = await options.count();
+      expect(optionCount).toBeGreaterThan(0);
 
       // Verify we can still switch models
       await page.selectOption('#model-select', { index: 0 });
@@ -137,8 +136,8 @@ test.describe('HMR Browser Tests', () => {
       // Wait a bit for model to load
       await page.waitForTimeout(2000);
 
-      // Verify no new errors after model switching
-      const finalErrors = await page.evaluate(() => (window as any).consoleErrors || []);
+      // Verify no new errors after model switching (handle potential navigation)
+      const finalErrors = await evaluateWithRetry(page, () => (window as any).consoleErrors || []);
       const newDependencyErrors = finalErrors.filter((error: string) =>
         error.includes('504') ||
         error.includes('Outdated Optimize Dep') ||
@@ -149,7 +148,7 @@ test.describe('HMR Browser Tests', () => {
 
     } finally {
       // Restore original file content
-      await fs.writeFile(sphereFilePath, originalContent);
+      await fs.writeFile(wheelFilePath, originalContent);
     }
   });
 
@@ -164,16 +163,16 @@ test.describe('HMR Browser Tests', () => {
     const initialUrl = page.url();
 
     // Modify a file to trigger HMR
-    const sphereFilePath = path.join(TEST_PROJECT_DIR, 'components', 'sphere.ts');
-    const originalContent = await fs.readFile(sphereFilePath, 'utf-8');
+    const wheelFilePath = path.join(TEST_PROJECT_DIR, 'components', 'wheel.ts');
+    const originalContent = await fs.readFile(wheelFilePath, 'utf-8');
 
     try {
       const modifiedContent = originalContent.replace(
-        'Test Sphere',
-        'Modified Test Sphere'
+        'Wheel Component - V3 Version',
+        'Modified Wheel Component - V3 Version'
       );
 
-      await fs.writeFile(sphereFilePath, modifiedContent);
+      await fs.writeFile(wheelFilePath, modifiedContent);
 
       // Wait for HMR to complete
       await page.waitForTimeout(3000);
@@ -183,12 +182,13 @@ test.describe('HMR Browser Tests', () => {
       const initialUrlObj = new URL(initialUrl);
       expect(currentUrl.searchParams.get('m_model')).toBe(initialUrlObj.searchParams.get('m_model'));
 
-      // Verify selected model is still selected
-      const selectedValue = await page.locator('#model-select').inputValue();
-      expect(selectedValue).toBeTruthy();
+      // Verify selected model is still selected (check selected option text)
+      const selectedOption = await page.locator('#model-select option:checked');
+      const selectedText = await selectedOption.textContent();
+      expect(selectedText).toBeTruthy();
 
     } finally {
-      await fs.writeFile(sphereFilePath, originalContent);
+      await fs.writeFile(wheelFilePath, originalContent);
     }
   });
 
@@ -196,11 +196,8 @@ test.describe('HMR Browser Tests', () => {
     // Wait for initial load and select a parametric model
     await expect(page.locator('#model-select')).toBeVisible();
 
-    // Select the main model (should be parametric)
-    await page.selectOption('#model-select', { value: 'main' });
-
-    // Wait for parameter panel to load
-    await expect(page.locator('parametric-panel')).toBeVisible();
+    // Select the main model and wait for it to load
+    await selectModelAndWait(page, 'main');
 
     // Wait for Tweakpane to initialize
     await page.waitForTimeout(2000);
