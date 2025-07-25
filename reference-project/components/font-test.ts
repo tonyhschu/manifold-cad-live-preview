@@ -46,14 +46,8 @@ export default createConfig(
       return textManifold;
       
     } catch (error) {
-      console.error('❌ Font Test: Error during font loading or rendering:', error);
-      
-      // Fallback to geometric text
-      console.log('🔄 Font Test: Falling back to geometric text');
-      const fallbackText = Manifold.cube([params.text.length * params.fontSize * 0.6, params.fontSize, params.height])
-        .translate([0, 0, params.height / 2]);
-      
-      return fallbackText;
+      console.error('❌ Font Test: Font loading failed:', error);
+      throw new Error(`Font loading failed: ${error.message}`);
     }
   }
 );

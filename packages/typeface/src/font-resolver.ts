@@ -205,7 +205,7 @@ export class FontResolver {
   /**
    * Load a font from a single URL with timeout handling
    */
-  private async loadSingleUrl(fontInfo: FontInfo, timeoutMs: number = 10000): Promise<LoadedFont> {
+  private async loadSingleUrl(fontInfo: FontInfo, timeoutMs: number = 30000): Promise<LoadedFont> {
     return new Promise<LoadedFont>((resolve, reject) => {
       const startTime = Date.now();
       let isResolved = false;
@@ -235,15 +235,19 @@ export class FontResolver {
       };
 
       try {
+        console.log(`🔄 Starting font load for '${fontInfo.name}' from ${fontInfo.url}`);
         if (this.isBrowser()) {
           // Browser environment - use fetch
+          console.log(`🌐 Using browser environment for font loading`);
           this.loadFontInBrowser(fontInfo, startTime, handleSuccess, handleError);
         } else {
           // Node.js environment - use opentype.js load method directly
+          console.log(`🖥️ Using Node.js environment for font loading`);
           this.loadFontInNode(fontInfo, startTime, handleSuccess, handleError).catch(handleError);
         }
       } catch (error) {
         const fontError = error instanceof Error ? error : new Error(String(error));
+        console.error(`❌ Font loading setup error for '${fontInfo.name}':`, fontError.message);
         handleError(new Error(`Failed to load font '${fontInfo.name}': ${fontError.message}`));
       }
     });
@@ -310,12 +314,16 @@ export class FontResolver {
       if (typeof process !== 'undefined' && process.versions?.node) {
         try {
           // Use fetch to download the font (Node.js 18+ has built-in fetch)
+          console.log(`📥 Fetching font from URL: ${fontInfo.url}`);
           const response = await fetch(fontInfo.url);
 
           if (!response.ok) {
+            console.error(`❌ Font download failed: ${response.status} ${response.statusText}`);
             reject(new Error(`Failed to download font '${fontInfo.name}': ${response.status} ${response.statusText}`));
             return;
           }
+
+          console.log(`✅ Font download successful, parsing...`);
 
           // Get the font data as ArrayBuffer
           const arrayBuffer = await response.arrayBuffer();

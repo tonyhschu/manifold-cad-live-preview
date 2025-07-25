@@ -9,7 +9,7 @@ import type { LoadedFont, FontInfo } from './font-resolver.js';
 import { FontResolver } from './font-resolver.js';
 
 /**
- * Default fonts available in the registry
+ * Default fonts available in the registry (TTF format only for Node.js compatibility)
  */
 export const DEFAULT_FONTS: FontInfo[] = [
   {
@@ -17,24 +17,6 @@ export const DEFAULT_FONTS: FontInfo[] = [
     family: 'Inter',
     weight: 'Variable',
     url: 'https://cdn.jsdelivr.net/npm/inter-font@3.19.0/Inter-VariableFont_slnt,wght.ttf'
-  },
-  {
-    name: 'Roboto',
-    family: 'Roboto',
-    weight: '400',
-    url: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2'
-  },
-  {
-    name: 'Open Sans',
-    family: 'Open Sans',
-    weight: '400',
-    url: 'https://fonts.gstatic.com/s/opensans/v34/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0B4gaVc.woff2'
-  },
-  {
-    name: 'Source Code Pro',
-    family: 'Source Code Pro',
-    weight: '400',
-    url: 'https://fonts.gstatic.com/s/sourcecodepro/v22/HI_XiYsKILxRpg3hIP6sJ7fM7PqlPevWnsUnxlC9.woff2'
   }
 ];
 

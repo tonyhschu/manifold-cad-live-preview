@@ -37,8 +37,8 @@ async function testFontLoading() {
     
     // Test parameters
     const testParams = {
-      text: 'NODE.JS',
-      font: 'Inter',
+      text: 'HELLO',
+      font: 'NonExistentFont',  // Test hard failure
       fontSize: 18,
       height: 4
     };

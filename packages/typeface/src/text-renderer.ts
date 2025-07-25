@@ -144,23 +144,104 @@ export function textToCrossSection(
   }
 
   // Create single CrossSection with all properly-wound polygons (original working approach)
+  console.log(`🔍 About to create CrossSection with ${allPolygons.length} polygons`);
+
+  // Validate polygon data for NaN or invalid values
+  for (let i = 0; i < allPolygons.length; i++) {
+    const polygon = allPolygons[i];
+    console.log(`🔍 Polygon ${i + 1}: ${polygon.length} points`);
+
+    for (let j = 0; j < Math.min(polygon.length, 3); j++) {
+      const point = polygon[j];
+      if (!Array.isArray(point) || point.length !== 2) {
+        console.log(`❌ Invalid point structure at polygon ${i + 1}, point ${j + 1}:`, point);
+      } else if (isNaN(point[0]) || isNaN(point[1])) {
+        console.log(`❌ NaN coordinates at polygon ${i + 1}, point ${j + 1}:`, point);
+      } else {
+        console.log(`✅ Valid point at polygon ${i + 1}, point ${j + 1}:`, point);
+      }
+    }
+
+    if (polygon.length > 3) {
+      console.log(`... (${polygon.length - 3} more points)`);
+    }
+  }
+
+  // Test with a simple square first to verify CrossSection works
+  const testSquare = [[[0, 0], [10, 0], [10, 10], [0, 10]]];
+  console.log(`🧪 Testing with simple square:`, testSquare);
+  const testCrossSection = new CrossSection(testSquare);
+  try {
+    const testArea = testCrossSection.area();
+    console.log(`🧪 Test square area: ${testArea}`);
+  } catch (testError) {
+    console.log(`❌ Test square failed:`, testError.message);
+  }
+
+  // Test each polygon individually to find the problematic one
+  for (let i = 0; i < allPolygons.length; i++) {
+    try {
+      const singlePolygon = [allPolygons[i]];
+      const testCS = new CrossSection(singlePolygon);
+      const area = testCS.area();
+      console.log(`✅ Polygon ${i + 1} individual area: ${area}`);
+    } catch (error) {
+      console.log(`❌ Polygon ${i + 1} failed individually:`, error.message);
+    }
+  }
+
+  // Try with just the first polygon to test
+  console.log(`🧪 Testing with just first polygon...`);
+  const firstPolygonOnly = [allPolygons[0]];
+  const firstResult = new CrossSection(firstPolygonOnly);
+  try {
+    const firstArea = firstResult.area();
+    console.log(`🧪 First polygon only area: ${firstArea}`);
+  } catch (error) {
+    console.log(`❌ First polygon only failed:`, error.message);
+  }
+
+  // Use actual font polygons now that we fixed the alignment issue
   let result = new CrossSection(allPolygons);
   console.log(`✅ CrossSection created with ${allPolygons.length} polygons`);
 
-  // Apply horizontal alignment
+  // TEMPORARY: Skip alignment to test if it's causing the issue
+  console.log(`🚧 TEMPORARY: Skipping alignment to test CrossSection validity`);
+
+  // Test area immediately after creation
+  try {
+    const immediateArea = result.area();
+    console.log(`🧪 Immediate area after creation: ${immediateArea}`);
+  } catch (error) {
+    console.log(`❌ Immediate area failed:`, error.message);
+  }
+
+  // Apply horizontal alignment (with proper error handling)
   if (align !== 'left') {
-    const bounds = result.bounds();
-    const width = bounds.max.x - bounds.min.x;
-    
-    let offsetX = 0;
-    if (align === 'center') {
-      offsetX = -width / 2;
-    } else if (align === 'right') {
-      offsetX = -width;
-    }
-    
-    if (offsetX !== 0) {
-      result = result.translate([offsetX, 0]);
+    try {
+      const bounds = result.bounds();
+      console.log(`🔍 Bounds:`, bounds);
+      // bounds.min and bounds.max are arrays, not objects with x/y properties
+      const width = bounds.max[0] - bounds.min[0];
+      console.log(`🔍 Width calculation: ${bounds.max[0]} - ${bounds.min[0]} = ${width}`);
+
+      if (isNaN(width) || !isFinite(width)) {
+        console.log(`⚠️ Invalid width (${width}), skipping alignment`);
+      } else {
+        let offsetX = 0;
+        if (align === 'center') {
+          offsetX = -width / 2;
+        } else if (align === 'right') {
+          offsetX = -width;
+        }
+
+        if (offsetX !== 0 && isFinite(offsetX)) {
+          result = result.translate([offsetX, 0]);
+          console.log(`📐 Applied alignment offset: ${offsetX}`);
+        }
+      }
+    } catch (boundsError) {
+      console.log(`⚠️ Skipping alignment due to bounds error:`, boundsError.message);
     }
   }
 
