@@ -5,7 +5,7 @@
  * to create 3D text from font-based rendering.
  */
 
-import { CrossSection } from '@manifold-studio/wrapper';
+import type { CrossSectionType } from '@manifold-studio/wrapper';
 import { textToCrossSection, type TextRenderOptions } from './text-renderer.js';
 import { fontRegistry } from './font-registry.js';
 
@@ -15,8 +15,8 @@ import { fontRegistry } from './font-registry.js';
  * @param fontName - Name of the font to use
  * @returns Function that converts text to CrossSection
  */
-export function fontLoader(fontName: string): (text: string, options?: TextRenderOptions) => CrossSection {
-  return (text: string, options?: TextRenderOptions): CrossSection => {
+export function fontLoader(fontName: string): (text: string, options?: TextRenderOptions) => CrossSectionType {
+  return (text: string, options?: TextRenderOptions): CrossSectionType => {
     if (!fontRegistry.isReady()) {
       throw new Error(
         `Fonts not initialized. Call 'await fonts.ensureReady()' before using fontLoader.`

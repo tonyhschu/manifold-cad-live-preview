@@ -5,7 +5,7 @@
  * that can be used with ManifoldCAD's CrossSection for 3D extrusion.
  */
 
-import { CrossSection } from '@manifold-studio/wrapper';
+import { CrossSection, type CrossSectionType } from '@manifold-studio/wrapper';
 import type { LoadedFont } from './font-resolver.js';
 import { classifyFontPolygons } from './font-polygon-classifier.js';
 import { fontRegistry } from './font-registry.js';
@@ -39,7 +39,7 @@ export function textToCrossSection(
   text: string, 
   fontName: string, 
   options: TextRenderOptions = {}
-): CrossSection {
+): CrossSectionType {
   const {
     fontSize = 12,
     letterSpacing = 1.0,
@@ -60,7 +60,7 @@ export function textToCrossSection(
 
   if (polygons.length === 0) {
     // Return empty CrossSection for empty text
-    return new CrossSection();
+    return new CrossSection([]);
   }
 
   // Classify polygons to determine holes

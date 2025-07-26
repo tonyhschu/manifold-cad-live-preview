@@ -26,6 +26,7 @@ export interface PolygonClassification {
     overlapRatio?: number;
     method?: string;
     sampleCount?: number;
+    containerIndex?: number;
   };
 }
 

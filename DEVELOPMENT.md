@@ -25,11 +25,216 @@ This guide covers the development workflow for the V3 CLI-based architecture. Th
 - **Build**: TypeScript → CLI tool
 - **Creates**: Clean user projects with CLI-based development workflow
 
-### 4. **User Projects** (e.g., `reference-project`)
+### 4. **Typeface Package** (`packages/typeface`)
+
+- **Purpose**: Font loading and text-to-3D conversion for Manifold Studio
+- **Build**: TypeScript → ESM library
+- **Used by**: User projects that need text rendering capabilities
+
+### 5. **User Projects** (e.g., `reference-project`)
 
 - **Purpose**: Regular NPM projects where users build models
 - **Architecture**: CLI-managed development (automatic model discovery + single server)
-- **Dependencies**: Configurator (for CLI + UI), Wrapper (for models)
+- **Dependencies**: Configurator (for CLI + UI), Wrapper (for models), Typeface (optional, for text)
+
+## Package Setup and Build Standards
+
+### Build Approach Standards
+
+**All packages in this monorepo MUST follow the same build approach to avoid API Extractor and build system conflicts.**
+
+#### ✅ **Standard Build Pattern**
+
+```json
+{
+  "scripts": {
+    "build": "vite build && tsc --emitDeclarationOnly"
+  }
+}
+```
+
+**Why this approach:**
+
+- **Vite handles JavaScript compilation**: Fast, reliable, handles bundling and external dependencies
+- **TypeScript compiler handles declarations**: Direct `tsc --emitDeclarationOnly` generates `.d.ts` files
+- **No API Extractor dependency**: Avoids Microsoft API Extractor build failures and complexity
+- **Consistent across monorepo**: All packages use identical build approach
+
+#### ❌ **Avoid These Patterns**
+
+```json
+{
+  "scripts": {
+    "build": "vite build" // Missing TypeScript declarations
+  },
+  "devDependencies": {
+    "vite-plugin-dts": "^x.x.x" // Uses API Extractor internally - causes build failures
+  }
+}
+```
+
+**Problems with `vite-plugin-dts`:**
+
+- Uses Microsoft API Extractor internally
+- Causes software defects and build failures
+- Inconsistent with other packages in monorepo
+- More complex configuration than direct `tsc`
+
+### Package Structure Standards
+
+#### Required Files for New Packages
+
+```
+packages/my-package/
+├── package.json          # Standard build script, proper exports
+├── tsconfig.json         # Standalone config (no extends/composite)
+├── vite.config.ts        # Library build config
+├── vitest.config.ts      # Test configuration (optional)
+├── src/
+│   ├── index.ts          # Main entry point
+│   └── ...               # Source files
+├── dist/                 # Build output (gitignored)
+└── README.md             # Package documentation
+```
+
+#### package.json Template
+
+```json
+{
+  "name": "@manifold-studio/my-package",
+  "version": "0.0.1",
+  "description": "Package description",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "vite build && tsc --emitDeclarationOnly",
+    "dev": "vite build --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    // Runtime dependencies only
+  },
+  "peerDependencies": {
+    // Packages that users must install (like @manifold-studio/wrapper)
+  },
+  "devDependencies": {
+    "typescript": "^5.0.2",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+    // NO vite-plugin-dts here!
+  }
+}
+```
+
+#### tsconfig.json Template
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": false,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Output */
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "test"]
+}
+```
+
+**Key points:**
+
+- **Standalone configuration**: No `extends` or `composite` settings
+- **`noEmit: false`**: Required for `tsc --emitDeclarationOnly` to work
+- **Consistent compiler options**: Match other packages in monorepo
+
+#### vite.config.ts Template
+
+```typescript
+import { defineConfig } from "vite";
+import { resolve } from "path";
+
+export default defineConfig({
+  build: {
+    lib: {
+      entry: resolve(__dirname, "src/index.ts"),
+      name: "MyPackageName",
+      formats: ["es"],
+      fileName: "index",
+    },
+    rollupOptions: {
+      external: [
+        "@manifold-studio/wrapper",
+        // Add other external dependencies
+      ],
+    },
+    sourcemap: true,
+  },
+  test: {
+    environment: "node",
+  },
+});
+```
+
+### Build Verification Checklist
+
+When setting up a new package, verify:
+
+1. ✅ **Build script uses standard pattern**: `"build": "vite build && tsc --emitDeclarationOnly"`
+2. ✅ **No vite-plugin-dts dependency**: Check `devDependencies` in `package.json`
+3. ✅ **TypeScript config is standalone**: No `extends` or `composite` in `tsconfig.json`
+4. ✅ **Build produces both JS and declarations**: Check `dist/` contains `.js` and `.d.ts` files
+5. ✅ **External dependencies configured**: Vite config externalizes peer dependencies
+6. ✅ **Package exports configured**: `package.json` has proper `main`, `types`, and `exports`
+
+### Common Build Issues and Solutions
+
+#### "API Extractor failed" errors
+
+- **Cause**: Using `vite-plugin-dts` instead of direct `tsc`
+- **Solution**: Remove `vite-plugin-dts`, use `vite build && tsc --emitDeclarationOnly`
+
+#### "Cannot find module" in generated declarations
+
+- **Cause**: Missing external dependencies in Vite config
+- **Solution**: Add dependencies to `rollupOptions.external` array
+
+#### TypeScript compilation errors during build
+
+- **Cause**: Incorrect `tsconfig.json` configuration
+- **Solution**: Use standalone config template above, ensure `noEmit: false`
+
+#### Missing declaration files in dist/
+
+- **Cause**: `tsc --emitDeclarationOnly` not running or failing silently
+- **Solution**: Run `tsc --emitDeclarationOnly` separately to see errors
 
 ## Development Workflows
 
@@ -345,6 +550,89 @@ New projects created with create-app use the CLI by default:
 
 ## Troubleshooting
 
+### Package Build Issues
+
+#### API Extractor Build Failures
+
+**Symptoms**: Build fails with errors like:
+
+```
+API Extractor failed
+vite-plugin-dts build error
+Microsoft API Extractor errors
+```
+
+**Cause**: Using `vite-plugin-dts` which depends on Microsoft API Extractor internally.
+
+**Solution**:
+
+1. **Remove problematic dependency**:
+
+   ```bash
+   npm uninstall vite-plugin-dts
+   ```
+
+2. **Update build script** in `package.json`:
+
+   ```json
+   {
+     "scripts": {
+       "build": "vite build && tsc --emitDeclarationOnly"
+     }
+   }
+   ```
+
+3. **Remove plugin from vite.config.ts**:
+
+   ```typescript
+   // Remove any vite-plugin-dts imports and usage
+   export default defineConfig({
+     // ... config without vite-plugin-dts
+   });
+   ```
+
+4. **Update tsconfig.json** to standalone configuration:
+   ```json
+   {
+     "compilerOptions": {
+       "noEmit": false // Required for tsc --emitDeclarationOnly
+       // ... other options (see template above)
+     }
+   }
+   ```
+
+**Prevention**: Always use the standard build pattern documented above for new packages.
+
+#### Missing TypeScript Declarations
+
+**Symptoms**: Package builds successfully but no `.d.ts` files in `dist/`
+
+**Cause**: `tsc --emitDeclarationOnly` not running or `noEmit: true` in tsconfig.json
+
+**Solution**:
+
+1. **Check build script**: Ensure it includes `&& tsc --emitDeclarationOnly`
+2. **Check tsconfig.json**: Set `"noEmit": false`
+3. **Run manually to debug**: `npx tsc --emitDeclarationOnly` to see specific errors
+
+#### External Dependency Errors
+
+**Symptoms**: Build fails with "Cannot resolve dependency" errors
+
+**Cause**: Missing external dependencies in Vite configuration
+
+**Solution**: Add dependencies to `rollupOptions.external` in `vite.config.ts`:
+
+```typescript
+rollupOptions: {
+  external: [
+    '@manifold-studio/wrapper',
+    'opentype.js',
+    // Add other peer/external dependencies
+  ],
+}
+```
+
 ### CLI Permission Denied Error
 
 **Symptoms**: `sh: manifold-studio: Permission denied` when running `npm run dev`
@@ -425,6 +713,18 @@ chmod +x node_modules/@manifold-studio/configurator/dist/cli/index.js
 4. **Monitor file sizes**: Keep library builds reasonable
 
 ## Quick Reference
+
+### Package Build Standards
+
+**All packages MUST use this build pattern:**
+
+```bash
+# package.json
+"build": "vite build && tsc --emitDeclarationOnly"
+
+# NO vite-plugin-dts dependency!
+# Use standalone tsconfig.json (no extends/composite)
+```
 
 ### Essential Commands
 

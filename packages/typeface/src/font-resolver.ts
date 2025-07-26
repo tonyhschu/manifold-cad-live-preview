@@ -205,7 +205,7 @@ export class FontResolver {
    */
   private async loadSingleUrl(fontInfo: FontInfo, timeoutMs: number = 30000): Promise<LoadedFont> {
     return new Promise<LoadedFont>((resolve, reject) => {
-      const startTime = Date.now();
+
       let isResolved = false;
 
       // Set a timeout for font loading
@@ -235,10 +235,10 @@ export class FontResolver {
       try {
         if (this.isBrowser()) {
           // Browser environment - use fetch
-          this.loadFontInBrowser(fontInfo, startTime, handleSuccess, handleError);
+          this.loadFontInBrowser(fontInfo, handleSuccess, handleError);
         } else {
           // Node.js environment - use opentype.js load method directly
-          this.loadFontInNode(fontInfo, startTime, handleSuccess, handleError).catch(handleError);
+          this.loadFontInNode(fontInfo, handleSuccess, handleError).catch(handleError);
         }
       } catch (error) {
         const fontError = error instanceof Error ? error : new Error(String(error));
@@ -252,7 +252,6 @@ export class FontResolver {
    */
   private async loadFontInBrowser(
     fontInfo: FontInfo,
-    startTime: number,
     resolve: (value: LoadedFont) => void,
     reject: (reason: Error) => void
   ) {
@@ -293,14 +292,10 @@ export class FontResolver {
    */
   private async loadFontInNode(
     fontInfo: FontInfo,
-    startTime: number,
     resolve: (value: LoadedFont) => void,
     reject: (reason: Error) => void
   ) {
     try {
-      // Resolve URL to file path for Node.js
-      const filePath = this.resolveUrlToFilePath(fontInfo.url);
-
       // In Node.js, download the font from URL and parse it directly
       if (typeof process !== 'undefined' && process.versions?.node) {
         try {
@@ -335,7 +330,7 @@ export class FontResolver {
         }
       } else {
         // Fallback: try using opentype.load with URL (might work in some environments)
-        opentype.load(fontInfo.url, { isUrl: true }, (err: any, font: opentype.Font) => {
+        opentype.load(fontInfo.url, (err: any, font?: opentype.Font) => {
           if (err) {
             const errorMessage = err.message || String(err);
             reject(new Error(`Font loading fallback failed for '${fontInfo.name}': ${errorMessage}`));
@@ -347,8 +342,7 @@ export class FontResolver {
             return;
           }
 
-          const loadTime = Date.now() - startTime;
-          console.log(`Font '${fontInfo.name}' loaded successfully in ${loadTime}ms (fallback)`);
+
 
           resolve({
             info: fontInfo,
@@ -363,36 +357,7 @@ export class FontResolver {
     }
   }
 
-  /**
-   * Resolve a URL to a file system path for Node.js environment
-   */
-  private resolveUrlToFilePath(url: string): string {
-    // If it's an HTTP/HTTPS URL, return as-is (opentype.js can handle these)
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
 
-    // If it's already an absolute file system path, return as-is
-    if (typeof require !== 'undefined') {
-      const path = require('path');
-      if (path.isAbsolute(url) && !url.startsWith('/assets/')) {
-        return url;
-      }
-
-      // If it's a web-style URL starting with /assets/, resolve relative to project root
-      if (url.startsWith('/')) {
-        // Remove leading slash and resolve relative to current working directory
-        const relativePath = url.substring(1);
-        return path.resolve(process.cwd(), relativePath);
-      }
-
-      // Otherwise, treat as relative path
-      return path.resolve(process.cwd(), url);
-    }
-
-    // Browser fallback - return URL as-is
-    return url;
-  }
 
   /**
    * Detect if we're running in a browser environment
