@@ -5,4 +5,8 @@ export default defineConfig({
     environment: 'node',
     globals: true,
   },
+  // Handle ES module issues with opentype.js
+  define: {
+    global: 'globalThis',
+  },
 });
