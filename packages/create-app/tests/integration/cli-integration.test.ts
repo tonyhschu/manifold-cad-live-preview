@@ -60,8 +60,7 @@ describe('CLI Integration Tests', () => {
       console.log('🚀 Starting CLI development server...');
       serverManager = new ServerManager({
         projectPath: project.path,
-        uiPort: 3000,
-        pipelinePort: 3001,
+        port: 3000,
         timeout: 45000, // Give more time for initial startup
         silent: false
       });
@@ -70,40 +69,38 @@ describe('CLI Integration Tests', () => {
       expect(server).toBeDefined();
       expect(server.ready).toBe(true);
 
-      // Step 4: Wait for both servers to be healthy
+      // Step 4: Wait for server and pipeline files to be accessible
       console.log('🏥 Checking server health...');
-      console.log(`UI URL: ${server.uiUrl}`);
-      console.log(`Pipeline URL: ${server.pipelineUrl}`);
+      console.log(`Server URL: ${server.url}`);
 
       // First, let's check the initial health status
-      const initialHealth = await HttpClient.checkDualServerHealth(server.uiUrl, server.pipelineUrl);
-      console.log(`Initial health check - UI: ${initialHealth.uiHealthy}, Pipeline: ${initialHealth.pipelineHealthy}`);
+      const initialHealth = await HttpClient.checkServerAndPipelineHealth(server.url);
+      console.log(`Initial health check - Server: ${initialHealth.serverHealthy}, Pipeline: ${initialHealth.pipelineAccessible}, Manifest: ${initialHealth.manifestAccessible}`);
 
-      const serversHealthy = await HttpClient.waitForDualServers(
-        server.uiUrl,
-        server.pipelineUrl,
+      const serverHealthy = await HttpClient.waitForServerAndPipeline(
+        server.url,
         30, // 30 attempts
         2000 // 2 second delay
       );
 
-      if (!serversHealthy) {
-        const finalHealth = await HttpClient.checkDualServerHealth(server.uiUrl, server.pipelineUrl);
-        console.log(`Final health check - UI: ${finalHealth.uiHealthy}, Pipeline: ${finalHealth.pipelineHealthy}`);
+      if (!serverHealthy) {
+        const finalHealth = await HttpClient.checkServerAndPipelineHealth(server.url);
+        console.log(`Final health check - Server: ${finalHealth.serverHealthy}, Pipeline: ${finalHealth.pipelineAccessible}, Manifest: ${finalHealth.manifestAccessible}`);
       }
 
-      expect(serversHealthy).toBe(true);
+      expect(serverHealthy).toBe(true);
 
-      // Step 5: Verify UI server responds
-      console.log('🌐 Testing UI server response...');
-      const uiResponse = await HttpClient.request(server.uiUrl);
-      expect(uiResponse.success).toBe(true);
-      expect(uiResponse.statusCode).toBe(200);
-      expect(uiResponse.body).toContain('html'); // Should return HTML page
+      // Step 5: Verify server responds
+      console.log('🌐 Testing server response...');
+      const serverResponse = await HttpClient.request(server.url);
+      expect(serverResponse.success).toBe(true);
+      expect(serverResponse.statusCode).toBe(200);
+      expect(serverResponse.body).toContain('html'); // Should return HTML page
 
-      // Step 6: Verify pipeline server responds
-      console.log('⚙️  Testing pipeline server response...');
-      const pipelineHealthy = await HttpClient.isPipelineServerHealthy(server.pipelineUrl);
-      expect(pipelineHealthy).toBe(true);
+      // Step 6: Verify pipeline files are accessible as static assets
+      console.log('⚙️  Testing pipeline file accessibility...');
+      const pipelineAccessible = await HttpClient.isPipelineFileAccessible(server.url, '/temp/pipeline.js');
+      expect(pipelineAccessible).toBe(true);
 
       // Step 7: Get baseline for file watching
       console.log('📊 Establishing pipeline baseline...');
@@ -167,9 +164,9 @@ export function generateModel(params: Parameters): Manifold {
       expect(pipelineUpdate.pipelineChanged).toBe(true);
       expect(pipelineUpdate.manifestChanged).toBe(true);
 
-      // Step 10: Verify pipeline server still responds after rebuild
-      console.log('✅ Verifying pipeline server after rebuild...');
-      const postRebuildResponse = await HttpClient.request(`${server.pipelineUrl}/temp/pipeline.js`);
+      // Step 10: Verify pipeline files still accessible after rebuild
+      console.log('✅ Verifying pipeline files after rebuild...');
+      const postRebuildResponse = await HttpClient.request(`${server.url}/temp/pipeline.js`);
       expect(postRebuildResponse.success).toBe(true);
 
       console.log('🎉 CLI integration test completed successfully!');
@@ -183,26 +180,23 @@ export function generateModel(params: Parameters): Manifold {
       });
       expect(project.name).toBe('test-custom-ports');
 
-      // Start server with custom ports
+      // Start server with custom port
       serverManager = new ServerManager({
         projectPath: project.path,
-        uiPort: 3010,
-        pipelinePort: 3011,
+        port: 3010,
         timeout: 30000
       });
 
       server = await serverManager.startServer();
-      expect(server.uiPort).toBe(3010);
-      expect(server.pipelinePort).toBe(3011);
+      expect(server.port).toBe(3010);
 
-      // Verify servers respond on custom ports
-      const serversHealthy = await HttpClient.waitForDualServers(
-        server.uiUrl,
-        server.pipelineUrl,
+      // Verify server responds on custom port
+      const serverHealthy = await HttpClient.waitForServerAndPipeline(
+        server.url,
         20,
         1000
       );
-      expect(serversHealthy).toBe(true);
+      expect(serverHealthy).toBe(true);
     }, 60000);
   });
 

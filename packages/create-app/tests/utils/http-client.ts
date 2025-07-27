@@ -113,62 +113,57 @@ export class HttpClient {
   }
 
   /**
-   * Check if both UI and pipeline servers are healthy
+   * Check if pipeline files are accessible as static assets from the server
    */
-  static async checkDualServerHealth(uiUrl: string, pipelineUrl: string, timeout: number = 5000): Promise<{
-    uiHealthy: boolean;
-    pipelineHealthy: boolean;
-    bothHealthy: boolean;
-  }> {
-    const [uiHealthy, pipelineHealthy] = await Promise.all([
-      this.isServerHealthy(uiUrl, timeout),
-      this.isPipelineServerHealthy(pipelineUrl, timeout)
-    ]);
-
-    return {
-      uiHealthy,
-      pipelineHealthy,
-      bothHealthy: uiHealthy && pipelineHealthy
-    };
-  }
-
-  /**
-   * Check if the pipeline server is healthy using its specific health endpoint
-   */
-  static async isPipelineServerHealthy(pipelineUrl: string, timeout: number = 5000): Promise<boolean> {
+  static async isPipelineFileAccessible(serverUrl: string, filePath: string, timeout: number = 5000): Promise<boolean> {
     try {
-      // Pipeline server has a specific health endpoint at /api/pipeline/health
-      const healthUrl = `${pipelineUrl}/api/pipeline/health`;
-      const response = await this.request(healthUrl, { timeout });
-
-      if (response.success && response.body) {
-        // Check if the response has the expected structure
-        const healthData = JSON.parse(response.body);
-        return healthData.status === 'ok';
-      }
-
-      return false;
+      // Pipeline files are now served as static assets from /temp/
+      const fileUrl = `${serverUrl}${filePath}`;
+      const response = await this.request(fileUrl, { timeout });
+      return response.success;
     } catch (error) {
-      console.log(`Pipeline health check failed for ${pipelineUrl}: ${error instanceof Error ? error.message : String(error)}`);
+      console.log(`Pipeline file check failed for ${serverUrl}${filePath}: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
   }
 
   /**
-   * Wait for both servers to become healthy
+   * Check if both the server and pipeline files are accessible
    */
-  static async waitForDualServers(
-    uiUrl: string,
-    pipelineUrl: string,
+  static async checkServerAndPipelineHealth(serverUrl: string, timeout: number = 5000): Promise<{
+    serverHealthy: boolean;
+    pipelineAccessible: boolean;
+    manifestAccessible: boolean;
+    allHealthy: boolean;
+  }> {
+    const [serverHealthy, pipelineAccessible, manifestAccessible] = await Promise.all([
+      this.isServerHealthy(serverUrl, timeout),
+      this.isPipelineFileAccessible(serverUrl, '/temp/pipeline.js', timeout),
+      this.isPipelineFileAccessible(serverUrl, '/temp/manifest.json', timeout)
+    ]);
+
+    return {
+      serverHealthy,
+      pipelineAccessible,
+      manifestAccessible,
+      allHealthy: serverHealthy && pipelineAccessible && manifestAccessible
+    };
+  }
+
+  /**
+   * Wait for server and pipeline files to become accessible
+   */
+  static async waitForServerAndPipeline(
+    serverUrl: string,
     maxAttempts: number = 30,
     delayMs: number = 1000
   ): Promise<boolean> {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      const health = await this.checkDualServerHealth(uiUrl, pipelineUrl);
+      const health = await this.checkServerAndPipelineHealth(serverUrl);
 
-      console.log(`Health check attempt ${attempt}/${maxAttempts} - UI: ${health.uiHealthy}, Pipeline: ${health.pipelineHealthy}`);
+      console.log(`Health check attempt ${attempt}/${maxAttempts} - Server: ${health.serverHealthy}, Pipeline: ${health.pipelineAccessible}, Manifest: ${health.manifestAccessible}`);
 
-      if (health.bothHealthy) {
+      if (health.allHealthy) {
         return true;
       }
 

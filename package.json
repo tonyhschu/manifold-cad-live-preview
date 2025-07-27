@@ -9,7 +9,8 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "pretest": "node scripts/check-build-before-test.js",
-    "test": "npm run test --workspaces",
+    "test": "node scripts/test-summary.js",
+    "test:all": "npm run test --workspaces",
     "test:wrapper": "npm run test --workspace @manifold-studio/wrapper",
     "test:configurator": "npm run test --workspace @manifold-studio/configurator",
     "test:create-app": "npm run test --workspace @manifold-studio/create-app",

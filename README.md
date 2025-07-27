@@ -432,7 +432,8 @@ npm run dev:create-app            # Create-app in watch mode
 
 # Building and testing
 npm run build                     # Build all packages
-npm run test                      # Test all packages (unit tests)
+npm run test                      # Test all packages with aggregated summary
+npm run test:all                  # Test all packages (raw workspace output)
 npm run test:e2e                  # End-to-end browser tests with Playwright
 npm run test:wrapper              # Test wrapper package only
 npm run test:configurator         # Test configurator package only

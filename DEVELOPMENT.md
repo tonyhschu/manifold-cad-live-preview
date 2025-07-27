@@ -356,14 +356,24 @@ npm run dev  # Uses CLI automatically
 #### Unit Tests
 
 ```bash
-# All packages
+# All packages with aggregated summary (recommended)
 npm test
+
+# All packages with raw workspace output
+npm run test:all
 
 # Individual packages
 npm run test:wrapper
 npm run test:configurator
 npm run test:create-app
 ```
+
+**Test Summary Features:**
+
+- **Aggregated Results**: Shows combined totals across all packages
+- **Color-coded Output**: Green for passed, yellow for skipped, red for failed
+- **Per-package Breakdown**: Individual results for each package
+- **Duration Tracking**: Shows test execution time for each package
 
 **Note**: After V3 consolidation, configurator tests now require V3 bridge system mocking for components that use the unified state management.
 
@@ -744,7 +754,8 @@ cd packages/wrapper && npm run build:lib -- --watch  # Only if changing wrapper
 cd packages/create-app && npm run test:scaffold       # Create-app scaffolding test
 
 # Testing
-npm test                           # All unit tests
+npm test                           # All unit tests with aggregated summary
+npm run test:all                   # All unit tests (raw workspace output)
 npm run test:e2e                   # End-to-end browser tests
 npm run test:e2e:ui                # E2E tests with interactive UI
 cd packages/create-app && npm run test:scaffold   # Test scaffolding

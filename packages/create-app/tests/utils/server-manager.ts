@@ -3,18 +3,15 @@ import { ProcessRunner, ProcessResult } from './process-runner.js';
 
 export interface ServerInstance {
   childProcess: ChildProcess;
-  uiPort: number;
-  pipelinePort: number;
+  port: number;
   name: string;
-  uiUrl: string;
-  pipelineUrl: string;
+  url: string;
   ready: boolean;
 }
 
 export interface ServerManagerOptions {
   projectPath: string;
-  uiPort?: number;
-  pipelinePort?: number;
+  port?: number;
   timeout?: number;
   silent?: boolean;
 }
@@ -29,8 +26,7 @@ export class ServerManager {
 
   constructor(options: ServerManagerOptions) {
     this.options = {
-      uiPort: 3000,
-      pipelinePort: 3001,
+      port: 3000,
       timeout: 30000,
       silent: false,
       ...options
@@ -41,14 +37,14 @@ export class ServerManager {
    * Start the CLI development server (manifold-studio dev)
    */
   async startServer(): Promise<ServerInstance> {
-    const { projectPath, uiPort, pipelinePort, timeout, silent } = this.options;
+    const { projectPath, port, timeout, silent } = this.options;
 
     if (!silent) {
-      console.log(`🚀 Starting CLI development server (UI: ${uiPort}, Pipeline: ${pipelinePort})...`);
+      console.log(`🚀 Starting CLI development server on port ${port}...`);
     }
 
     return new Promise((resolve, reject) => {
-      const childProcess = spawn('npx', ['manifold-studio', 'dev', '--port', uiPort.toString(), '--pipeline-port', pipelinePort.toString()], {
+      const childProcess = spawn('npx', ['manifold-studio', 'dev', '--port', port.toString()], {
         cwd: projectPath,
         env: {
           ...process.env,
@@ -59,11 +55,9 @@ export class ServerManager {
 
       const server: ServerInstance = {
         childProcess,
-        uiPort,
-        pipelinePort,
+        port,
         name: 'cli-dev',
-        uiUrl: `http://localhost:${uiPort}`,
-        pipelineUrl: `http://localhost:${pipelinePort}`,
+        url: `http://localhost:${port}`,
         ready: false
       };
 
@@ -93,8 +87,8 @@ export class ServerManager {
         }
 
         // Look for CLI server ready indicators
-        // The CLI outputs "✅ Development servers started!" when both servers are ready
-        if (text.includes('Development servers started!')) {
+        // The CLI outputs "✅ Development server started!" when the server is ready
+        if (text.includes('Development server started!')) {
           server.ready = true;
           if (timeoutId) clearTimeout(timeoutId);
           this.server = server;

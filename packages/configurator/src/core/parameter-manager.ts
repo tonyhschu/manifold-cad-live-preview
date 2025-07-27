@@ -140,6 +140,8 @@ export class ParameterManager {
       this.params[key] = value;
       this.renderModel();
       // TODO: Update UI to reflect programmatic changes
+    } else {
+      console.warn(`Parameter '${key}' does not exist in config`);
     }
   }
 
