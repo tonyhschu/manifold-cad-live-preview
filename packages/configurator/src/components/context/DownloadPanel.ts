@@ -8,8 +8,7 @@
  */
 
 import { v3Signals, v3Actions } from '../../state/v3-bridge';
-import { getExportService, getModelService } from '../../services';
-import type { ExportFormat } from '../../services/interfaces';
+import { getExportService } from '../../services';
 
 export class DownloadPanel extends HTMLElement {
   private containerElement: HTMLElement | null = null;
@@ -61,15 +60,6 @@ export class DownloadPanel extends HTMLElement {
     // Initial render
     this.renderDownloadButton();
     this.updateExportAvailability(!!v3Signals.selectedModel.value && !!v3Signals.currentModel.value);
-  }
-  
-  disconnectedCallback() {
-    
-    // Clean up subscription when element is removed
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
-    }
   }
   
   /**
