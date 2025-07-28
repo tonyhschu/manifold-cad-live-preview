@@ -3,11 +3,18 @@
   "version": "1.0.0",
   "description": "Minimal test project for integration testing",
   "type": "module",
+  "scripts": {
+    "dev": "manifold-studio dev",
+    "build": "echo 'Build not needed - CLI handles compilation'",
+    "test": "vitest"
+  },
   "dependencies": {
-    "manifold-3d": "^2.5.1",
-    "@manifold-studio/wrapper": "^1.0.0"
+    "manifold-3d": "^3.1.1"
   },
   "devDependencies": {
-    "typescript": "^5.0.2"
+    "@manifold-studio/configurator": "file:../../../packages/configurator",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.2",
+    "vitest": "^1.0.0"
   }
 }

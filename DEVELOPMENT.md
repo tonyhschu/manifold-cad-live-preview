@@ -356,24 +356,28 @@ npm run dev  # Uses CLI automatically
 #### Unit Tests
 
 ```bash
-# All packages with aggregated summary (recommended)
+# All packages with Vitest workspace (recommended)
 npm test
 
-# All packages with raw workspace output
-npm run test:all
+# Watch mode for development
+npm run test:watch
 
-# Individual packages
+# Interactive UI mode
+npm run test:ui
+
+# Individual packages (if needed)
 npm run test:wrapper
 npm run test:configurator
 npm run test:create-app
 ```
 
-**Test Summary Features:**
+**Vitest Workspace Features:**
 
-- **Aggregated Results**: Shows combined totals across all packages
-- **Color-coded Output**: Green for passed, yellow for skipped, red for failed
-- **Per-package Breakdown**: Individual results for each package
-- **Duration Tracking**: Shows test execution time for each package
+- **Native Aggregation**: Built-in cross-package test aggregation via `vitest.workspace.ts`
+- **Detailed Failure Reporting**: Shows exactly which tests failed and why
+- **Proper Exit Codes**: Automatic CI/CD compatibility
+- **Watch Mode**: Real-time test running during development
+- **Interactive UI**: Browser-based test interface with `npm run test:ui`
 
 **Note**: After V3 consolidation, configurator tests now require V3 bridge system mocking for components that use the unified state management.
 
@@ -754,8 +758,9 @@ cd packages/wrapper && npm run build:lib -- --watch  # Only if changing wrapper
 cd packages/create-app && npm run test:scaffold       # Create-app scaffolding test
 
 # Testing
-npm test                           # All unit tests with aggregated summary
-npm run test:all                   # All unit tests (raw workspace output)
+npm test                           # All unit tests with Vitest workspace
+npm run test:watch                 # Watch mode for development
+npm run test:ui                    # Interactive browser-based test UI
 npm run test:e2e                   # End-to-end browser tests
 npm run test:e2e:ui                # E2E tests with interactive UI
 cd packages/create-app && npm run test:scaffold   # Test scaffolding

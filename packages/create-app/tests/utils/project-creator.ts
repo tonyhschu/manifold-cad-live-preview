@@ -21,7 +21,7 @@ export interface CreatedProject {
  * Utility for creating test projects using the create-app CLI
  */
 export class ProjectCreator {
-  private static readonly CREATE_APP_PATH = join(process.cwd(), 'bin', 'index.js');
+  private static readonly CREATE_APP_PATH = join(process.cwd(), 'packages', 'create-app', 'bin', 'index.js');
 
   /**
    * Create a new project using the create-app CLI

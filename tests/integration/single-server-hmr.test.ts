@@ -81,11 +81,18 @@ describe('🎯 Single-Server HMR Integration', () => {
 
     const manifestContent = await fs.readFile(manifestPath, 'utf-8');
     const manifest = JSON.parse(manifestContent);
-    
+
     expect(manifest).toHaveProperty('models');
-    expect(manifest.models).toHaveProperty('main');
-    expect(manifest.models.main).toHaveProperty('name', 'Test Cube');
-    expect(manifest.models).toHaveProperty('components/simple-cube');
+    expect(Array.isArray(manifest.models)).toBe(true);
+
+    // Find main model
+    const mainModel = manifest.models.find((m: any) => m.id === 'main');
+    expect(mainModel).toBeDefined();
+    expect(mainModel.name).toBe('Test Cube');
+
+    // Find component model
+    const componentModel = manifest.models.find((m: any) => m.id === 'components/simple-cube');
+    expect(componentModel).toBeDefined();
   }, 15000);
 
   it('should regenerate pipeline files when component is modified', async () => {
@@ -202,39 +209,56 @@ async function startDevServer(projectPath: string): Promise<{ process: ChildProc
 
 async function waitForInitialCompilation(logs: string[], timeoutMs: number): Promise<void> {
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < timeoutMs) {
     const allLogs = logs.join('\n');
-    
-    // Look for successful compilation indicators
-    if (allLogs.includes('🌐 UI Server:') || allLogs.includes('Local:')) {
-      // Wait a bit more for file generation to complete
-      await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Look for the actual success messages from the pipeline compiler
+    if (allLogs.includes('✅ Manifest re-written successfully after Vite build') ||
+        allLogs.includes('✅ Vite build completed successfully') ||
+        allLogs.includes('✅ Manifest written successfully') ||
+        allLogs.includes('Pipeline compilation completed')) {
+      console.log('DEBUG: Initial compilation completed successfully');
       return;
     }
-    
+
+    // Also check for error conditions to fail fast
+    if (allLogs.includes('Vite build failed') || allLogs.includes('ERROR')) {
+      throw new Error(`Compilation failed. Logs: ${allLogs}`);
+    }
+
     await new Promise(resolve => setTimeout(resolve, 100));
   }
-  
-  throw new Error(`Initial compilation did not complete within ${timeoutMs}ms`);
+
+  console.log('DEBUG: Compilation timeout. Recent logs:');
+  console.log(logs.slice(-20).join('\n'));
+  throw new Error(`Initial compilation did not complete within ${timeoutMs}ms. Check logs above.`);
 }
 
 async function waitForRecompilation(logs: string[], timeoutMs: number): Promise<void> {
   const startTime = Date.now();
   const initialLogCount = logs.length;
-  
+
   while (Date.now() - startTime < timeoutMs) {
     // Look for new logs indicating recompilation
     const newLogs = logs.slice(initialLogCount).join('\n');
-    
-    if (newLogs.includes('page reload') || newLogs.includes('hmr update') || newLogs.includes('✅ V3 Pipeline compiled')) {
+
+    // Look for the actual success messages from the pipeline compiler
+    if (newLogs.includes('✅ Manifest re-written successfully after Vite build') ||
+        newLogs.includes('✅ Vite build completed successfully') ||
+        newLogs.includes('✅ Manifest written successfully') ||
+        newLogs.includes('Pipeline compilation completed') ||
+        newLogs.includes('page reload') ||
+        newLogs.includes('hmr update')) {
       // Wait a bit for file operations to complete
       await new Promise(resolve => setTimeout(resolve, 500));
       return;
     }
-    
+
     await new Promise(resolve => setTimeout(resolve, 100));
   }
-  
-  throw new Error(`Recompilation did not complete within ${timeoutMs}ms`);
+
+  console.log('DEBUG: Recompilation timeout. Recent new logs:');
+  console.log(logs.slice(initialLogCount).join('\n'));
+  throw new Error(`Recompilation did not complete within ${timeoutMs}ms. Check logs above.`);
 }

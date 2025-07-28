@@ -47,8 +47,8 @@ describe('CLI Workflow Integration', () => {
     const projectName = 'test-cli-project';
     const projectPath = path.join(testWorkspaceDir, projectName);
 
-    // Run CLI create command
-    const createResult = await runCommand('npx', ['@manifold-studio/configurator', 'create', projectName], {
+    // Run CLI create command using the correct create-app tool
+    const createResult = await runCommand('node', [path.join(process.cwd(), 'packages/create-app/bin/index.js'), projectName, '--no-install'], {
       cwd: testWorkspaceDir,
       timeout: 30000
     });
@@ -68,17 +68,17 @@ describe('CLI Workflow Integration', () => {
     // Verify package.json has correct dependencies
     const packageJsonContent = await fs.readFile(path.join(projectPath, 'package.json'), 'utf-8');
     const packageJson = JSON.parse(packageJsonContent);
-    
+
     expect(packageJson.dependencies).toHaveProperty('manifold-3d');
-    expect(packageJson.dependencies).toHaveProperty('@manifold-studio/wrapper');
+    expect(packageJson.devDependencies).toHaveProperty('@manifold-studio/configurator');
   }, 45000);
 
   it('should start dev server on created project', async () => {
     const projectName = 'test-dev-project';
     const projectPath = path.join(testWorkspaceDir, projectName);
 
-    // Create project first
-    await runCommand('npx', ['@manifold-studio/configurator', 'create', projectName], {
+    // Create project first using the correct create-app tool
+    await runCommand('node', [path.join(process.cwd(), 'packages/create-app/bin/index.js'), projectName, '--no-install'], {
       cwd: testWorkspaceDir,
       timeout: 30000
     });
@@ -112,8 +112,8 @@ describe('CLI Workflow Integration', () => {
     const projectName = 'test-components-project';
     const projectPath = path.join(testWorkspaceDir, projectName);
 
-    // Create project
-    await runCommand('npx', ['@manifold-studio/configurator', 'create', projectName], {
+    // Create project using the correct create-app tool
+    await runCommand('node', [path.join(process.cwd(), 'packages/create-app/bin/index.js'), projectName, '--no-install'], {
       cwd: testWorkspaceDir,
       timeout: 30000
     });
@@ -123,24 +123,20 @@ describe('CLI Workflow Integration', () => {
     await fs.mkdir(componentsDir, { recursive: true });
     
     const componentContent = `
-import { Manifold } from 'manifold-3d';
+// Test component for integration testing
+import { Manifold, P, createConfig } from "@manifold-studio/wrapper";
 
-export interface TestComponentParams {
-  radius: number;
-}
-
-export const parameters: TestComponentParams = {
-  radius: 5
-};
-
-export default function testComponent({ radius }: TestComponentParams): Manifold {
-  return Manifold.sphere(radius);
-}
-
-export const metadata = {
-  name: 'Test Component',
-  description: 'A test component'
-};
+// Export parametric config as default for UI compatibility
+export default createConfig(
+  {
+    radius: P.number(5, 1, 20, 0.5)
+  },
+  (params) => Manifold.sphere(params.radius),
+  {
+    name: "Test Component",
+    description: "A test component for integration testing"
+  }
+);
 `;
     
     await fs.writeFile(path.join(componentsDir, 'test-component.ts'), componentContent);
@@ -157,9 +153,20 @@ export const metadata = {
     const manifestContent = await fs.readFile(manifestPath, 'utf-8');
     const manifest = JSON.parse(manifestContent);
 
-    expect(manifest.models).toHaveProperty('main');
-    expect(manifest.models).toHaveProperty('components/test-component');
-    expect(manifest.models['components/test-component']).toHaveProperty('name', 'Test Component');
+
+
+    // Models is an array, not an object
+    expect(Array.isArray(manifest.models)).toBe(true);
+    expect(manifest.models.length).toBeGreaterThanOrEqual(2);
+
+    // Find main model
+    const mainModel = manifest.models.find((m: any) => m.id === 'main');
+    expect(mainModel).toBeDefined();
+
+    // Find component model
+    const componentModel = manifest.models.find((m: any) => m.id === 'components/test-component');
+    expect(componentModel).toBeDefined();
+    expect(componentModel.name).toBe('Test Component');
   }, 60000);
 });
 
@@ -199,8 +206,9 @@ async function runCommand(
 
 async function startDevServerAsync(projectPath: string): Promise<{ process: ChildProcess; logs: string[] }> {
   const logs: string[] = [];
-  
-  const proc = spawn('npx', ['@manifold-studio/configurator', 'dev'], {
+
+  // Use the correct CLI path for the configurator dev command
+  const proc = spawn('node', [path.join(process.cwd(), 'packages/configurator/dist/cli/index.js'), 'dev'], {
     cwd: projectPath,
     stdio: ['pipe', 'pipe', 'pipe']
   });

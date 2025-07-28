@@ -22,10 +22,12 @@ const rootDir = join(__dirname, '..');
 const REQUIRED_BUILD_FILES = [
   // Configurator CLI build
   'packages/configurator/dist/cli/index.js',
-  // Configurator lib build  
+  // Configurator lib build
   'packages/configurator/dist/lib/index.js',
   // Wrapper build
-  'packages/wrapper/dist/index.js'
+  'packages/wrapper/dist/index.js',
+  // Create-app CLI build
+  'packages/create-app/bin/index.js'
 ];
 
 /**
@@ -35,7 +37,8 @@ const SOURCE_FILES_TO_CHECK = [
   'packages/configurator/src/pipeline-compiler/index.ts',
   'packages/configurator/src/pipeline-compiler/file-discovery.ts',
   'packages/configurator/src/pipeline-compiler/model-compiler.ts',
-  'packages/configurator/src/cli/index.ts'
+  'packages/configurator/src/cli/index.ts',
+  'packages/create-app/src/index.ts'
 ];
 
 function checkFileExists(filePath) {
