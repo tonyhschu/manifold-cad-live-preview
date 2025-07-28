@@ -16,6 +16,8 @@ export interface ServerManagerOptions {
   silent?: boolean;
 }
 
+
+
 /**
  * Manages CLI development server for testing
  * Handles starting/stopping the unified manifold-studio server with proper cleanup
@@ -107,7 +109,9 @@ export class ServerManager {
       childProcess.on('exit', (code) => {
         if (timeoutId) clearTimeout(timeoutId);
         if (!server.ready) {
-          reject(new Error(`CLI development server exited with code ${code}`));
+          console.error(`[DEBUG] CLI server exited with code ${code}`);
+          console.error(`[DEBUG] Server output:\n${output}`);
+          reject(new Error(`CLI development server exited with code ${code}. Output: ${output.slice(-500)}`));
         }
       });
     });

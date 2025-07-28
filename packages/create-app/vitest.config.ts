@@ -3,13 +3,11 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    // Enable parallel execution for independent tests
-    pool: 'threads',
+    // Use forks with singleFork for integration tests to avoid port conflicts
+    pool: 'forks',
     poolOptions: {
-      threads: {
-        // Limit concurrent threads to avoid resource exhaustion
-        maxThreads: 4,
-        minThreads: 1,
+      forks: {
+        singleFork: true, // Ensure tests run completely sequentially
       }
     },
     // Increase timeout for integration tests
