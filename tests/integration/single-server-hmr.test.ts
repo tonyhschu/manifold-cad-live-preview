@@ -185,8 +185,9 @@ describe('🎯 Single-Server HMR Integration', () => {
 // Helper functions
 async function startDevServer(projectPath: string): Promise<{ process: ChildProcess; logs: string[] }> {
   const logs: string[] = [];
-  
-  const proc = spawn('npx', ['@manifold-studio/configurator', 'dev'], {
+
+  // Use the correct CLI path for the configurator dev command
+  const proc = spawn('node', [path.join(process.cwd(), 'packages/configurator/dist/cli/index.js'), 'dev'], {
     cwd: projectPath,
     stdio: ['pipe', 'pipe', 'pipe']
   });
@@ -219,6 +220,8 @@ async function waitForInitialCompilation(logs: string[], timeoutMs: number): Pro
         allLogs.includes('✅ Manifest written successfully') ||
         allLogs.includes('Pipeline compilation completed')) {
       console.log('DEBUG: Initial compilation completed successfully');
+      // Wait a bit for file operations to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
       return;
     }
 

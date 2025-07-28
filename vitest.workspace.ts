@@ -11,7 +11,14 @@ export default defineWorkspace([
     test: {
       include: ['tests/integration/**/*.test.ts'],
       name: 'integration',
-      environment: 'node'
+      environment: 'node',
+      // Run integration tests sequentially to avoid port conflicts
+      pool: 'forks',
+      poolOptions: {
+        forks: {
+          singleFork: true
+        }
+      }
     }
   }
 ])
