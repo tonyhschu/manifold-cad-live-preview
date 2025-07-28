@@ -1,4 +1,8 @@
 import { Page } from '@playwright/test';
+import { createSelectors, ManifoldStudioSelectors } from './selectors';
+
+// Re-export for convenience
+export { createSelectors, ManifoldStudioSelectors };
 
 /**
  * Test utilities for E2E tests
@@ -9,6 +13,7 @@ import { Page } from '@playwright/test';
  * - Model loading and selection workflows
  *
  * These utilities help make tests more reliable and reduce code duplication.
+ * Updated to use semantic selectors following Kent C. Dodds' philosophy.
  */
 
 /**
@@ -66,34 +71,73 @@ export async function evaluateWithRetry<T>(
 
 /**
  * Waits for model loading to complete by checking for the success message.
- * 
+ * Uses semantic selectors to find the success message.
+ *
  * @param page - Playwright page instance
  * @param timeout - Maximum time to wait in milliseconds (default: 10000)
  */
 export async function waitForModelLoaded(page: Page, timeout: number = 10000): Promise<void> {
-  await page.waitForSelector('text=Model loaded successfully', { timeout });
+  const selectors = createSelectors(page);
+  await selectors.successMessage.waitFor({ state: 'visible', timeout });
 }
 
 /**
  * Selects a model and waits for it to load completely.
- * 
+ * Uses semantic selectors to interact with the model selector.
+ *
  * @param page - Playwright page instance
  * @param modelValue - The value attribute of the model option to select
  * @param waitForStable - Whether to wait for parametric panel to stabilize (default: true)
  */
 export async function selectModelAndWait(
-  page: Page, 
-  modelValue: string, 
+  page: Page,
+  modelValue: string,
   waitForStable: boolean = true
 ): Promise<void> {
-  const selectElement = page.locator('#model-select');
-  await selectElement.selectOption({ value: modelValue });
-  
+  const selectors = createSelectors(page);
+  await selectors.selectModelByValue(modelValue);
+
   // Wait for model to load
   await waitForModelLoaded(page);
-  
+
   // Wait for parametric panel to stabilize if requested
   if (waitForStable) {
     await waitForParametricPanelStable(page);
   }
+}
+
+/**
+ * Selects a model by name (user-friendly) and waits for it to load.
+ *
+ * @param page - Playwright page instance
+ * @param modelName - The display name of the model to select
+ * @param waitForStable - Whether to wait for parametric panel to stabilize (default: true)
+ */
+export async function selectModelByNameAndWait(
+  page: Page,
+  modelName: string,
+  waitForStable: boolean = true
+): Promise<void> {
+  const selectors = createSelectors(page);
+  await selectors.selectModel(modelName);
+
+  // Wait for model to load
+  await waitForModelLoaded(page);
+
+  // Wait for parametric panel to stabilize if requested
+  if (waitForStable) {
+    await waitForParametricPanelStable(page);
+  }
+}
+
+/**
+ * Waits for the application to be ready for testing.
+ * Uses semantic selectors to determine when the app is loaded.
+ *
+ * @param page - Playwright page instance
+ * @param timeout - Maximum time to wait in milliseconds (default: 10000)
+ */
+export async function waitForAppReady(page: Page, timeout: number = 10000): Promise<void> {
+  const selectors = createSelectors(page);
+  await selectors.waitForAppReady();
 }

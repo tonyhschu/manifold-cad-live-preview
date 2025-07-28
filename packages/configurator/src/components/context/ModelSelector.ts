@@ -96,9 +96,11 @@ export class ModelSelector extends HTMLElement {
     label.htmlFor = 'model-select';
     this.containerElement.appendChild(label);
 
-    // Create select element
+    // Create select element with semantic attributes
     const select = document.createElement('select');
     select.id = 'model-select';
+    select.setAttribute('aria-label', 'Select a 3D model to view and configure');
+    select.setAttribute('role', 'combobox');
 
     // Add options for each available model from V3 system
     v3Signals.availableModels.value.forEach(model => {

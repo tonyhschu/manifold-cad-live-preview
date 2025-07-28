@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { selectModelAndWait } from './test-utils';
+import { selectModelAndWait, createSelectors, waitForAppReady, waitForParametricPanelStable } from './test-utils';
 
 /**
  * Parameter Editing UI Tests
@@ -32,26 +32,27 @@ test.describe('Parameter Editing Tests', () => {
       return viewer !== null;
     }, { timeout: 20000 });
 
-    // Now wait for the viewer and model selector to be visible
+    // Now wait for the viewer and model selector to be visible using semantic selectors
     await expect(page.locator('#viewer')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('#model-select')).toBeVisible({ timeout: 10000 });
+    await waitForAppReady(page);
   });
 
   test('should display parameter controls for the selected model', async ({ page }) => {
-    // Verify parameter panel component is present
-    const parameterPanel = page.locator('parametric-panel');
-    await expect(parameterPanel).toBeVisible();
+    const selectors = createSelectors(page);
+
+    // Verify parameter panel component is present using semantic selector
+    await expect(selectors.parametersSection).toBeVisible();
 
     // Verify the tweakpane container is present
-    const tweakpaneContainer = parameterPanel.locator('#tweakpane-container');
+    const tweakpaneContainer = selectors.parametersSection.locator('#tweakpane-container');
     await expect(tweakpaneContainer).toBeVisible();
 
     // Select a parametric model and wait for it to load
     await selectModelAndWait(page, 'main');
 
     // Check for different types of parameter controls
-    const tweakpaneControls = parameterPanel.locator('.tp-dfwv');
-    const textboxControls = parameterPanel.locator('input[type="text"], textbox');
+    const tweakpaneControls = selectors.parametersSection.locator('.tp-dfwv');
+    const textboxControls = selectors.parametersSection.locator('input[type="text"], textbox');
 
     // Handle potential execution context destruction during navigation
     let tweakpaneCount: number, textboxCount: number;
@@ -62,7 +63,7 @@ test.describe('Parameter Editing Tests', () => {
       if (error.message.includes('Execution context was destroyed')) {
         // Wait for page to stabilize and try again
         await page.waitForTimeout(1000);
-        await expect(parameterPanel).toBeVisible();
+        await expect(selectors.parametersSection).toBeVisible();
         tweakpaneCount = await tweakpaneControls.count();
         textboxCount = await textboxControls.count();
       } else {
@@ -84,27 +85,37 @@ test.describe('Parameter Editing Tests', () => {
   });
 
   test('should update model when parameter values change', async ({ page }) => {
-    const selectElement = page.locator('#model-select');
-    const parameterPanel = page.locator('parametric-panel');
+    const selectors = createSelectors(page);
     const viewer = page.locator('#viewer');
 
-    // Select a parametric model
-    await selectElement.selectOption({ value: 'main' });
+    // Select a parametric model using semantic selector
+    await selectors.modelSelector.selectOption({ value: 'main' });
 
     // Wait for parameter controls to load
-    await page.pause();
     await page.waitForTimeout(3000);
 
-    // Check if there are any parameter controls
-    const tweakpaneControls = parameterPanel.locator('.tp-dfwv');
-    const controlCount = await tweakpaneControls.count();
+    // Check if there are any parameter controls (handle potential navigation)
+    const tweakpaneControls = selectors.parametersSection.locator('.tp-dfwv');
+    let controlCount: number;
+    try {
+      controlCount = await tweakpaneControls.count();
+    } catch (error: any) {
+      if (error.message.includes('Execution context was destroyed')) {
+        // Wait for page to stabilize and try again
+        await page.waitForTimeout(1000);
+        await expect(selectors.parametersSection).toBeVisible();
+        controlCount = await tweakpaneControls.count();
+      } else {
+        throw error;
+      }
+    }
 
     if (controlCount > 0) {
       // Get initial model source
       const initialSrc = await viewer.getAttribute('src');
 
       // Find input controls (number inputs, sliders, etc.)
-      const numberInputs = parameterPanel.locator('.tp-txtv_i');
+      const numberInputs = selectors.parametersSection.locator('.tp-txtv_i');
       const inputCount = await numberInputs.count();
 
       if (inputCount > 0) {
@@ -140,17 +151,16 @@ test.describe('Parameter Editing Tests', () => {
   });
 
   test('should validate parameter ranges', async ({ page }) => {
-    const selectElement = page.locator('#model-select');
-    const parameterPanel = page.locator('parametric-panel');
+    const selectors = createSelectors(page);
 
-    // Select a parametric model
-    await selectElement.selectOption({ value: 'main' });
+    // Select a parametric model using semantic selector
+    await selectors.modelSelector.selectOption({ value: 'main' });
 
     // Wait for parameter controls to load
     await page.waitForTimeout(3000);
 
     // Check if there are any parameter controls (handle potential navigation)
-    const numberInputs = parameterPanel.locator('.tp-txtv_i');
+    const numberInputs = selectors.parametersSection.locator('.tp-txtv_i');
     let inputCount: number;
     try {
       inputCount = await numberInputs.count();
@@ -158,7 +168,7 @@ test.describe('Parameter Editing Tests', () => {
       if (error.message.includes('Execution context was destroyed')) {
         // Wait for page to stabilize and try again
         await page.waitForTimeout(1000);
-        await expect(parameterPanel).toBeVisible();
+        await expect(selectors.parametersSection).toBeVisible();
         inputCount = await numberInputs.count();
       } else {
         throw error;
@@ -201,23 +211,22 @@ test.describe('Parameter Editing Tests', () => {
   });
 
   test('should reset parameters to default values', async ({ page }) => {
-    const selectElement = page.locator('#model-select');
-    const parameterPanel = page.locator('parametric-panel');
+    const selectors = createSelectors(page);
 
-    // Select a parametric model
-    await selectElement.selectOption({ value: 'main' });
+    // Select a parametric model using semantic selector
+    await selectors.modelSelector.selectOption({ value: 'main' });
 
     // Wait for parameter controls to load
     await page.waitForTimeout(3000);
 
     // Check if there are parameter controls and a reset button
-    const resetButton = parameterPanel.locator('#reset-parameters-btn');
-    const numberInputs = parameterPanel.locator('.tp-txtv_i');
+    const resetButton = selectors.parametersSection.locator('#reset-parameters-btn');
+    const numberInputs = selectors.parametersSection.locator('.tp-txtv_i');
     const inputCount = await numberInputs.count();
 
     if (inputCount > 0) {
       // Get initial values
-      const initialValues = [];
+      const initialValues: string[] = [];
       for (let i = 0; i < Math.min(inputCount, 3); i++) {
         const value = await numberInputs.nth(i).inputValue();
         initialValues.push(value);
@@ -251,17 +260,16 @@ test.describe('Parameter Editing Tests', () => {
   });
 
   test('should handle parameter changes without errors', async ({ page }) => {
-    const selectElement = page.locator('#model-select');
-    const parameterPanel = page.locator('parametric-panel');
+    const selectors = createSelectors(page);
 
-    // Select a parametric model
-    await selectElement.selectOption({ value: 'main' });
+    // Select a parametric model using semantic selector
+    await selectors.modelSelector.selectOption({ value: 'main' });
 
     // Wait for parameter controls to load
     await page.waitForTimeout(3000);
 
     // Check if there are parameter controls
-    const numberInputs = parameterPanel.locator('.tp-txtv_i');
+    const numberInputs = selectors.parametersSection.locator('.tp-txtv_i');
     const inputCount = await numberInputs.count();
 
     if (inputCount > 0) {
@@ -299,7 +307,7 @@ test.describe('Parameter Editing Tests', () => {
       expect(criticalErrors.length).toBeLessThan(3);
 
       // Verify the UI is still functional
-      await expect(parameterPanel).toBeVisible();
+      await expect(selectors.parametersSection).toBeVisible();
       await expect(page.locator('#viewer')).toBeVisible();
     }
   });

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { evaluateWithRetry, waitForParametricPanelStable } from './test-utils';
+import { evaluateWithRetry, waitForParametricPanelStable, createSelectors, waitForAppReady } from './test-utils';
 
 /**
  * Model Switching UI Tests
@@ -32,22 +32,19 @@ test.describe('Model Switching Tests', () => {
       return viewer !== null;
     }, { timeout: 20000 });
 
-    // Now wait for the viewer and model selector to be visible
+    // Now wait for the viewer and model selector to be visible using semantic selectors
     await expect(page.locator('#viewer')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('#model-select')).toBeVisible({ timeout: 10000 });
+    await waitForAppReady(page);
   });
 
   test('should display model selector with available models', async ({ page }) => {
-    // Verify model selector component is present
-    const modelSelector = page.locator('model-selector');
-    await expect(modelSelector).toBeVisible();
+    const selectors = createSelectors(page);
 
-    // Verify the select element inside the component
-    const selectElement = page.locator('#model-select');
-    await expect(selectElement).toBeVisible();
+    // Verify model selector component is present using semantic selector
+    await expect(selectors.modelSelector).toBeVisible();
 
-    // Should have at least the main model and component model
-    const options = selectElement.locator('option');
+    // Should have at least the main model and component model using semantic selector
+    const options = selectors.modelSelector.locator('option');
     const optionCount = await options.count();
     expect(optionCount).toBeGreaterThan(0);
 
@@ -58,22 +55,34 @@ test.describe('Model Switching Tests', () => {
   });
 
   test('should switch between models correctly', async ({ page }) => {
-    const selectElement = page.locator('#model-select');
+    const selectors = createSelectors(page);
     const viewer = page.locator('#viewer');
 
     // Get initial model source
     const initialSrc = await viewer.getAttribute('src');
 
-    // Get all available options
-    const options = selectElement.locator('option');
-    const optionCount = await options.count();
+    // Get all available options using semantic selector (handle potential navigation)
+    const options = selectors.modelSelector.locator('option');
+    let optionCount: number;
+    try {
+      optionCount = await options.count();
+    } catch (error: any) {
+      if (error.message.includes('Execution context was destroyed')) {
+        // Wait for page to stabilize and try again
+        await page.waitForTimeout(1000);
+        await expect(selectors.modelSelector).toBeVisible();
+        optionCount = await options.count();
+      } else {
+        throw error;
+      }
+    }
 
     if (optionCount > 1) {
       // Get the value of the second option
       const secondOptionValue = await options.nth(1).getAttribute('value');
 
-      // Switch to the second model
-      await selectElement.selectOption({ index: 1 });
+      // Switch to the second model using semantic selector
+      await selectors.modelSelector.selectOption({ index: 1 });
 
       // Wait for model to load (src should change)
       await page.waitForFunction(
@@ -85,8 +94,8 @@ test.describe('Model Switching Tests', () => {
         { timeout: 10000 }
       );
 
-      // Verify the selection changed
-      const selectedValue = await selectElement.inputValue();
+      // Verify the selection changed using semantic selector
+      const selectedValue = await selectors.modelSelector.inputValue();
       expect(selectedValue).toBe(secondOptionValue);
 
       // Verify no console errors during model switching (handle potential navigation)
@@ -100,52 +109,63 @@ test.describe('Model Switching Tests', () => {
   });
 
   test('should update parameter controls when switching models', async ({ page }) => {
-    const selectElement = page.locator('#model-select');
-    const parameterPanel = page.locator('parametric-panel');
+    const selectors = createSelectors(page);
 
-    // Wait for parameter panel to be present
-    await expect(parameterPanel).toBeVisible();
+    // Wait for parameter panel to be present using semantic selector
+    await expect(selectors.parametersSection).toBeVisible();
 
-    // Get all available options
-    const options = selectElement.locator('option');
-    const optionCount = await options.count();
+    // Get all available options using semantic selector (handle potential navigation)
+    const options = selectors.modelSelector.locator('option');
+    let optionCount: number;
+    try {
+      optionCount = await options.count();
+    } catch (error: any) {
+      if (error.message.includes('Execution context was destroyed')) {
+        // Wait for page to stabilize and try again
+        await page.waitForTimeout(1000);
+        await expect(selectors.modelSelector).toBeVisible();
+        optionCount = await options.count();
+      } else {
+        throw error;
+      }
+    }
 
     if (optionCount > 1) {
       // Try switching between different models
       for (let i = 0; i < Math.min(optionCount, 3); i++) {
-        await selectElement.selectOption({ index: i });
+        await selectors.modelSelector.selectOption({ index: i });
 
         // Wait for parameter panel to stabilize after model switch
         await waitForParametricPanelStable(page);
 
-        // Verify parameter panel is still visible
-        await expect(parameterPanel).toBeVisible();
+        // Verify parameter panel is still visible using semantic selector
+        await expect(selectors.parametersSection).toBeVisible();
 
         // Check if the panel content updated
-        const panelContent = await parameterPanel.textContent();
+        const panelContent = await selectors.parametersSection.textContent();
         expect(panelContent).toBeTruthy();
 
         // If this is a parametric model, there might be Tweakpane controls
-        const tweakpaneContainer = parameterPanel.locator('#tweakpane-container');
+        const tweakpaneContainer = selectors.parametersSection.locator('#tweakpane-container');
         await expect(tweakpaneContainer).toBeVisible();
       }
     }
   });
 
   test('should update 3D canvas when switching models', async ({ page }) => {
-    const selectElement = page.locator('#model-select');
+    const selectors = createSelectors(page);
     const viewer = page.locator('#viewer');
 
     // Get initial model source (use JavaScript property, not HTML attribute)
     const initialSrc = await viewer.evaluate((el: any) => el.src);
 
-    // Get all available options
-    const options = selectElement.locator('option');
+    // Get all available options using semantic selector
+    const options = selectors.modelSelector.locator('option');
     const optionCount = await options.count();
 
     if (optionCount > 1) {
-      // Switch to a different model
-      await selectElement.selectOption({ index: 1 });
+      // Switch to a different model using semantic selector
+      await selectors.modelSelector.selectOption({ index: 1 });
 
       // Wait for model to load (src should change)
       await page.waitForFunction(
