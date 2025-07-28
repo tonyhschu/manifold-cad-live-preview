@@ -8,28 +8,26 @@
 import { Manifold, P, createConfig } from '@manifold-studio/wrapper';
 import { fontLoader, fonts } from '@manifold-studio/typeface';
 
-export const config = createConfig({
-  name: 'Typeface',
-  description: 'Font-based 3D text rendering with lazy font loading',
-  parameters: {
-    text: P.string('HELLO', 'Text to display'),
-    font: P.select(['Inter', 'Roboto', 'Open Sans', 'Source Code Pro'], 'Inter', 'Font to use'),
-    fontSize: P.number(12, 6, 48, 1, 'Font size'),
-    height: P.number(2, 0.5, 10, 0.1, 'Extrusion height'),
-    align: P.select(['left', 'center', 'right'], 'center', 'Text alignment')
-  }
-});
-
 /**
  * Create 3D text using the font loading package
  */
-export default async function createTypefaceModel(params: {
+async function createTypefaceModel(params: {
   text: string;
   font: string;
   fontSize: number;
   height: number;
-  align: 'left' | 'center' | 'right';
-}): Promise<Manifold> {
+  align: string;
+}): Promise<typeof Manifold> {
+  if (!params) {
+    params = {
+      text: 'HELLO',
+      font: 'Inter',
+      fontSize: 12,
+      height: 2,
+      align: 'center'
+    };
+  }
+
   const { text, font, fontSize, height, align } = params;
 
   try {
@@ -42,7 +40,7 @@ export default async function createTypefaceModel(params: {
     // Convert text to 2D cross-section
     const crossSection = renderText(text, {
       fontSize,
-      align,
+      align: align as 'left' | 'center' | 'right',
       letterSpacing: 1.1,
       subdivisionSteps: 8
     });
@@ -81,3 +79,19 @@ export default async function createTypefaceModel(params: {
     return result;
   }
 }
+
+// Export the parametric configuration
+export default createConfig(
+  {
+    text: P.string('HELLO'),
+    font: P.select('Inter', ['Inter', 'Roboto', 'Open Sans', 'Source Code Pro']),
+    fontSize: P.number(12, 6, 48, 1),
+    height: P.number(2, 0.5, 10, 0.1),
+    align: P.select('center', ['left', 'center', 'right'])
+  },
+  createTypefaceModel,
+  {
+    name: 'Typeface',
+    description: 'Font-based 3D text rendering with lazy font loading'
+  }
+);

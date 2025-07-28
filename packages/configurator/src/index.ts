@@ -227,6 +227,7 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
 
   // Load default model using V3 system
   try {
+    const { v3Actions } = await import('./state/v3-bridge');
     const { getModelService } = await import('./services');
     const modelService = getModelService();
 
@@ -235,14 +236,14 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
     const urlModel = url.searchParams.get('m_model');
 
     if (urlModel) {
-      await modelService.loadModel(urlModel);
+      await v3Actions.loadModel(urlModel);
     } else if (defaultModel) {
-      await modelService.loadModel(defaultModel);
+      await v3Actions.loadModel(defaultModel);
     } else {
       // Load first available model
       const models = modelService.getAvailableModels();
       if (models.length > 0) {
-        await modelService.loadModel(models[0].id);
+        await v3Actions.loadModel(models[0].id);
       }
     }
   } catch (error) {

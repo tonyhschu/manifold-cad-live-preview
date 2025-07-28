@@ -53,6 +53,7 @@ export class V3StateBridge {
     while (retryCount < maxRetries) {
       try {
         const modelService = getModelService();
+
         if (modelService && typeof modelService.getUIStateManager === 'function') {
           this.uiStateManager = modelService.getUIStateManager();
           this.setupStateSync();
@@ -85,12 +86,8 @@ export class V3StateBridge {
     this.selectedModel.value = initialState.selectedModel;
     this.modelParameters.value = initialState.parameters;
 
-    // If there's a selected model from URL/localStorage, load it automatically
-    if (initialState.selectedModel) {
-      this.loadModel(initialState.selectedModel, initialState.parameters).catch(error => {
-        this.status.value = { message: `Failed to load model: ${error.message}`, isError: true };
-      });
-    }
+    // Don't auto-load model here - let the configurator handle initial loading
+    // This prevents double loading and circular dependencies during startup
 
     // Listen to UIStateManager changes and update signals
     this.uiStateManager.addListener((state) => {
@@ -233,7 +230,7 @@ export class V3StateBridge {
   async loadModel(modelId: string, parameters: Record<string, any> = {}): Promise<void> {
     try {
       this.status.value = { message: `Loading model: ${modelId}...`, isError: false };
-      
+
       const modelService = getModelService();
       if (!modelService) {
         throw new Error('Model service not available');
@@ -242,13 +239,23 @@ export class V3StateBridge {
       // Load model through V3 system
       const modelResult = await modelService.loadModel(modelId, parameters);
 
-      // Update UIStateManager (which will trigger signal updates)
-      if (this.uiStateManager) {
+      // Update UIStateManager only if this is NOT a parameter-driven reload
+      // This prevents circular dependencies during parameter updates
+      if (this.uiStateManager && !this.isParameterDrivenReload) {
         this.uiStateManager.selectModel(modelId, parameters);
       }
 
       // Update model URLs and metadata from the load result
       this.updateModelDataFromResult(modelResult);
+
+      // Check if this is a parametric model and update parametric config
+      const parameterConfig = modelService.getParameterConfig(modelId);
+
+      if (parameterConfig) {
+        this.debouncedUpdateParametricConfig(parameterConfig);
+      } else {
+        this.parametricConfig.value = null;
+      }
 
       this.status.value = { message: 'Model loaded successfully', isError: false };
 
