@@ -378,10 +378,65 @@ npm run test:create-app
 - **Proper Exit Codes**: Automatic CI/CD compatibility
 - **Watch Mode**: Real-time test running during development
 - **Interactive UI**: Browser-based test interface with `npm run test:ui`
+- **Sequential Integration Tests**: Integration tests run sequentially to avoid port conflicts and ensure reliability
+
+**Integration Test Configuration:**
+
+Integration tests are configured to run sequentially using Vitest's fork pool with `singleFork: true` to prevent port conflicts and race conditions:
+
+```typescript
+// vitest.workspace.ts
+{
+  test: {
+    include: ['tests/integration/**/*.test.ts'],
+    name: 'integration',
+    environment: 'node',
+    // Run integration tests sequentially to avoid port conflicts
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true
+      }
+    }
+  }
+}
+```
+
+This ensures reliable test execution for server-based integration tests that use shared resources like ports.
 
 **Note**: After V3 consolidation, configurator tests now require V3 bridge system mocking for components that use the unified state management.
 
 #### Integration Testing
+
+The project includes comprehensive integration tests that verify the complete CLI workflow, HMR functionality, and dev server behavior:
+
+```bash
+# Run all integration tests (includes CLI workflow, HMR, dev server tests)
+npm test
+
+# Run only integration tests
+npx vitest run tests/integration/
+
+# Run specific integration test suites
+npx vitest run tests/integration/cli-workflow.test.ts      # CLI workflow tests
+npx vitest run tests/integration/single-server-hmr.test.ts # HMR integration tests
+npx vitest run tests/integration/dev-server-tdd.test.ts    # Dev server tests
+```
+
+**Integration Test Coverage:**
+
+- **CLI Workflow Integration**: Project creation, dev server startup, component discovery
+- **Single-Server HMR**: Hot module replacement, pipeline regeneration, performance validation
+- **Dev Server TDD**: Server startup, compilation detection, file generation
+
+**Test Architecture:**
+
+- **Sequential Execution**: Integration tests run sequentially to avoid port conflicts
+- **Real CLI Testing**: Tests use actual CLI binaries and real project structures
+- **Comprehensive Validation**: Tests verify manifest generation, file compilation, and server behavior
+- **Performance Monitoring**: Tests include build time and memory usage validation
+
+**Manual Integration Testing:**
 
 ```bash
 # Test V3 CLI workflow (recommended)

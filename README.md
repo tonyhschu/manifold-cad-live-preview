@@ -30,7 +30,7 @@ This single command automatically:
 - **Export Tools**: Download STL, OBJ, GLB files instantly
 - **Hot Reloading**: Edit code and see changes immediately
 - **Automatic Model Discovery**: Add new .ts files and they appear instantly
-- **End-to-End Testing**: Comprehensive browser-based testing with Playwright
+- **Comprehensive Testing**: Full test suite with unit tests, integration tests, and end-to-end browser testing
 
 ## Overview
 
@@ -322,6 +322,41 @@ The pipeline provides detailed error reporting:
 - **Compilation errors**: TypeScript compilation error details
 - **Export failures**: Detailed error messages for export issues
 
+## 🧪 Testing Infrastructure
+
+Manifold Studio includes a comprehensive testing infrastructure to ensure reliability:
+
+### Test Types
+
+- **Unit Tests**: Fast, isolated tests for individual components and functions
+- **Integration Tests**: End-to-end CLI workflow testing with real project structures
+- **E2E Browser Tests**: Playwright-based testing of the complete user interface
+
+### Running Tests
+
+```bash
+# Run all tests (recommended)
+npm test
+
+# Watch mode for development
+npm run test:watch
+
+# Interactive test UI
+npm run test:ui
+
+# End-to-end browser tests
+npm run test:e2e
+```
+
+### Integration Test Features
+
+- **Sequential Execution**: Integration tests run sequentially to avoid port conflicts
+- **Real CLI Testing**: Tests use actual CLI binaries and project structures
+- **Comprehensive Coverage**: CLI workflow, HMR functionality, dev server behavior
+- **Performance Validation**: Build time and memory usage monitoring
+
+The test suite ensures that the CLI, HMR system, and development workflow remain reliable across changes.
+
 ## 📦 Monorepo Architecture
 
 This project uses a monorepo structure with NPM workspaces:
@@ -432,8 +467,9 @@ npm run dev:create-app            # Create-app in watch mode
 
 # Building and testing
 npm run build                     # Build all packages
-npm run test                      # Test all packages with aggregated summary
-npm run test:all                  # Test all packages (raw workspace output)
+npm test                          # Test all packages with Vitest workspace (recommended)
+npm run test:watch                # Watch mode for development
+npm run test:ui                   # Interactive browser-based test UI
 npm run test:e2e                  # End-to-end browser tests with Playwright
 npm run test:wrapper              # Test wrapper package only
 npm run test:configurator         # Test configurator package only
