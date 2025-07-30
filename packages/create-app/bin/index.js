@@ -61,13 +61,18 @@ var TemplateProcessor = class {
    * Create template context from project name
    */
   static createContext(projectName, options = {}) {
+    const usePublished = options.usePublished || false;
     return {
       projectName,
       projectNameCamelCase: this.toCamelCase(projectName),
       projectNamePascalCase: this.toPascalCase(projectName),
       description: options.description || `A Manifold Studio project`,
       author: options.author || "Your Name",
-      packagesPath: options.packagesPath
+      packagesPath: options.packagesPath,
+      usePublished,
+      configuratorDependency: usePublished ? "^0.3.0" : `file:${options.packagesPath}/configurator`,
+      wrapperDependency: usePublished ? "^0.3.0" : `file:${options.packagesPath}/wrapper`,
+      typefaceDependency: usePublished ? "^0.3.0" : `file:${options.packagesPath}/typeface`
     };
   }
   /**
@@ -145,7 +150,7 @@ import { fileURLToPath as fileURLToPath2 } from "url";
 var __filename2 = fileURLToPath2(import.meta.url);
 var __dirname2 = path2.dirname(__filename2);
 async function createProject(projectName, options) {
-  const { template, install, description, author } = options;
+  const { template, install, description, author, usePublished } = options;
   console.log(`Creating project "${projectName}" with template "${template}"...`);
   const processor = new TemplateProcessor();
   const targetDir = path2.resolve(process.cwd(), projectName);
@@ -154,7 +159,8 @@ async function createProject(projectName, options) {
   const context = TemplateProcessor.createContext(projectName, {
     description,
     author,
-    packagesPath
+    packagesPath,
+    usePublished
   });
   try {
     console.log("\u{1F4C1} Creating project structure...");
@@ -173,7 +179,7 @@ async function createProject(projectName, options) {
 
 // src/index.ts
 var program = new Command();
-program.name("@manifold-studio/create-app").description("Create a new Manifold Studio project").version("1.0.0").argument("<project-name>", "name of the project to create").option("-t, --template <template>", 'template to use (currently only "basic" is available)', "basic").option("--no-install", "skip dependency installation").action(async (projectName, options) => {
+program.name("@manifold-studio/create-app").description("Create a new Manifold Studio project").version("0.3.0").argument("<project-name>", "name of the project to create").option("-t, --template <template>", 'template to use (currently only "basic" is available)', "basic").option("--no-install", "skip dependency installation").option("--use-published", "use published npm packages instead of local file: dependencies").action(async (projectName, options) => {
   try {
     const validation = validateProjectName(projectName);
     if (!validation.valid) {
@@ -182,7 +188,8 @@ program.name("@manifold-studio/create-app").description("Create a new Manifold S
     }
     await createProject(projectName, {
       template: options.template,
-      install: options.install
+      install: options.install,
+      usePublished: options.usePublished
     });
     console.log(`
 \u2705 Successfully created ${projectName}!`);

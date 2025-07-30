@@ -1,6 +1,6 @@
 {
   "name": "@manifold-studio/configurator",
-  "version": "1.0.0",
+  "version": "0.3.0",
   "type": "module",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",

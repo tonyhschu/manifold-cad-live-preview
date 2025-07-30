@@ -11,13 +11,14 @@ export interface CreateProjectOptions {
   install: boolean;
   description?: string;
   author?: string;
+  usePublished?: boolean;
 }
 
 export async function createProject(
-  projectName: string, 
+  projectName: string,
   options: CreateProjectOptions
 ): Promise<void> {
-  const { template, install, description, author } = options;
+  const { template, install, description, author, usePublished } = options;
   
   console.log(`Creating project "${projectName}" with template "${template}"...`);
   
@@ -35,7 +36,8 @@ export async function createProject(
   const context: TemplateContext = TemplateProcessor.createContext(projectName, {
     description,
     author,
-    packagesPath
+    packagesPath,
+    usePublished
   });
   
   try {

@@ -9,11 +9,12 @@ const program = new Command();
 program
   .name('@manifold-studio/create-app')
   .description('Create a new Manifold Studio project')
-  .version('1.0.0')
+  .version('0.3.0')
   .argument('<project-name>', 'name of the project to create')
   .option('-t, --template <template>', 'template to use (currently only "basic" is available)', 'basic')
   .option('--no-install', 'skip dependency installation')
-  .action(async (projectName: string, options: { template: string; install: boolean }) => {
+  .option('--use-published', 'use published npm packages instead of local file: dependencies')
+  .action(async (projectName: string, options: { template: string; install: boolean; usePublished: boolean }) => {
     try {
       // Validate project name
       const validation = validateProjectName(projectName);
@@ -26,6 +27,7 @@ program
       await createProject(projectName, {
         template: options.template,
         install: options.install,
+        usePublished: options.usePublished,
       });
 
       console.log(`\n✅ Successfully created ${projectName}!`);

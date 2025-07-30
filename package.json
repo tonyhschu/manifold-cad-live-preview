@@ -29,9 +29,14 @@
     "dev:wrapper-lib": "cd packages/wrapper && npm run dev",
     "dev:configurator": "npm run dev --workspace @manifold-studio/configurator",
     "dev:configurator-lib": "cd packages/configurator && npm run build:lib -- --watch",
-    "dev:create-app": "npm run dev --workspace @manifold-studio/create-app"
+    "dev:create-app": "npm run dev --workspace @manifold-studio/create-app",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "npm run build && changeset publish"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.1",
+    "@changesets/cli": "^2.29.5",
     "@playwright/test": "^1.54.1",
     "concurrently": "^8.0.0",
     "typescript": "^5.0.2",

@@ -13,6 +13,10 @@ export interface TemplateContext {
   description?: string;
   author?: string;
   packagesPath?: string;
+  usePublished?: boolean;
+  configuratorDependency?: string;
+  wrapperDependency?: string;
+  typefaceDependency?: string;
 }
 
 export class TemplateProcessor {
@@ -99,14 +103,21 @@ export class TemplateProcessor {
     description?: string;
     author?: string;
     packagesPath?: string;
+    usePublished?: boolean;
   } = {}): TemplateContext {
+    const usePublished = options.usePublished || false;
+
     return {
       projectName,
       projectNameCamelCase: this.toCamelCase(projectName),
       projectNamePascalCase: this.toPascalCase(projectName),
       description: options.description || `A Manifold Studio project`,
       author: options.author || 'Your Name',
-      packagesPath: options.packagesPath
+      packagesPath: options.packagesPath,
+      usePublished,
+      configuratorDependency: usePublished ? '^0.3.0' : `file:${options.packagesPath}/configurator`,
+      wrapperDependency: usePublished ? '^0.3.0' : `file:${options.packagesPath}/wrapper`,
+      typefaceDependency: usePublished ? '^0.3.0' : `file:${options.packagesPath}/typeface`
     };
   }
 
