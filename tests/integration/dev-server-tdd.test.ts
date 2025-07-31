@@ -177,29 +177,47 @@ export const metadata = {
     // Wait for initial compilation (increased timeout for CI environments)
     await waitForInitialCompilation(logs, 45000);
 
+    // Additional safety wait for file system operations to complete
+    console.log('DEBUG: Waiting additional 3 seconds for file system operations...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
     // Check that pipeline files were created (with retry for CI environments)
     const tempOutputDir = path.join(testProjectPath, 'temp');
 
-    // Debug: List all files in temp directory
+    // Debug: List all files in temp directory (with error handling)
     try {
       const tempFiles = await fs.readdir(tempOutputDir);
       console.log('DEBUG: Files in temp directory:', tempFiles);
     } catch (error) {
-      console.log('DEBUG: temp directory does not exist or is empty');
+      console.log('DEBUG: temp directory does not exist or is empty:', error.message);
+      // Wait a bit more for directory creation
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     // Retry logic for file existence (CI environments can be slower)
     let pipelineExists = false;
     let manifestExists = false;
 
-    for (let i = 0; i < 10; i++) {
-      pipelineExists = await fs.access(path.join(tempOutputDir, 'pipeline.js')).then(() => true).catch(() => false);
-      manifestExists = await fs.access(path.join(tempOutputDir, 'manifest.json')).then(() => true).catch(() => false);
+    for (let i = 0; i < 5; i++) {
+      try {
+        // Check files sequentially to avoid overwhelming fs.access()
+        await fs.access(path.join(tempOutputDir, 'pipeline.js'));
+        pipelineExists = true;
+      } catch {
+        pipelineExists = false;
+      }
+
+      try {
+        await fs.access(path.join(tempOutputDir, 'manifest.json'));
+        manifestExists = true;
+      } catch {
+        manifestExists = false;
+      }
 
       if (pipelineExists && manifestExists) break;
 
-      console.log(`DEBUG: Retry ${i + 1}/10 - pipeline: ${pipelineExists}, manifest: ${manifestExists}`);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log(`DEBUG: Retry ${i + 1}/5 - pipeline: ${pipelineExists}, manifest: ${manifestExists}`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     expect(pipelineExists).toBe(true);
