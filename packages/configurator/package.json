@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@google/model-viewer": "^3.3.0",
-    "@manifold-studio/wrapper": "^1.0.0",
+    "@manifold-studio/wrapper": "^0.3.0",
     "@preact/signals": "^2.0.4",
     "chokidar": "^3.5.3",
     "commander": "^11.1.0",
