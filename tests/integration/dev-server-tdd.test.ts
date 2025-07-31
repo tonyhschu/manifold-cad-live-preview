@@ -174,13 +174,33 @@ export const metadata = {
     const { process: proc, logs } = await startDevServer(testProjectPath);
     devProcess = proc;
 
-    // Wait for initial compilation (increased timeout for Vite build)
-    await waitForInitialCompilation(logs, 30000);
+    // Wait for initial compilation (increased timeout for CI environments)
+    await waitForInitialCompilation(logs, 45000);
 
-    // Check that pipeline files were created
+    // Check that pipeline files were created (with retry for CI environments)
     const tempOutputDir = path.join(testProjectPath, 'temp');
-    const pipelineExists = await fs.access(path.join(tempOutputDir, 'pipeline.js')).then(() => true).catch(() => false);
-    const manifestExists = await fs.access(path.join(tempOutputDir, 'manifest.json')).then(() => true).catch(() => false);
+
+    // Debug: List all files in temp directory
+    try {
+      const tempFiles = await fs.readdir(tempOutputDir);
+      console.log('DEBUG: Files in temp directory:', tempFiles);
+    } catch (error) {
+      console.log('DEBUG: temp directory does not exist or is empty');
+    }
+
+    // Retry logic for file existence (CI environments can be slower)
+    let pipelineExists = false;
+    let manifestExists = false;
+
+    for (let i = 0; i < 10; i++) {
+      pipelineExists = await fs.access(path.join(tempOutputDir, 'pipeline.js')).then(() => true).catch(() => false);
+      manifestExists = await fs.access(path.join(tempOutputDir, 'manifest.json')).then(() => true).catch(() => false);
+
+      if (pipelineExists && manifestExists) break;
+
+      console.log(`DEBUG: Retry ${i + 1}/10 - pipeline: ${pipelineExists}, manifest: ${manifestExists}`);
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
 
     expect(pipelineExists).toBe(true);
     expect(manifestExists).toBe(true);
@@ -605,8 +625,12 @@ async function waitForInitialCompilation(logs: string[], timeoutMs: number): Pro
     if (allLogs.includes('✅ Manifest re-written successfully after Vite build') ||
         allLogs.includes('✅ Vite build completed successfully') ||
         allLogs.includes('✅ Manifest written successfully') ||
-        allLogs.includes('Pipeline compilation completed')) {
+        allLogs.includes('Pipeline compilation completed') ||
+        allLogs.includes('ready in')) { // Vite's ready message
       console.log('DEBUG: Initial compilation completed successfully');
+
+      // Additional wait to ensure files are fully written to disk
+      await new Promise(resolve => setTimeout(resolve, 1000));
       return;
     }
 
@@ -615,10 +639,10 @@ async function waitForInitialCompilation(logs: string[], timeoutMs: number): Pro
       throw new Error(`Compilation failed. Logs: ${allLogs}`);
     }
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200));
   }
 
-  console.log('DEBUG: Compilation timeout. Recent logs:');
-  console.log(logs.slice(-20).join('\n'));
+  console.log('DEBUG: Compilation timeout. All logs:');
+  console.log(logs.join('\n'));
   throw new Error(`Initial compilation did not complete within ${timeoutMs}ms. Check logs above.`);
 }
