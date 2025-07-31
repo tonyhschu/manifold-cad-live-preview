@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspace @manifold-studio/wrapper && npm run build --workspace @manifold-studio/typeface && npm run build --workspace @manifold-studio/configurator && npm run build --workspace @manifold-studio/create-app",
     "pretest": "node scripts/check-build-before-test.js",
     "test": "vitest run",
     "test:watch": "vitest",
