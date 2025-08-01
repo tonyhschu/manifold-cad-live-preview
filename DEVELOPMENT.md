@@ -952,3 +952,59 @@ The V3.1 architecture uses a **single-server approach** that eliminates the comp
 - ✅ **Simplified**: File watching relies on Vite's natural behavior
 
 **Breaking Changes**: None for end users - the CLI interface remains identical.
+
+## Releasing with Changesets
+
+This repo uses Changesets to manage versioning and publishing across the monorepo.
+
+### What is a changeset?
+
+A changeset is a small Markdown file in `.changeset/` that:
+
+- Lists packages to bump
+- Specifies the bump type for each (patch/minor/major)
+- Contains a short summary used in changelogs
+
+Changesets drive two phases:
+
+1. Versioning: compute new versions and changelogs
+2. Publishing: publish the packages to npm
+
+### Typical stable release flow
+
+1. Create a changeset interactively
+   ```bash
+   npm run changeset
+   # Select the packages to bump (e.g., configurator, create-app)
+   # Choose bump type (patch/minor/major)
+   # Enter a short summary
+   ```
+2. Commit and push the generated file(s)
+   ```bash
+   git add .changeset
+   git commit -m "chore: add changeset"
+   git push
+   ```
+3. Trigger the GitHub Release workflow with `release_type=release`
+   - It builds and tests
+   - The changesets/action will open or update a Release PR that bumps versions and changelogs
+4. Merge the Release PR
+5. Trigger the Release workflow again with `release_type=release` to publish
+
+### Prereleases (beta)
+
+To publish prerelease versions (e.g., `-beta.x`):
+
+1. Trigger the Release workflow with `release_type=prerelease` (this runs `changeset pre enter beta`)
+2. Ensure you have pending changesets. The action will version and publish prerelease packages
+3. When ready for stable releases again, exit prerelease mode:
+   ```bash
+   npm run changeset pre exit
+   ```
+
+### Notes and tips
+
+- Base branch is `master` (configured in `.changeset/config.json`)
+- Internal dependencies will be bumped with at least a `patch` when required (`updateInternalDependencies: "patch"`)
+- If there are no changeset files, the Release workflow won’t publish anything even if it “succeeds”
+- You can also create a changeset file manually under `.changeset/` if you prefer not to use the interactive prompt
