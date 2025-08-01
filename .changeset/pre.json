@@ -1,0 +1,13 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "@manifold-studio/configurator": "0.3.0",
+    "@manifold-studio/create-app": "0.3.0",
+    "@manifold-studio/typeface": "0.3.0",
+    "@manifold-studio/wrapper": "0.3.0"
+  },
+  "changesets": [
+    "bump-0-3-1"
+  ]
+}
