@@ -1,13 +1,22 @@
 {
   "name": "@manifold-studio/create-app",
-  "version": "0.3.0",
+  "version": "0.3.1-beta.0",
   "type": "module",
   "description": "Scaffolding tool for creating Manifold Studio projects",
-  "keywords": ["manifold", "3d", "cad", "scaffolding", "cli"],
+  "keywords": [
+    "manifold",
+    "3d",
+    "cad",
+    "scaffolding",
+    "cli"
+  ],
   "bin": {
     "create-app": "./bin/index.js"
   },
-  "files": ["bin", "templates"],
+  "files": [
+    "bin",
+    "templates"
+  ],
   "scripts": {
     "build": "node build.js",
     "test": "vitest run",
