@@ -40,9 +40,23 @@ jobs:
       - name: Run Tests
         run: npm test
 
-      - name: Enter prerelease mode
+      - name: Enter prerelease mode (idempotent)
         if: github.event.inputs.release_type == 'prerelease'
-        run: npm run changeset pre enter beta
+        run: |
+          if [ -f .changeset/pre.json ]; then
+            echo "Already in prerelease mode; skipping"
+          else
+            npm run changeset pre enter beta
+          fi
+
+      - name: Exit prerelease mode if active (for stable releases)
+        if: github.event.inputs.release_type == 'release'
+        run: |
+          if [ -f .changeset/pre.json ]; then
+            npm run changeset pre exit
+          else
+            echo "Not in prerelease mode; skipping"
+          fi
 
       - name: Create Release Pull Request or Publish to npm
         uses: changesets/action@v1
@@ -50,4 +64,4 @@ jobs:
           publish: npm run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets/NPM_TOKEN }}
