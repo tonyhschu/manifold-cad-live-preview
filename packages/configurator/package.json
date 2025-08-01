@@ -10,12 +10,14 @@
   "files": [
     "dist/lib",
     "dist/cli",
+    "dist/pipeline-runtime",
     "templates"
   ],
   "scripts": {
-    "build": "npm run build:lib && npm run build:cli",
+    "build": "npm run build:lib && npm run build:cli && npm run build:pipeline-runtime",
     "build:lib": "vite build --config vite.config.lib.ts",
     "build:cli": "vite build --config vite.config.cli.ts",
+    "build:pipeline-runtime": "mkdir -p dist/pipeline-runtime && cp src/pipeline-runtime/types.ts dist/pipeline-runtime/types",
     "pretest": "node ../../scripts/check-build-before-test.js",
     "test": "vitest run",
     "test:watch": "vitest"

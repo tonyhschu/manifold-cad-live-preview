@@ -1,11 +1,14 @@
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { existsSync } from 'fs';
+import { fileURLToPath } from 'url';
 import { cp } from 'fs/promises';
 import { TempDir } from './temp-dir.js';
 import { ProcessRunner } from './process-runner.js';
 import { FileValidator } from './file-validator.js';
 
 export interface ProjectCreationOptions {
-  name?: string;  // Changed from projectName for consistency
+  name?: string;  // Preferred key
+  projectName?: string; // Also accept legacy key used in some tests
   template?: string;
   skipInstall?: boolean;
   timeout?: number;
@@ -21,7 +24,22 @@ export interface CreatedProject {
  * Utility for creating test projects using the create-app CLI
  */
 export class ProjectCreator {
-  private static readonly CREATE_APP_PATH = join(process.cwd(), 'packages', 'create-app', 'bin', 'index.js');
+  private static resolveCreateAppPath(): string {
+    const cwd = process.cwd();
+    const candidates = [
+      // When running from repo root
+      join(cwd, 'packages', 'create-app', 'bin', 'index.js'),
+      // When running within the create-app workspace/package
+      join(cwd, 'bin', 'index.js'),
+      // Resolve relative to this test file's location
+      join(dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'index.js')
+    ];
+    for (const p of candidates) {
+      if (existsSync(p)) return p;
+    }
+    // Fallback to the workspace-relative path for clearer error messages
+    return candidates[0];
+  }
 
   /**
    * Create a new project using the create-app CLI
@@ -30,21 +48,23 @@ export class ProjectCreator {
     options: ProjectCreationOptions = {}
   ): Promise<CreatedProject> {
     const {
-      name: projectName = 'test-project',
+      name,
+      projectName: legacyProjectName,
       template = 'basic',
       skipInstall = false,
       timeout = 120000 // 2 minutes
     } = options;
+    const resolvedProjectName = (name ?? legacyProjectName ?? 'test-project');
 
     // Create temporary directory
     const tempDir = await TempDir.create('create-app-test-');
-    const projectPath = join(tempDir, projectName);
+    const projectPath = join(tempDir, resolvedProjectName);
 
     try {
-      console.log(`🏗️  Creating project "${projectName}" in ${tempDir}`);
+      console.log(`🏗️  Creating project "${resolvedProjectName}" in ${tempDir}`);
 
       // Build the create-app command arguments
-      const args = [this.CREATE_APP_PATH, projectName];
+      const args = [this.resolveCreateAppPath(), resolvedProjectName];
       if (template !== 'basic') {
         args.push('--template', template);
       }
@@ -68,10 +88,10 @@ export class ProjectCreator {
         throw new Error(`Project directory was not created: ${projectPath}`);
       }
 
-      console.log(`✅ Project "${projectName}" created successfully`);
+      console.log(`✅ Project "${resolvedProjectName}" created successfully`);
 
       return {
-        name: projectName,
+        name: resolvedProjectName,
         path: projectPath,
         cleanup: async () => {
           await TempDir.cleanup(tempDir);
@@ -311,7 +331,7 @@ export class ProjectCreator {
     error?: string;
   }> {
     try {
-      const result = await ProcessRunner.run('node', [this.CREATE_APP_PATH, '--version'], {
+      const result = await ProcessRunner.run('node', [this.resolveCreateAppPath(), '--version'], {
         silent: true,
         timeout: 10000
       });

@@ -147,20 +147,37 @@ function getPackageManager() {
 // src/create-project.ts
 import path2 from "path";
 import { fileURLToPath as fileURLToPath2 } from "url";
+import { statSync as statSync2 } from "fs";
 var __filename2 = fileURLToPath2(import.meta.url);
 var __dirname2 = path2.dirname(__filename2);
+function directoryExists(dir) {
+  try {
+    return statSync2(dir).isDirectory();
+  } catch {
+    return false;
+  }
+}
 async function createProject(projectName, options) {
-  const { template, install, description, author, usePublished } = options;
+  const { template, install, description, author } = options;
   console.log(`Creating project "${projectName}" with template "${template}"...`);
   const processor = new TemplateProcessor();
   const targetDir = path2.resolve(process.cwd(), projectName);
   const packagesAbsolutePath = path2.resolve(__dirname2, "..", "..");
   const packagesPath = path2.relative(targetDir, packagesAbsolutePath);
+  let finalUsePublished = options.usePublished || false;
+  if (!finalUsePublished) {
+    const localPackages = ["configurator", "wrapper", "typeface"];
+    const allExist = localPackages.every((pkg) => directoryExists(path2.join(packagesAbsolutePath, pkg)));
+    if (!allExist) {
+      console.log("\u2139\uFE0F  Local packages not found. Falling back to published dependencies.");
+      finalUsePublished = true;
+    }
+  }
   const context = TemplateProcessor.createContext(projectName, {
     description,
     author,
     packagesPath,
-    usePublished
+    usePublished: finalUsePublished
   });
   try {
     console.log("\u{1F4C1} Creating project structure...");
