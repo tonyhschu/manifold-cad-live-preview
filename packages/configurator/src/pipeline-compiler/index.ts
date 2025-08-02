@@ -420,7 +420,7 @@ export class PipelineCompilerImpl implements PipelineCompiler {
 // Generated at: ${new Date().toISOString()}
 
 // Import shared types and utilities from configurator package
-import { ParametricConfig, ParametricModel, StaticModel, ProcessedModel, isParametricConfig, extractDefaultParams, processModels } from '@manifold-studio/configurator/pipeline-runtime/types';
+import { ParametricConfig, ParametricModel, StaticModel, ProcessedModel, isParametricConfig, extractDefaultParams, processModels } from '@manifold-studio/configurator/pipeline-runtime/types.js';
 
 ${imports}
 

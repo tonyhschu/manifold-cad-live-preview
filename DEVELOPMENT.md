@@ -972,24 +972,33 @@ Changesets drive two phases:
 
 ### Typical stable release flow
 
-1. Create a changeset interactively
-   ```bash
-   npm run changeset
-   # Select the packages to bump (e.g., configurator, create-app)
-   # Choose bump type (patch/minor/major)
-   # Enter a short summary
-   ```
-2. Commit and push the generated file(s)
-   ```bash
-   git add .changeset
-   git commit -m "chore: add changeset"
-   git push
-   ```
-3. Trigger the GitHub Release workflow with `release_type=release`
-   - It builds and tests
-   - The changesets/action will open or update a Release PR that bumps versions and changelogs
-4. Merge the Release PR
-5. Trigger the Release workflow again with `release_type=release` to publish
+```bash
+# 1. Create a changeset for your changes
+npm run changeset
+# Select packages to bump (e.g., configurator, create-app)
+# Choose bump type (patch/minor/major)
+# Enter a short summary
+
+# 2. Commit and push the changeset
+git add .changeset
+git commit -m "chore: add changeset for bug fixes"
+git push
+
+# 3. GitHub Actions automatically creates "Version Packages" PR
+# (Check GitHub - you'll see a new PR titled "Version Packages")
+
+# 4. Review and merge the "Version Packages" PR
+# This triggers the actual NPM publishing
+
+# 5. Verify packages were published
+npm view @manifold-studio/create-app versions --json
+```
+
+**Important**: The GitHub Release workflow is **manual** - you need to trigger it via GitHub Actions UI. The workflow will:
+
+- Build and test all packages
+- Create or update the "Version Packages" PR (Phase 1)
+- When you merge that PR, it automatically publishes to NPM (Phase 2)
 
 ### Prereleases (beta)
 
@@ -1008,3 +1017,107 @@ To publish prerelease versions (e.g., `-beta.x`):
 - Internal dependencies will be bumped with at least a `patch` when required (`updateInternalDependencies: "patch"`)
 - If there are no changeset files, the Release workflow won’t publish anything even if it “succeeds”
 - You can also create a changeset file manually under `.changeset/` if you prefer not to use the interactive prompt
+
+### How the Two-Phase Release Process Works
+
+The Changesets + GitHub Actions workflow has **two distinct phases** that often confuse developers:
+
+#### **Phase 1: Version Packages (Creates PR)**
+
+When you push changesets to `master`, the `changesets/action` in GitHub Actions:
+
+1. **Detects changesets** in `.changeset/` directory
+2. **Creates or updates a "Version Packages" PR** that:
+   - Updates all `package.json` versions according to changesets
+   - Updates `CHANGELOG.md` files with release notes
+   - **Removes the consumed changeset files** (they get deleted)
+3. **Does NOT publish anything** - this is just version preparation
+
+**Example**: If you have a changeset that bumps `create-app` to `0.3.3`, the PR will:
+
+- Change `packages/create-app/package.json` version from `0.3.2` → `0.3.3`
+- Add changelog entry
+- Delete the changeset file
+
+#### **Phase 2: Publish to NPM (Triggered by Merging PR)**
+
+When you **merge the "Version Packages" PR**:
+
+1. **The same `changesets/action` runs again**
+2. **Detects no changesets remain** (they were consumed in Phase 1)
+3. **Publishes all packages** with updated versions to NPM
+4. **Creates Git tags** for the published versions
+
+### Understanding Version Synchronization
+
+**Important**: Our `create-app` package assumes all packages have the same version:
+
+```typescript
+// In packages/create-app/src/template-processor.ts
+const currentVersion = packageJson.version; // e.g., "0.3.3"
+return {
+  configurator: `^${currentVersion}`, // ^0.3.3
+  wrapper: `^${currentVersion}`, // ^0.3.3
+  typeface: `^${currentVersion}`, // ^0.3.3
+};
+```
+
+**Problem**: If only `create-app` gets bumped to `0.3.3` but `configurator` stays at `0.3.2`, then:
+
+- `create-app@0.3.3` tries to use `@manifold-studio/configurator@^0.3.3`
+- But `configurator@0.3.3` doesn't exist on NPM
+- Result: `npm install` fails with "No matching version found"
+
+**Solution**: Always bump all packages together by including them all in changesets:
+
+```markdown
+---
+"@manifold-studio/configurator": patch
+"@manifold-studio/create-app": patch
+"@manifold-studio/wrapper": patch
+"@manifold-studio/typeface": patch
+---
+
+Keep all package versions in sync
+```
+
+### Common Scenarios and Solutions
+
+#### **Scenario 1: Only Some Packages Got Published**
+
+**Problem**: You see `create-app@0.3.3` published but `configurator` is still at `0.3.2`
+
+**Cause**: The changeset only included some packages
+
+**Solution**: Create a new changeset for the missing packages:
+
+```bash
+npm run changeset
+# Select only the packages that need to catch up
+# This will create another "Version Packages" PR
+```
+
+#### **Scenario 2: No Packages Got Published**
+
+**Problem**: GitHub Actions says "success" but no new versions on NPM
+
+**Cause**: No changesets were present when the action ran
+
+**Solution**: Ensure you have changeset files in `.changeset/` before triggering the workflow
+
+#### **Scenario 3: Version Mismatch Errors**
+
+**Problem**: `npm create @manifold-studio/app` fails with "No matching version found"
+
+**Cause**: Package versions are out of sync
+
+**Solution**: Check published versions and create changesets to align them:
+
+```bash
+# Check what's published
+npm view @manifold-studio/create-app version
+npm view @manifold-studio/configurator version
+
+# If mismatched, create changeset to sync them
+npm run changeset
+```

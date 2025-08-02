@@ -17,7 +17,7 @@
     "build": "npm run build:lib && npm run build:cli && npm run build:pipeline-runtime",
     "build:lib": "vite build --config vite.config.lib.ts",
     "build:cli": "vite build --config vite.config.cli.ts",
-    "build:pipeline-runtime": "mkdir -p dist/pipeline-runtime && cp src/pipeline-runtime/types.ts dist/pipeline-runtime/types",
+    "build:pipeline-runtime": "mkdir -p dist/pipeline-runtime && tsc src/pipeline-runtime/types.ts --outDir dist/pipeline-runtime --target ES2022 --module ESNext --declaration --moduleResolution bundler --skipLibCheck",
     "pretest": "node ../../scripts/check-build-before-test.js",
     "test": "vitest run",
     "test:watch": "vitest"
