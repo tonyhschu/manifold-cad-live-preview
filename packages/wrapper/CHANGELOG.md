@@ -1,5 +1,15 @@
 # @manifold-studio/wrapper
 
+## 0.3.3
+
+### Patch Changes
+
+- [`6637cb5`](https://github.com/tonyhschu/manifold-cad-live-preview/commit/6637cb565f47201702e8045a447097f9d1d51384) Thanks [@tonyhschu](https://github.com/tonyhschu)! - Sync package versions to 0.3.3 to fix dependency resolution
+
+  - Bump configurator, wrapper, and typeface to match create-app@0.3.3
+  - Ensures create-app can find matching versions of all dependencies
+  - Fixes "No matching version found for @manifold-studio/configurator@^0.3.3" error
+
 ## 0.3.2
 
 ### Patch Changes
