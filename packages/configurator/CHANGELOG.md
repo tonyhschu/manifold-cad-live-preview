@@ -1,5 +1,21 @@
 # @manifold-studio/configurator
 
+## 0.3.2
+
+### Patch Changes
+
+- [`bb6156b`](https://github.com/tonyhschu/manifold-cad-live-preview/commit/bb6156b7c50354a501a4d06fe41e5dc8a0a5b897) Thanks [@tonyhschu](https://github.com/tonyhschu)! - Fix critical template-server bug and update dependency structure
+
+  - Fix missing findPackagePath function in configurator CLI that caused Vite server errors
+  - Move @manifold-studio/configurator and @manifold-studio/wrapper to dependencies in generated projects
+  - Improve package path resolution logic to prioritize node_modules over relative paths
+  - Update all tests to match new dependency structure
+  - Rebuild configurator CLI with fixes
+  - Keep all package versions in sync
+
+- Updated dependencies [[`bb6156b`](https://github.com/tonyhschu/manifold-cad-live-preview/commit/bb6156b7c50354a501a4d06fe41e5dc8a0a5b897)]:
+  - @manifold-studio/wrapper@0.3.2
+
 ## 0.3.1
 
 ### Patch Changes
