@@ -212,11 +212,11 @@ function processTemplate(templatePath: string, context: {
 
   // Define import paths based on dev mode
   const configuratorImport = context.configuratorDevMode
-    ? `/@fs${path.resolve(context.userProjectPath, '../packages/configurator/src/index.ts')}` // Direct file path for dev
+    ? `/@fs${findPackagePath(context.userProjectPath, 'configurator')}/src/index.ts` // Direct file path for dev
     : '@manifold-studio/configurator'; // Package import (when published)
 
   const wrapperImport = context.configuratorDevMode
-    ? `/@fs${path.resolve(context.userProjectPath, '../packages/wrapper/src/index.ts')}` // Direct file path for dev
+    ? `/@fs${findPackagePath(context.userProjectPath, 'wrapper')}/src/index.ts` // Direct file path for dev
     : '@manifold-studio/wrapper'; // Package import (when published)
 
   // Replace template placeholders

@@ -42,7 +42,10 @@ export async function createProject(
   const packagesPath = path.relative(targetDir, packagesAbsolutePath);
 
   // Determine whether to use published packages
-  let finalUsePublished = options.usePublished || false;
+  // Auto-detect if we're running from a published package vs local development
+  const isRunningFromPublishedPackage = !directoryExists(path.join(packagesAbsolutePath, 'configurator'));
+  let finalUsePublished = options.usePublished ?? isRunningFromPublishedPackage;
+
   if (!finalUsePublished) {
     const localPackages = ['configurator', 'wrapper', 'typeface'];
     const allExist = localPackages.every((pkg) => directoryExists(path.join(packagesAbsolutePath, pkg)));
@@ -52,11 +55,15 @@ export async function createProject(
     }
   }
 
+  if (isRunningFromPublishedPackage && !options.usePublished) {
+    console.log('ℹ️  Running from published package. Using published dependencies.');
+  }
+
   // Create template context
   const context: TemplateContext = TemplateProcessor.createContext(projectName, {
     description,
     author,
-    packagesPath,
+    packagesPath: finalUsePublished ? undefined : packagesPath,
     usePublished: finalUsePublished,
   });
 

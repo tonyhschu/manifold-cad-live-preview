@@ -1,5 +1,19 @@
 # @manifold-studio/create-app
 
+## 0.3.2
+
+### Patch Changes
+
+- Fix published package dependencies and auto-detection
+
+  - Add @manifold-studio/wrapper to dependencies in generated projects
+  - Move @manifold-studio/configurator from devDependencies to dependencies
+  - Auto-detect when running from published package vs local development
+  - Update version numbers to match published packages (0.3.1)
+  - Ensure published create-app defaults to using published dependencies
+
+  This fixes the "Failed to resolve module specifier '@manifold-studio/wrapper'" error when using `npm create @manifold-studio/app`.
+
 ## 0.3.1
 
 ### Patch Changes

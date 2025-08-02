@@ -58,10 +58,33 @@ var TemplateProcessor = class {
     }
   }
   /**
+   * Get current package versions for published dependencies
+   */
+  static getPackageVersions() {
+    try {
+      const packageJsonPath = path.resolve(__dirname, "..", "package.json");
+      const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+      const currentVersion = packageJson.version;
+      return {
+        configurator: `^${currentVersion}`,
+        wrapper: `^${currentVersion}`,
+        typeface: `^${currentVersion}`
+      };
+    } catch (error) {
+      console.warn("Could not read package version, falling back to hardcoded versions");
+      return {
+        configurator: "^0.3.2",
+        wrapper: "^0.3.2",
+        typeface: "^0.3.2"
+      };
+    }
+  }
+  /**
    * Create template context from project name
    */
   static createContext(projectName, options = {}) {
     const usePublished = options.usePublished || false;
+    const versions = this.getPackageVersions();
     return {
       projectName,
       projectNameCamelCase: this.toCamelCase(projectName),
@@ -70,9 +93,9 @@ var TemplateProcessor = class {
       author: options.author || "Your Name",
       packagesPath: options.packagesPath,
       usePublished,
-      configuratorDependency: usePublished ? "^0.3.0" : `file:${options.packagesPath}/configurator`,
-      wrapperDependency: usePublished ? "^0.3.0" : `file:${options.packagesPath}/wrapper`,
-      typefaceDependency: usePublished ? "^0.3.0" : `file:${options.packagesPath}/typeface`
+      configuratorDependency: usePublished ? versions.configurator : options.packagesPath ? `file:${options.packagesPath}/configurator` : versions.configurator,
+      wrapperDependency: usePublished ? versions.wrapper : options.packagesPath ? `file:${options.packagesPath}/wrapper` : versions.wrapper,
+      typefaceDependency: usePublished ? versions.typeface : options.packagesPath ? `file:${options.packagesPath}/typeface` : versions.typeface
     };
   }
   /**
@@ -164,7 +187,8 @@ async function createProject(projectName, options) {
   const targetDir = path2.resolve(process.cwd(), projectName);
   const packagesAbsolutePath = path2.resolve(__dirname2, "..", "..");
   const packagesPath = path2.relative(targetDir, packagesAbsolutePath);
-  let finalUsePublished = options.usePublished || false;
+  const isRunningFromPublishedPackage = !directoryExists(path2.join(packagesAbsolutePath, "configurator"));
+  let finalUsePublished = options.usePublished ?? isRunningFromPublishedPackage;
   if (!finalUsePublished) {
     const localPackages = ["configurator", "wrapper", "typeface"];
     const allExist = localPackages.every((pkg) => directoryExists(path2.join(packagesAbsolutePath, pkg)));
@@ -173,10 +197,13 @@ async function createProject(projectName, options) {
       finalUsePublished = true;
     }
   }
+  if (isRunningFromPublishedPackage && !options.usePublished) {
+    console.log("\u2139\uFE0F  Running from published package. Using published dependencies.");
+  }
   const context = TemplateProcessor.createContext(projectName, {
     description,
     author,
-    packagesPath,
+    packagesPath: finalUsePublished ? void 0 : packagesPath,
     usePublished: finalUsePublished
   });
   try {

@@ -97,6 +97,33 @@ export class TemplateProcessor {
   }
 
   /**
+   * Get current package versions for published dependencies
+   */
+  private static getPackageVersions(): { configurator: string; wrapper: string; typeface: string } {
+    try {
+      // Read the current package.json to get the version
+      const packageJsonPath = path.resolve(__dirname, '..', 'package.json');
+      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+      const currentVersion = packageJson.version;
+
+      // Use the current create-app version as the base for other packages
+      // This assumes all packages are versioned together via changesets
+      return {
+        configurator: `^${currentVersion}`,
+        wrapper: `^${currentVersion}`,
+        typeface: `^${currentVersion}`
+      };
+    } catch (error) {
+      console.warn('Could not read package version, falling back to hardcoded versions');
+      return {
+        configurator: '^0.3.2',
+        wrapper: '^0.3.2',
+        typeface: '^0.3.2'
+      };
+    }
+  }
+
+  /**
    * Create template context from project name
    */
   static createContext(projectName: string, options: {
@@ -106,6 +133,7 @@ export class TemplateProcessor {
     usePublished?: boolean;
   } = {}): TemplateContext {
     const usePublished = options.usePublished || false;
+    const versions = this.getPackageVersions();
 
     return {
       projectName,
@@ -115,9 +143,9 @@ export class TemplateProcessor {
       author: options.author || 'Your Name',
       packagesPath: options.packagesPath,
       usePublished,
-      configuratorDependency: usePublished ? '^0.3.0' : `file:${options.packagesPath}/configurator`,
-      wrapperDependency: usePublished ? '^0.3.0' : `file:${options.packagesPath}/wrapper`,
-      typefaceDependency: usePublished ? '^0.3.0' : `file:${options.packagesPath}/typeface`
+      configuratorDependency: usePublished ? versions.configurator : (options.packagesPath ? `file:${options.packagesPath}/configurator` : versions.configurator),
+      wrapperDependency: usePublished ? versions.wrapper : (options.packagesPath ? `file:${options.packagesPath}/wrapper` : versions.wrapper),
+      typefaceDependency: usePublished ? versions.typeface : (options.packagesPath ? `file:${options.packagesPath}/typeface` : versions.typeface)
     };
   }
 
