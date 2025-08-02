@@ -159,7 +159,9 @@ describe('CLI Development System Testing', () => {
             if (!data.dependencies) return 'Package.json missing dependencies';
 
             const requiredDeps = [
-              'manifold-3d'
+              'manifold-3d',
+              '@manifold-studio/configurator',
+              '@manifold-studio/wrapper'
             ];
 
             for (const dep of requiredDeps) {
@@ -171,7 +173,6 @@ describe('CLI Development System Testing', () => {
             if (!data.devDependencies) return 'Package.json missing devDependencies';
 
             const requiredDevDeps = [
-              '@manifold-studio/configurator',
               'typescript',
               'vitest'
             ];

@@ -243,9 +243,14 @@ export class ProjectCreator {
           }
         }
 
-        // Check that configurator dependency exists (path may vary)
-        if (!data.devDependencies['@manifold-studio/configurator']) {
-          return 'package.json missing required devDependency: @manifold-studio/configurator';
+        // Check that configurator dependency exists in dependencies (moved from devDependencies)
+        if (!data.dependencies['@manifold-studio/configurator']) {
+          return 'package.json missing required dependency: @manifold-studio/configurator';
+        }
+
+        // Check that wrapper dependency exists in dependencies
+        if (!data.dependencies['@manifold-studio/wrapper']) {
+          return 'package.json missing required dependency: @manifold-studio/wrapper';
         }
 
         return true;

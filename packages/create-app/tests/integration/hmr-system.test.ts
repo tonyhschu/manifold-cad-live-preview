@@ -218,8 +218,11 @@ describe('CLI HMR System Tests', () => {
       const packageValidation = await FileValidator.validateJsonFile(
         join(project.path, 'package.json'),
         (data) => {
-          if (!data.devDependencies?.['@manifold-studio/configurator']) {
-            return 'Missing @manifold-studio/configurator dev dependency';
+          if (!data.dependencies?.['@manifold-studio/configurator']) {
+            return 'Missing @manifold-studio/configurator dependency';
+          }
+          if (!data.dependencies?.['@manifold-studio/wrapper']) {
+            return 'Missing @manifold-studio/wrapper dependency';
           }
           if (!data.devDependencies?.typescript) {
             return 'Missing typescript dev dependency';

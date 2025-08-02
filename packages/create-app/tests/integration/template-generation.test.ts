@@ -153,7 +153,9 @@ describe('Template Generation', () => {
 
             // Check required dependencies
             const requiredDeps = [
-              'manifold-3d'
+              'manifold-3d',
+              '@manifold-studio/configurator',
+              '@manifold-studio/wrapper'
             ];
             for (const dep of requiredDeps) {
               if (!data.dependencies[dep]) {
@@ -162,7 +164,7 @@ describe('Template Generation', () => {
             }
 
             // Check required dev dependencies for CLI-based architecture
-            const requiredDevDeps = ['@manifold-studio/configurator', 'typescript', 'vitest'];
+            const requiredDevDeps = ['typescript', 'vitest'];
             for (const dep of requiredDevDeps) {
               if (!data.devDependencies[dep]) {
                 return `Missing required dev dependency: ${dep}`;

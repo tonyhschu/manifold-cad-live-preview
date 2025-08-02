@@ -70,7 +70,8 @@ describe('CLI Workflow Integration', () => {
     const packageJson = JSON.parse(packageJsonContent);
 
     expect(packageJson.dependencies).toHaveProperty('manifold-3d');
-    expect(packageJson.devDependencies).toHaveProperty('@manifold-studio/configurator');
+    expect(packageJson.dependencies).toHaveProperty('@manifold-studio/configurator');
+    expect(packageJson.dependencies).toHaveProperty('@manifold-studio/wrapper');
   }, 45000);
 
   it('should start dev server on created project', async () => {

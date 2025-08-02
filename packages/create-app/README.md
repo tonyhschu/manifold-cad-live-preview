@@ -8,7 +8,7 @@ Create a new 3D modeling project instantly:
 
 ```bash
 # Create a new project
-npx @manifold-studio/create-app my-3d-project
+npm create @manifold-studio/app my-3d-project
 
 # Set up for local development (until packages are published)
 cd my-3d-project
@@ -98,13 +98,13 @@ my-3d-project/
 ### Basic Usage
 
 ```bash
-npx @manifold-studio/create-app <project-name>
+npm create @manifold-studio/app <project-name>
 ```
 
 ### Available Options
 
 ```bash
-npx @manifold-studio/create-app my-project [options]
+npm create @manifold-studio/app my-project [options]
 
 Options:
   -t, --template <template>  Template to use (default: "basic")

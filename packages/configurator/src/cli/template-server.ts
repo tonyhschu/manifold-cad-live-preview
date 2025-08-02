@@ -9,6 +9,33 @@ const __dirname = path.dirname(__filename);
 
 // Removed custom file watcher - let Vite handle temp files naturally
 
+/**
+ * Find the path to a package from a user project path
+ * This handles both monorepo and published package scenarios
+ */
+function findPackagePath(userProjectPath: string, packageName: string): string {
+  // Try monorepo structure first (most common during development)
+  const monorepoPath = path.resolve(userProjectPath, `../packages/${packageName}`);
+  if (fs.existsSync(monorepoPath)) {
+    return monorepoPath;
+  }
+
+  // Try node_modules (published packages) - this is the most common case for users
+  const nodeModulesPath = path.resolve(userProjectPath, `node_modules/@manifold-studio/${packageName}`);
+  if (fs.existsSync(nodeModulesPath)) {
+    return nodeModulesPath;
+  }
+
+  // Try relative paths as fallback (for unusual project structures)
+  const relativePath = path.resolve(userProjectPath, `../../${packageName}`);
+  if (fs.existsSync(relativePath)) {
+    return relativePath;
+  }
+
+  // Fallback to monorepo path (will fail gracefully if it doesn't exist)
+  return monorepoPath;
+}
+
 export interface TemplateServerOptions {
   userProjectPath: string;
   port: number;

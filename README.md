@@ -8,7 +8,7 @@ Get started with a new 3D modeling project in seconds:
 
 ```bash
 # Create a new project
-npx @manifold-studio/create-app my-3d-project
+npm create @manifold-studio/app my-3d-project
 
 # Start developing
 cd my-3d-project
@@ -52,7 +52,7 @@ The `create-app` package provides a CLI tool for scaffolding new Manifold Studio
 
 ```bash
 # Create a new TypeScript project with full configurator UI
-npx @manifold-studio/create-app my-project
+npm create @manifold-studio/app my-project
 
 # Generated project structure:
 my-project/
