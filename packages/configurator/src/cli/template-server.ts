@@ -113,14 +113,12 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
     }
   };
 
-  // Add source aliases in configurator dev mode
+  // Add aliases only in dev mode for source files
+  // In published mode, we use direct paths in the template instead of aliases
   if (configuratorDevMode) {
     // Calculate paths relative to user project (like the working V3 config)
     const configuratorSrcPath = path.resolve(userProjectPath, '../packages/configurator/src');
     const wrapperSrcPath = path.resolve(userProjectPath, '../packages/wrapper/src');
-
-
-
     const typefaceSrcPath = path.resolve(userProjectPath, '../packages/typeface/src');
 
     viteConfig.resolve = {
@@ -130,8 +128,6 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
         '@manifold-studio/typeface': typefaceSrcPath
       }
     };
-
-
   }
 
   // Create Vite server with custom middleware for template serving
@@ -146,7 +142,7 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
           // Serve our templates for the root routes
           server.middlewares.use('/', (req, res, next) => {
             // Parse URL to handle query parameters
-            const url = new URL(req.url, `http://${req.headers.host}`);
+            const url = new URL(req.url || '/', `http://${req.headers.host}`);
             const pathname = url.pathname;
 
             if (pathname === '/' || pathname === '/index.html') {
@@ -240,11 +236,11 @@ function processTemplate(templatePath: string, context: {
   // Define import paths based on dev mode
   const configuratorImport = context.configuratorDevMode
     ? `/@fs${findPackagePath(context.userProjectPath, 'configurator')}/src/index.ts` // Direct file path for dev
-    : '@manifold-studio/configurator'; // Package import (when published)
+    : `/node_modules/@manifold-studio/configurator/dist/index.js`; // Direct path for published packages
 
   const wrapperImport = context.configuratorDevMode
     ? `/@fs${findPackagePath(context.userProjectPath, 'wrapper')}/src/index.ts` // Direct file path for dev
-    : '@manifold-studio/wrapper'; // Package import (when published)
+    : `/node_modules/@manifold-studio/wrapper/dist/index.js`; // Direct path for published packages
 
   // Replace template placeholders
   return template
