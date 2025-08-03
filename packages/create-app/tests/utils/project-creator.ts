@@ -11,6 +11,7 @@ export interface ProjectCreationOptions {
   projectName?: string; // Also accept legacy key used in some tests
   template?: string;
   skipInstall?: boolean;
+  usePublished?: boolean; // Use published packages instead of local file: paths
   timeout?: number;
 }
 
@@ -52,6 +53,7 @@ export class ProjectCreator {
       projectName: legacyProjectName,
       template = 'basic',
       skipInstall = false,
+      usePublished = false,
       timeout = 120000 // 2 minutes
     } = options;
     const resolvedProjectName = (name ?? legacyProjectName ?? 'test-project');
@@ -70,6 +72,9 @@ export class ProjectCreator {
       }
       if (skipInstall) {
         args.push('--no-install');
+      }
+      if (usePublished) {
+        args.push('--use-published');
       }
 
       // Run the create-app command

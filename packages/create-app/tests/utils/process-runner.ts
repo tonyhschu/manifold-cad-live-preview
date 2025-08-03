@@ -167,4 +167,16 @@ export class ProcessRunner {
     const result = await this.run('node', ['--version'], { silent: true });
     return result.success ? result.stdout.trim() : null;
   }
+
+  /**
+   * Check if a file exists
+   */
+  static async fileExists(filePath: string): Promise<boolean> {
+    try {
+      const { existsSync } = await import('fs');
+      return existsSync(filePath);
+    } catch {
+      return false;
+    }
+  }
 }
