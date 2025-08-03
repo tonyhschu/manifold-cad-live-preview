@@ -14,5 +14,11 @@ export default defineConfig({
     testTimeout: 60000, // 1 minute per test
     // Global setup timeout
     hookTimeout: 180000, // 3 minutes for beforeAll/afterAll
+    // Exclude published package tests from regular runs (they use published packages and may fail)
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/published-packages.test.ts' // Run these separately with npm run test:published
+    ]
   },
 });

@@ -26,6 +26,7 @@
     "test:package": "vitest run tests/integration/package-validation.test.ts --reporter=verbose",
     "test:install": "vitest run tests/integration/installation.test.ts --reporter=verbose",
     "test:integration": "vitest run tests/integration/ --reporter=verbose",
+    "test:published": "vitest run tests/integration/published-packages.test.ts --reporter=verbose",
     "test:scaffold": "node bin/index.js test-project /tmp/test-project --no-install && echo 'Generated project in /tmp/test-project (dependencies not installed)'"
   },
   "dependencies": {
