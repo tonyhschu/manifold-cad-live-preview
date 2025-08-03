@@ -1,6 +1,6 @@
 {
   "name": "@manifold-studio/create-app",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "type": "module",
   "description": "Scaffolding tool for creating Manifold Studio projects",
   "keywords": [

@@ -1,5 +1,14 @@
 # @manifold-studio/configurator
 
+## 0.3.5
+
+### Patch Changes
+
+- [`fd15c8c`](https://github.com/tonyhschu/manifold-cad-live-preview/commit/fd15c8c9b4bb5127cebebe2b08e2afaa57d54da6) Thanks [@tonyhschu](https://github.com/tonyhschu)! - Fix module paths in published js
+
+- Updated dependencies [[`fd15c8c`](https://github.com/tonyhschu/manifold-cad-live-preview/commit/fd15c8c9b4bb5127cebebe2b08e2afaa57d54da6)]:
+  - @manifold-studio/wrapper@0.3.5
+
 ## 0.3.4
 
 ### Patch Changes
