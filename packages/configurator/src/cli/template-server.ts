@@ -236,7 +236,7 @@ function processTemplate(templatePath: string, context: {
   // Define import paths based on dev mode
   const configuratorImport = context.configuratorDevMode
     ? `/@fs${findPackagePath(context.userProjectPath, 'configurator')}/src/index.ts` // Direct file path for dev
-    : `/node_modules/@manifold-studio/configurator/dist/index.js`; // Direct path for published packages
+    : `/node_modules/@manifold-studio/configurator/dist/lib/index.js`; // Direct path for published packages
 
   const wrapperImport = context.configuratorDevMode
     ? `/@fs${findPackagePath(context.userProjectPath, 'wrapper')}/src/index.ts` // Direct file path for dev
