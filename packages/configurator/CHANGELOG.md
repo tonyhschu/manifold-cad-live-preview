@@ -1,5 +1,14 @@
 # @manifold-studio/configurator
 
+## 0.3.6
+
+### Patch Changes
+
+- [`df43c93`](https://github.com/tonyhschu/manifold-cad-live-preview/commit/df43c9382773e247569ff1b3fbe5017eadb7d6ee) Thanks [@tonyhschu](https://github.com/tonyhschu)! - Fix file paths again
+
+- Updated dependencies [[`df43c93`](https://github.com/tonyhschu/manifold-cad-live-preview/commit/df43c9382773e247569ff1b3fbe5017eadb7d6ee)]:
+  - @manifold-studio/wrapper@0.3.6
+
 ## 0.3.5
 
 ### Patch Changes
