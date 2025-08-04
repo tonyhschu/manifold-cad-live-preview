@@ -1,5 +1,11 @@
 # @manifold-studio/create-app
 
+## 0.3.7
+
+### Patch Changes
+
+- [`fd637cb`](https://github.com/tonyhschu/manifold-cad-live-preview/commit/fd637cbdc5805d756dae55e105f711d8625e706b) Thanks [@tonyhschu](https://github.com/tonyhschu)! - CSS and tweakpane fixes.
+
 ## 0.3.6
 
 ### Patch Changes
