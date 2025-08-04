@@ -54,8 +54,15 @@ export class ParameterManager {
       // Cast to any to bypass TypeScript issues for now
       const binding = (this.pane as any).addBinding(this.params, key, tweakpaneConfig);
 
-      binding.on('change', () => {
-        this.renderModel();
+      binding.on('change', (event: any) => {
+        if (!event.last) return;
+
+        if (typeof this.config.parameters[key].value === 'number' && isNaN(event.value)) {
+          console.warn('NaN value detected for parameter:', key, event.value);
+          return;
+        } else {
+          this.renderModel();
+        }        
       });
     } catch (error) {
       throw error;
