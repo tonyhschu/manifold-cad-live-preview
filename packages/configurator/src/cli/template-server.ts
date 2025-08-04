@@ -242,10 +242,16 @@ function processTemplate(templatePath: string, context: {
     ? `/@fs${findPackagePath(context.userProjectPath, 'wrapper')}/src/index.ts` // Direct file path for dev
     : `/node_modules/@manifold-studio/wrapper/dist/index.js`; // Direct path for published packages
 
+  // Define CSS link based on dev mode
+  const cssLink = context.configuratorDevMode
+    ? '' // In dev mode, CSS is handled by HMR via import in source
+    : '<link rel="stylesheet" href="/node_modules/@manifold-studio/configurator/dist/lib/style.css">'; // Load CSS for published packages
+
   // Replace template placeholders
   return template
     .replace(/\{\{CONFIGURATOR_IMPORT\}\}/g, configuratorImport)
     .replace(/\{\{WRAPPER_IMPORT\}\}/g, wrapperImport)
     .replace(/\{\{PIPELINE_PATH\}\}/g, context.pipelinePath)
-    .replace(/\{\{MANIFEST_PATH\}\}/g, context.manifestPath);
+    .replace(/\{\{MANIFEST_PATH\}\}/g, context.manifestPath)
+    .replace(/\{\{CSS_LINK\}\}/g, cssLink);
 }
