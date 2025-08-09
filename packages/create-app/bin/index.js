@@ -170,7 +170,8 @@ function getPackageManager() {
 // src/create-project.ts
 import path2 from "path";
 import { fileURLToPath as fileURLToPath2 } from "url";
-import { statSync as statSync2 } from "fs";
+import { statSync as statSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync2, writeFileSync as writeFileSync2 } from "fs";
+import { createRequire } from "module";
 var __filename2 = fileURLToPath2(import.meta.url);
 var __dirname2 = path2.dirname(__filename2);
 function directoryExists(dir) {
@@ -209,6 +210,21 @@ async function createProject(projectName, options) {
   try {
     console.log("\u{1F4C1} Creating project structure...");
     await processor.processTemplate(template, targetDir, context);
+    try {
+      const require2 = createRequire(import.meta.url);
+      const mvPkgPath = require2.resolve("@google/model-viewer/package.json");
+      const mvDir = path2.dirname(mvPkgPath);
+      const mvMinPath = path2.join(mvDir, "dist", "model-viewer.min.js");
+      const vendorDir = path2.join(targetDir, "vendor", "model-viewer");
+      mkdirSync2(vendorDir, { recursive: true });
+      const content = readFileSync2(mvMinPath, "utf-8");
+      const destPath = path2.join(vendorDir, "model-viewer.min.js");
+      writeFileSync2(destPath, content, "utf-8");
+      console.log("\u{1F9F3} Vendored model-viewer to", path2.relative(targetDir, destPath));
+    } catch (vendoringError) {
+      console.error("\u274C Failed to vendor model-viewer:", vendoringError);
+      throw new Error("Failed to vendor model-viewer. Ensure @google/model-viewer@3.3.0 is resolvable to proceed.");
+    }
     if (install) {
       console.log("\u{1F4E6} Installing dependencies...");
       const packageManager = getPackageManager();

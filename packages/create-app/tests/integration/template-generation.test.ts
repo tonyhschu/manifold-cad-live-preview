@@ -270,4 +270,28 @@ describe('Template Generation', () => {
       ).rejects.toThrow();
     }, 15000);
   });
+
+  describe('Vendored Assets', () => {
+    it('should vendor model-viewer for offline support', async () => {
+      const project = await ProjectCreator.createProject({
+        name: 'test-vendored-model-viewer',
+        template: 'basic',
+        skipInstall: true
+      });
+
+      try {
+        const { FileValidator } = await import('../utils/index.js');
+        const vendorPath = `${project.path}/vendor/model-viewer/model-viewer.min.js`;
+        const exists = await FileValidator.fileExists(vendorPath);
+        expect(exists).toBe(true);
+
+        if (exists) {
+          const stats = await FileValidator.getFileStats(vendorPath);
+          expect(stats.size).toBeGreaterThan(10000); // file should be non-trivial in size
+        }
+      } finally {
+        await project.cleanup();
+      }
+    }, 30000);
+  });
 });

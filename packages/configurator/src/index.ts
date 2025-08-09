@@ -72,34 +72,8 @@ function createConfiguratorHTML(): string {
 
 
 
-/**
- * Load the model-viewer web component if not already loaded
- */
-function loadModelViewerScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // Check if model-viewer is already loaded
-    if (customElements.get('model-viewer')) {
-      resolve();
-      return;
-    }
-
-    // Check if script is already in the document
-    const existingScript = document.querySelector('script[src*="model-viewer"]');
-    if (existingScript) {
-      existingScript.addEventListener('load', () => resolve());
-      existingScript.addEventListener('error', reject);
-      return;
-    }
-
-    // Load the script
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js';
-    script.onload = () => resolve();
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-}
+// model-viewer web component is now loaded via a local vendored script in the HTML template
+// No dynamic script loading here to avoid network dependency and ensure offline support
 
 /**
  * Initialize V3 Pipeline System
@@ -178,9 +152,6 @@ export async function startConfigurator(options: ConfiguratorOptions = {}) {
 
   // CSS styles are now imported via CSS file (style.css) for HMR support
   // No need to inject CSS - Vite handles CSS imports
-
-  // Load model-viewer script
-  await loadModelViewerScript();
 
   // Set the container as the app element
   containerElement.id = 'app';

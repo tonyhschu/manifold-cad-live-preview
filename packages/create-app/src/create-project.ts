@@ -2,7 +2,8 @@ import { TemplateProcessor, TemplateContext } from './template-processor';
 import { runCommand, getPackageManager } from './utils';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { statSync } from 'fs';
+import { statSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { createRequire } from 'module';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -71,6 +72,27 @@ export async function createProject(
     // Process template
     console.log('📁 Creating project structure...');
     await processor.processTemplate(template, targetDir, context);
+
+    // Vendor pinned model-viewer script for offline runtime
+    try {
+      const require = createRequire(import.meta.url);
+      const mvPkgPath = require.resolve('@google/model-viewer/package.json');
+      const mvDir = path.dirname(mvPkgPath);
+      const mvMinPath = path.join(mvDir, 'dist', 'model-viewer.min.js');
+
+      // Ensure vendor directory exists in the generated project
+      const vendorDir = path.join(targetDir, 'vendor', 'model-viewer');
+      mkdirSync(vendorDir, { recursive: true });
+
+      // Copy the minified script
+      const content = readFileSync(mvMinPath, 'utf-8');
+      const destPath = path.join(vendorDir, 'model-viewer.min.js');
+      writeFileSync(destPath, content, 'utf-8');
+      console.log('🧳 Vendored model-viewer to', path.relative(targetDir, destPath));
+    } catch (vendoringError) {
+      console.error('❌ Failed to vendor model-viewer:', vendoringError);
+      throw new Error('Failed to vendor model-viewer. Ensure @google/model-viewer@3.3.0 is resolvable to proceed.');
+    }
 
     // Install dependencies if requested
     if (install) {

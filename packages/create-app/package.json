@@ -32,7 +32,8 @@
   "dependencies": {
     "commander": "^11.0.0",
     "handlebars": "^4.7.0",
-    "manifold-3d": "^3.1.1"
+    "manifold-3d": "^3.1.1",
+    "@google/model-viewer": "3.3.0"
   },
   "devDependencies": {
     "typescript": "^5.0.2",
