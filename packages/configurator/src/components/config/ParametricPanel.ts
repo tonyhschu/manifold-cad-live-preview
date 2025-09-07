@@ -66,6 +66,7 @@ export class ParametricPanel extends HTMLElement {
         return;
       }
 
+      console.log('ParametricPanel: Received valid config:', config);
 
       this.setupParametricUI(config);
       // Show reset button for parametric models
@@ -119,6 +120,9 @@ export class ParametricPanel extends HTMLElement {
       // Store current parameters for persistence (no model reload needed - that's handled reactively)
       this.storeCurrentParameters(params);
 
+      // Emit LogoAnimationRequest event to trigger logo animation
+      this.emitLogoAnimationRequest('parameter-change', params);
+
     };
 
     const handleModelError = (event: Event) => {
@@ -150,6 +154,24 @@ export class ParametricPanel extends HTMLElement {
         console.warn('Failed to store parameters:', error);
       }
     }
+  }
+
+  /**
+   * Emit a LogoAnimationRequest event to trigger logo animation
+   * This provides loose coupling between parameter changes and logo animations
+   */
+  private emitLogoAnimationRequest(reason: string, params?: Record<string, any>) {
+    const event = new CustomEvent('LogoAnimationRequest', {
+      detail: {
+        reason,
+        params,
+        modelName: this.currentConfig?.name,
+        timestamp: Date.now()
+      }
+    });
+
+    document.dispatchEvent(event);
+    console.log('ParametricPanel: Emitted LogoAnimationRequest event', { reason, modelName: this.currentConfig?.name });
   }
 
 
@@ -205,6 +227,9 @@ export class ParametricPanel extends HTMLElement {
   public resetParameters(): void {
     if (this.parameterManager) {
       this.parameterManager.resetToDefaults();
+
+      // Emit LogoAnimationRequest event for reset action
+      this.emitLogoAnimationRequest('parameter-reset');
     }
   }
 }
