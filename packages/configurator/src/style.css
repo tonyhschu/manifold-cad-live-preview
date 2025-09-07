@@ -25,6 +25,7 @@
   --tp-monitor-background-color: hsla(230, 15%, 30%, 0.10);
   --tp-monitor-foreground-color: hsla(230, 10%, 30%, 0.50);
 
+  --border-color: hsla(230, 15%, 30%, 0.10);
   --secondary-header-font-size: 0.675rem;
   --sidebar-padding: 0.75rem;
   --right-most-padding: 0.75rem;
@@ -46,14 +47,15 @@ body {
   grid-template-columns: 20rem 1fr;
   grid-template-rows: auto 1fr;
   grid-template-areas: "toolbar toolbar" "sidebar main";
-  gap: 0.25rem;
+  gap: var(--sidebar-padding) 0.25rem;
 }
 
 #toolbar {
-  padding: 0.25rem var(--right-most-padding) 0 var(--sidebar-padding);
+  padding: 0.25rem var(--right-most-padding) 0.25rem var(--sidebar-padding);
   grid-area: toolbar;
   display: grid;
   grid-template-columns: 1fr auto;
+  border-bottom: 1px solid var(--border-color);
 }
 
 #sidebar {

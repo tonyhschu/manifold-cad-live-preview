@@ -27,7 +27,7 @@ export interface ConfiguratorOptions {
 function createConfiguratorHTML(): string {
   return `
       <header id="toolbar">
-        Hello
+        <manifold-logo></manifold-logo>
 
         <!-- Download Panel Component -->
         <download-panel></download-panel>

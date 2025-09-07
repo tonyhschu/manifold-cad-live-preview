@@ -75,8 +75,9 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
   // Verify templates exist
   const indexTemplatePath = path.join(templatesDir, 'index.html');
   const mainTemplatePath = path.join(templatesDir, 'main.js');
-  
-  if (!fs.existsSync(indexTemplatePath) || !fs.existsSync(mainTemplatePath)) {
+  const logoTemplatePath = path.join(templatesDir, 'logo.js');
+
+  if (!fs.existsSync(indexTemplatePath) || !fs.existsSync(mainTemplatePath) || !fs.existsSync(logoTemplatePath)) {
     throw new Error(`Template files not found in ${templatesDir}`);
   }
 
@@ -91,7 +92,7 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
       }
       // Note: Removed proxy configuration - temp files are now served directly from filesystem
     },
-    publicDir: false, // Don't serve public directory
+    publicDir: userProjectPath, // Serve static files from user project root (includes vendor/)
 
     // Disable dependency optimization to prevent cache invalidation issues during development
     optimizeDeps: {
@@ -174,6 +175,16 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
               // Let Vite handle the transformation
               res.setHeader('Content-Type', 'application/javascript');
               res.end(jsContent);
+              return;
+            }
+
+            if (req.url === '/logo.js') {
+              // Serve logo.js template (no processing needed since it's static)
+              const logoTemplatePath = path.join(templatesDir, 'logo.js');
+              const logoContent = fs.readFileSync(logoTemplatePath, 'utf-8');
+
+              res.setHeader('Content-Type', 'application/javascript');
+              res.end(logoContent);
               return;
             }
 
