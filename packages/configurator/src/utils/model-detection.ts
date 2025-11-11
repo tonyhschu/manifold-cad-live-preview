@@ -6,6 +6,10 @@
  */
 
 import type { ParametricConfig } from '@manifold-studio/wrapper';
+import { 
+  isParametricConfig as _isParametricConfig, 
+  extractDefaultParams as _extractDefaultParams 
+} from '../pipeline-runtime/types.js';
 
 /**
  * Helper to determine if a model export is a parametric config
@@ -13,18 +17,12 @@ import type { ParametricConfig } from '@manifold-studio/wrapper';
  * This is the core detection logic that determines whether a model
  * is static (function-based) or parametric (config-based).
  * 
+ * Re-exported from pipeline-runtime/types.ts to maintain API compatibility.
+ * 
  * @param obj - The default export from a model module
  * @returns True if the object is a ParametricConfig
  */
-export function isParametricConfig(obj: any): obj is ParametricConfig {
-  return (
-    obj &&
-    typeof obj === 'object' &&
-    'parameters' in obj &&
-    'generateModel' in obj &&
-    typeof obj.generateModel === 'function'
-  );
-}
+export const isParametricConfig = _isParametricConfig;
 
 /**
  * Extract default parameters from a parametric config
@@ -32,18 +30,12 @@ export function isParametricConfig(obj: any): obj is ParametricConfig {
  * Creates a parameter object with all default values from the config.
  * Used for initial model generation and testing.
  * 
+ * Re-exported from pipeline-runtime/types.ts to maintain API compatibility.
+ * 
  * @param config - Parametric configuration object
  * @returns Object with parameter names as keys and default values
  */
-export function extractDefaultParams(config: ParametricConfig): Record<string, any> {
-  const defaultParams: Record<string, any> = {};
-  
-  for (const [key, paramConfig] of Object.entries(config.parameters)) {
-    defaultParams[key] = paramConfig.value;
-  }
-  
-  return defaultParams;
-}
+export const extractDefaultParams = _extractDefaultParams;
 
 /**
  * Validate that a model export is valid
