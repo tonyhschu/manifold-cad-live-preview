@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspace @manifold-studio/wrapper && npm run build --workspace @manifold-studio/typeface && npm run build --workspace @manifold-studio/configurator && npm run build --workspace @manifold-studio/create-app",
+    "build:dev-deps": "npm run build --workspace @manifold-studio/wrapper && npm run build --workspace @manifold-studio/typeface && npm run build --workspace @manifold-studio/configurator",
     "pretest": "node scripts/check-build-before-test.js && node scripts/check-port-before-integration.js",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -30,6 +31,7 @@
     "dev:configurator": "npm run dev --workspace @manifold-studio/configurator",
     "dev:configurator-lib": "cd packages/configurator && npm run build:lib -- --watch",
     "dev:create-app": "npm run dev --workspace @manifold-studio/create-app",
+    "dev:reference": "npm run build:dev-deps && cd reference-project && node ../packages/configurator/dist/cli/index.js dev",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "npm run build && changeset publish"
