@@ -1,87 +1,146 @@
-# Manifold CAD Live Preview Project
+# Manifold Studio Project
 
-## Project Architecture
+## Monorepo Architecture
 
-This project uses a Web Components architecture with Preact Signals for state management. Key points:
+This project is a **monorepo** with 4 core NPM packages that work together to provide a complete 3D modeling development environment:
 
-1. Light DOM Web Components (no Shadow DOM) for maximum styling flexibility
-2. Preact Signals for state management
-3. Centralized store pattern
+### 1. **@manifold-studio/wrapper** - Core 3D API
+- Wraps ManifoldCAD WASM with synchronous API using top-level await
+- Handles 3D operations (union, difference, intersection, etc.)
+- Export capabilities (OBJ, GLB, 3MF formats)
+- Operation tracking system for debugging
+- **Location**: `packages/wrapper/`
 
-## Web Components + Preact Signals Integration
+### 2. **@manifold-studio/typeface** - Typography Integration
+- Font loading and text-to-3D conversion
+- Cross-platform font resolution (CDN + local files)
+- Text rendering with hole detection for complex characters (O, P, B, etc.)
+- Supports Inter, Roboto, Open Sans, Source Code Pro
+- **Location**: `packages/typeface/`
 
-Refer to `WEB_COMPONENTS_ARCHITECTURE.md` for the full documentation, but here's the key integration pattern:
+### 3. **@manifold-studio/configurator** - Development Environment  
+- Web Components + Preact Signals UI architecture
+- CLI tool providing `npm run dev` experience
+- Hot module replacement for instant feedback
+- 3D viewer, parameter controls, model discovery
+- Model compilation pipeline
+- **Location**: `packages/configurator/`
 
-- Components subscribe to signals in `connectedCallback()`
-- Components unsubscribe in `disconnectedCallback()`
-- Components render based on signal values
-- The store contains all state signals and actions
+### 4. **@manifold-studio/create-app** - Project Scaffolding
+- CLI tool for `npm create @manifold-studio/app my-project`
+- Creates new projects from templates with examples
+- **Location**: `packages/create-app/`
 
-Example:
+## User Project Structure (Scaffolded Projects)
+
+When users run `npm create @manifold-studio/app my-project`, they get:
+
+```
+my-project/
+├── main.ts              # Main model (V3 format with global manifold)
+├── components/          # Additional model components  
+│   ├── example.ts       # Sphere example (createConfig format)
+│   └── wheel.ts         # Component example
+├── package.json         # Dependencies (includes all @manifold-studio packages)
+├── tsconfig.json        # TypeScript configuration
+└── vite.config.ts       # Development server configuration
+```
+
+### Two Model Patterns:
+
+**V3 Format** (main.ts):
 ```typescript
-import { status } from '../../state/store';
-
-export class StatusBar extends HTMLElement {
-  private unsubscribe: (() => void) | null = null;
-  
-  connectedCallback() {
-    this.unsubscribe = status.subscribe(value => { 
-      // Update UI based on value 
-    });
+export default {
+  name: "My Model",
+  parameters: { width: { value: 10, min: 1, max: 100 } },
+  generateModel: (params) => {
+    const manifold = globalThis.manifold; // Global access
+    return manifold.cube([params.width, 10, 5]);
   }
-  
-  disconnectedCallback() {
-    if (this.unsubscribe) this.unsubscribe();
-  }
-}
+};
 ```
 
-## Directory Structure
+**Modern Format** (components/):
+```typescript
+import { Manifold, P, createConfig } from '@manifold-studio/wrapper';
 
+export default createConfig(
+  { width: P.number(10, 1, 100) },
+  (params) => Manifold.cube([params.width, 10, 5]),
+  { name: "My Model" }
+);
 ```
-src/
-  components/       # Web Components
-    canvas/         # Canvas-related components
-    context/        # Context panel components
-    config/         # Configuration panel components
-  state/            # State management
-    store.ts        # Central store with Preact Signals
-    types.ts        # TypeScript types for state
-  core/             # Core functionality
-  lib/              # Libraries and utilities
-```
+
+## Development vs Production
+
+- **reference-project/**: Enhanced development project with extensive examples and testing
+- **Scaffolded projects**: Minimal starter with room for user customization
+- **Development mode**: CLI auto-detects and uses source packages for HMR
+- **Production mode**: CLI uses published packages from NPM
 
 ## Common Commands
 
-- `npm run dev`: Start development server
-- `npm run build`: Build for production
-- `npm run test`: Run all tests
-- `npm run test:lib`: Test pure library functions (for NPM extraction)
-- `npm run test:services`: Test service layer with mocks
-- `npm run test:ui`: Test UI components with service mocks
+**For Development (in reference-project/ or user projects):**
+- `npm run dev`: Start CLI development server with HMR
+- `npm run build`: Build project for production
+- `npm run test`: Run project-specific tests
+
+**For Monorepo Development:**
+- `npm run build`: Build all packages
+- `npm run test`: Run all package tests with Vitest workspace
 - `npm run test:watch`: Run tests in watch mode
+- `npm run test:e2e`: Run end-to-end browser tests with Playwright
+- `npm run devAll`: Start cross-package development with HMR
 
-## Important Files
+**Individual Package Commands:**
+- `npm run test:wrapper`: Test wrapper package only
+- `npm run test:configurator`: Test configurator package only
+- `npm run test:typeface`: Test typeface package only
+- `npm run test:create-app`: Test create-app package only
 
-- `src/state/store.ts`: Central state store
-- `src/components/index.ts`: Component registration
-- `src/main.ts`: Application entry point
+## Key Directories & Files
 
-## Architecture Goals & Future Plans
+**Development Project:**
+- `reference-project/`: Enhanced development project with extensive examples
+- `reference-project/components/`: Example models including typeface integration
+- `reference-project/assets/fonts/`: Local font files for development
 
-### Library Extraction (Issue #8)
-We are working toward extracting the core ManifoldCAD library code into a separate NPM package. This drives current architectural decisions:
+**Package Structure:**
+- `packages/wrapper/src/lib/manifold.ts`: Core Manifold API with top-level await
+- `packages/typeface/src/`: Font loading and text rendering system
+- `packages/configurator/src/cli/`: CLI implementation for `npm run dev`
+- `packages/create-app/templates/basic/`: Template for scaffolded projects
 
-**Current Strategy:**
-- Keep `src/lib/` pure and extractable (no UI dependencies, browser APIs, or console logs)
-- Create service layer (`src/services/`) to bridge library and UI concerns
-- Separate library functionality from UI integration
-- Design export systems to support multiple formats (OBJ, GLB, future 3MF)
+## Typeface Integration Capabilities
 
-**Key Principles:**
-- Library code should be environment-agnostic (Node.js compatible)
-- UI services handle browser-specific functionality (blob URLs, progress callbacks)
-- Clean separation enables easier testing and future extraction
+The project has comprehensive typography support via `@manifold-studio/typeface`:
+
+**Features:**
+- Font loading from CDN (Inter, Roboto, Open Sans, Source Code Pro)  
+- Local font file support (TTF files in assets/fonts/)
+- Text-to-3D conversion with accurate hole detection
+- Character-by-character processing for complex text
+- Cross-platform compatibility (browser + Node.js)
+
+**Usage Patterns:**
+```typescript
+import { fontLoader, fonts } from '@manifold-studio/typeface';
+
+async function createText(text: string) {
+  await fonts.ensureReady();
+  const renderText = fontLoader('Inter');
+  const crossSection = renderText(text, { fontSize: 16 });
+  return crossSection.extrude(3);
+}
+```
+
+## Architecture Achievements
+
+✅ **Library Extraction Completed**: Core ManifoldCAD functionality extracted into `@manifold-studio/wrapper`  
+✅ **Modular Design**: Clean separation between 3D ops, typography, UI, and scaffolding  
+✅ **Cross-Platform**: Works in browser and Node.js environments  
+✅ **Developer Experience**: Full HMR, testing, and CLI workflow  
+✅ **Typography Integration**: Sophisticated font rendering capabilities
 
 ## Project Repository
 
