@@ -13,6 +13,8 @@
   ],
   "scripts": {
     "dev": "manifold-studio dev",
+    "dev:local": "npm run build:deps && node ../packages/configurator/dist/cli/index.js dev",
+    "build:deps": "cd .. && npm run build:dev-deps",
     "build": "echo 'Build not needed - CLI handles compilation'",
     "test": "vitest"
   },
