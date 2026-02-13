@@ -20,5 +20,23 @@ export default defineWorkspace([
         }
       }
     }
+  },
+
+  // Browser tests for embed widget pieces (WASM, WebGL, real DOM)
+  {
+    test: {
+      include: ['tests/browser/**/*.test.ts'],
+      name: 'browser',
+      browser: {
+        enabled: true,
+        name: 'chromium',
+        provider: 'playwright',
+        headless: true,
+      },
+      testTimeout: 30000,
+    },
+    optimizeDeps: {
+      exclude: ['manifold-3d'],
+    },
   }
 ])

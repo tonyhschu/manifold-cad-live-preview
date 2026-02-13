@@ -8,7 +8,6 @@ export default defineConfig({
     // Browser environment for specific UI tests
     environmentMatchGlobs: [
       ['tests/ui/**', 'happy-dom'],           // UI tests in browser-like env
-      ['tests/browser/**', 'happy-dom'],      // Future browser tests
       ['tests/components/**', 'happy-dom']    // Future component tests
     ],
     
