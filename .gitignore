@@ -55,4 +55,8 @@ playwright/.cache/
 
 # References
 references/
+reference-project/vendor/
 .augment
+.rmb/
+.githooks/
+.uisnap/
