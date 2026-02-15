@@ -1,52 +1,58 @@
 // Test utilities for configurator package tests
+// NOTE: MockBlob implementation is kept consistent with wrapper/tests/test-utils.ts
 
 /**
- * Mock Blob implementation for Node.js environment
+ * Mock Blob implementation for Node.js testing environment
+ * Provides compatibility with both Node.js and browser Blob APIs
  */
 export class MockBlob {
   public readonly size: number;
   public readonly type: string;
-  private data: any[];
+  private content: string;
 
-  constructor(data: any[] = [], options: { type?: string } = {}) {
-    this.data = data;
+  constructor(parts: any[] = [], options: { type?: string } = {}) {
+    // Join all parts into a single string
+    this.content = parts.map(part => {
+      if (typeof part === 'string') {
+        return part;
+      } else if (part instanceof ArrayBuffer) {
+        return new TextDecoder().decode(part);
+      } else if (ArrayBuffer.isView(part)) {
+        return new TextDecoder().decode(part);
+      }
+      return String(part);
+    }).join('');
+    
+    this.size = this.content.length;
     this.type = options.type || '';
-    this.size = this.calculateSize(data);
   }
 
-  private calculateSize(data: any[]): number {
-    return data.reduce((total, item) => {
-      if (typeof item === 'string') {
-        return total + item.length;
-      } else if (item instanceof ArrayBuffer) {
-        return total + item.byteLength;
-      } else if (item && typeof item.length === 'number') {
-        return total + item.length;
-      }
-      return total + 1;
-    }, 0);
+  async text(): Promise<string> {
+    return this.content;
+  }
+
+  async arrayBuffer(): Promise<ArrayBuffer> {
+    const encoder = new TextEncoder();
+    return encoder.encode(this.content).buffer;
+  }
+
+  async bytes(): Promise<Uint8Array> {
+    const encoder = new TextEncoder();
+    return encoder.encode(this.content);
   }
 
   slice(start?: number, end?: number, contentType?: string): MockBlob {
-    const slicedData = this.data.slice(start, end);
-    return new MockBlob(slicedData, { type: contentType || this.type });
+    const slicedContent = this.content.slice(start, end);
+    return new MockBlob([slicedContent], { type: contentType || this.type });
   }
 
-  arrayBuffer(): Promise<ArrayBuffer> {
-    // Simple mock implementation
-    const buffer = new ArrayBuffer(this.size);
-    return Promise.resolve(buffer);
-  }
+  stream(): ReadableStream<Uint8Array> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(this.content);
 
-  text(): Promise<string> {
-    return Promise.resolve(this.data.join(''));
-  }
-
-  stream(): ReadableStream {
-    // Mock stream implementation
     return new ReadableStream({
       start(controller) {
-        controller.enqueue(new TextEncoder().encode(this.data.join('')));
+        controller.enqueue(data);
         controller.close();
       }
     });
@@ -54,14 +60,16 @@ export class MockBlob {
 }
 
 /**
- * Setup mock Blob in global environment for Node.js tests
+ * Setup mock Blob globally for Node.js environment
  */
 export function setupMockBlob() {
+  // Only setup MockBlob if Blob is not already defined (e.g., in happy-dom)
   if (typeof global !== 'undefined' && !global.Blob) {
-    (global as any).Blob = MockBlob;
-  }
-  if (typeof window !== 'undefined' && !window.Blob) {
-    (window as any).Blob = MockBlob;
+    Object.defineProperty(global, 'Blob', {
+      value: MockBlob,
+      writable: true,
+      configurable: true
+    });
   }
 }
 

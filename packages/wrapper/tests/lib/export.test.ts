@@ -87,8 +87,8 @@ describe('OBJ Export Functions', () => {
       // Export to OBJ blob
       const blob = exportToOBJ(cube)
 
-      // Verify it's a blob
-      expect(blob).toBeInstanceOf(MockBlob)
+      // Verify it's a blob (Node.js now has native Blob support)
+      expect(blob).toBeInstanceOf(Blob)
       expect(blob.type).toBe('model/obj')
       expect(blob.size).toBeGreaterThan(0)
     })
