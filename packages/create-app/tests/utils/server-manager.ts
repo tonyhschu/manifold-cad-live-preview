@@ -28,7 +28,7 @@ export class ServerManager {
 
   constructor(options: ServerManagerOptions) {
     this.options = {
-      port: 3000,
+      port: 4000,
       timeout: 30000,
       silent: false,
       ...options

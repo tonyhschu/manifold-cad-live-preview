@@ -10,7 +10,7 @@
 
 import net from 'net';
 
-const PORT = 3000; // Keep this aligned with tests' default dev server port
+const PORT = 4000; // Keep this aligned with tests' default dev server port
 
 function checkPortAvailable(port) {
   return new Promise((resolve) => {

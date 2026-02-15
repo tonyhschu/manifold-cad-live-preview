@@ -29,8 +29,8 @@ export default defineConfig({
   
   // Shared settings for all the projects below
   use: {
-    // Base URL for tests - Manifold Studio CLI runs on port 3000
-    baseURL: 'http://localhost:3000',
+    // Base URL for tests - Manifold Studio CLI runs on port 4000
+    baseURL: 'http://localhost:4000',
     
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',

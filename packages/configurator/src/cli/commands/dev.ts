@@ -97,7 +97,7 @@ function validateCliArguments(options: DevCommandOptions): void {
   if (isNaN(uiPort) || uiPort < 1 || uiPort > 65535) {
     console.error(`\n❌ Invalid UI server port: ${options.port}`);
     console.error(`\n💡 Port must be a number between 1 and 65535`);
-    console.error(`   Example: manifold-studio dev --port 3000`);
+    console.error(`   Example: manifold-studio dev --port 4000`);
     process.exit(1);
   }
 
@@ -107,7 +107,7 @@ function validateCliArguments(options: DevCommandOptions): void {
   if (uiPort < 1024) {
     console.warn(`\n⚠️  Warning: UI server port ${uiPort} is a privileged port (< 1024)`);
     console.warn(`   You may need elevated permissions or encounter EACCES errors`);
-    console.warn(`   Consider using a port >= 1024 (e.g., 3000)`);
+    console.warn(`   Consider using a port >= 1024 (e.g., 4000)`);
   }
 
   // Removed: Pipeline port warning no longer needed

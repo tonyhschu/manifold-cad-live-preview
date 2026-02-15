@@ -45,7 +45,7 @@ async function globalSetup(config: FullConfig) {
     });
     
     // Wait for server to be ready
-    await waitForServer('http://localhost:3000', 30000);
+    await waitForServer('http://localhost:4000', 30000);
     
     console.log('✅ E2E test environment ready!');
     

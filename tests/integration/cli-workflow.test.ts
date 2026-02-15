@@ -94,7 +94,7 @@ describe('CLI Workflow Integration', () => {
     // Verify single server is running (not dual server)
     const allLogs = logs.join('\n');
     expect(allLogs).toContain('🌐 UI Server:');
-    expect(allLogs).toContain('localhost:3000');
+    expect(allLogs).toContain('localhost:4000');
     
     // Should NOT contain pipeline server references
     expect(allLogs).not.toContain('Pipeline Server:');

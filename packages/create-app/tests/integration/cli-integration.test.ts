@@ -60,7 +60,7 @@ describe('CLI Integration Tests', () => {
       console.log('🚀 Starting CLI development server...');
       serverManager = new ServerManager({
         projectPath: project.path,
-        port: 3000,
+        port: 4000,
         timeout: 45000, // Give more time for initial startup
         silent: false
       });
