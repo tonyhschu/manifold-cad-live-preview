@@ -1,0 +1,176 @@
+---
+/**
+ * Self-contained bar chart demo widget.
+ * Loads ManifoldCAD WASM, mounts Tweakpane controls, and renders
+ * a 3D bar chart in model-viewer — all client-side.
+ */
+---
+
+<div class="bar-chart-demo" id="bar-chart-demo">
+  <div class="demo-loading" id="demo-loading">
+    <p>Loading 3D engine...</p>
+  </div>
+  <div class="demo-content" id="demo-content" style="display: none;">
+    <div class="demo-viewer">
+      <model-viewer
+        id="demo-model-viewer"
+        camera-controls
+        shadow-intensity="0.5"
+        tone-mapping="neutral"
+        environment-image="neutral"
+        interaction-prompt="none"
+        auto-rotate
+        auto-rotate-delay="0"
+        alt="3D bar chart"
+        style="width: 100%; height: 100%; background-color: #1a1a2e;"
+      ></model-viewer>
+    </div>
+    <div class="demo-controls" id="demo-controls"></div>
+  </div>
+</div>
+
+<script>
+  async function initDemo() {
+    const loadingEl = document.getElementById('demo-loading');
+    const contentEl = document.getElementById('demo-content');
+    const controlsEl = document.getElementById('demo-controls');
+    const viewerEl = document.getElementById('demo-model-viewer') as any;
+
+    if (!loadingEl || !contentEl || !controlsEl || !viewerEl) return;
+
+    try {
+      // Load all dependencies in parallel
+      const [wrapperModule, tweakpaneModule, _modelViewer] = await Promise.all([
+        import('@manifold-studio/wrapper'),
+        import('tweakpane'),
+        import('@google/model-viewer'),
+      ]);
+
+      const { Manifold, manifoldToGLB } = wrapperModule;
+      const { Pane } = tweakpaneModule;
+
+      // Default CSV data
+      const DEFAULT_CSV = `label,value
+Alpha,30
+Beta,50
+Gamma,20
+Delta,45
+Epsilon,35`;
+
+      // Parameters
+      const params = {
+        heightScale: 1.0,
+        barSpacing: 2,
+        barWidth: 8,
+      };
+
+      // Bar chart model function (inlined for self-containment)
+      function generateBarChart(p: typeof params) {
+        const rows = DEFAULT_CSV.trim()
+          .split('\n')
+          .map((line) => {
+            const parts = line.split(',');
+            return { label: parts[0].trim(), value: parseFloat(parts[1]) };
+          })
+          .filter((row) => !isNaN(row.value));
+
+        if (rows.length === 0) return Manifold.cube([0.001, 0.001, 0.001]);
+
+        const bars = rows.map((row, i) => {
+          const height = row.value * p.heightScale;
+          return Manifold.cube([p.barWidth, height, p.barWidth]).translate([
+            i * (p.barWidth + p.barSpacing),
+            0,
+            0,
+          ]);
+        });
+
+        return bars.length === 1 ? bars[0] : Manifold.union(bars);
+      }
+
+      // Track current blob URL for cleanup
+      let currentBlobUrl: string | null = null;
+
+      // Render function
+      async function render() {
+        const model = generateBarChart(params);
+        const blob = await manifoldToGLB(model);
+        const newUrl = URL.createObjectURL(blob);
+
+        // Update viewer
+        viewerEl.src = newUrl;
+
+        // Revoke old URL
+        if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+        currentBlobUrl = newUrl;
+      }
+
+      // Mount Tweakpane
+      const pane = new Pane({ container: controlsEl, title: 'Parameters' });
+      pane.addBinding(params, 'heightScale', { label: 'Height Scale', min: 0.1, max: 3.0, step: 0.1 });
+      pane.addBinding(params, 'barSpacing', { label: 'Bar Spacing', min: 0, max: 20, step: 1 });
+      pane.addBinding(params, 'barWidth', { label: 'Bar Width', min: 2, max: 20, step: 1 });
+
+      // Wire change events to re-render
+      pane.on('change', () => {
+        render();
+      });
+
+      // Initial render
+      await render();
+
+      // Show content, hide loading
+      loadingEl.style.display = 'none';
+      contentEl.style.display = '';
+    } catch (err) {
+      console.error('Failed to initialize demo:', err);
+      if (loadingEl) loadingEl.textContent = 'Failed to load demo. Check console for details.';
+    }
+  }
+
+  initDemo();
+</script>
+
+<style>
+  .bar-chart-demo {
+    border: 1px solid var(--sl-color-gray-5, #333);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 1.5rem 0;
+  }
+
+  .demo-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    color: var(--sl-color-gray-3, #888);
+    font-style: italic;
+  }
+
+  .demo-content {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    min-height: 400px;
+  }
+
+  .demo-viewer {
+    min-height: 400px;
+  }
+
+  .demo-controls {
+    padding: 1rem;
+    border-left: 1px solid var(--sl-color-gray-5, #333);
+    background: var(--sl-color-gray-6, #1a1a2e);
+  }
+
+  @media (max-width: 768px) {
+    .demo-content {
+      grid-template-columns: 1fr;
+    }
+    .demo-controls {
+      border-left: none;
+      border-top: 1px solid var(--sl-color-gray-5, #333);
+    }
+  }
+</style>
