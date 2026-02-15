@@ -60,3 +60,4 @@ reference-project/vendor/
 .rmb/
 .githooks/
 .uisnap/
+.worktrees/
