@@ -5,7 +5,8 @@
   "type": "module",
   "workspaces": [
     "packages/*",
-    "manifold-studio-website"
+    "manifold-studio-website",
+    "reference-project"
   ],
   "scripts": {
     "build": "npm run build --workspace @manifold-studio/wrapper && npm run build --workspace @manifold-studio/typeface && npm run build --workspace @manifold-studio/configurator && npm run build --workspace @manifold-studio/create-app",
@@ -38,7 +39,8 @@
     "dev:reference": "npm run build:dev-deps && cd reference-project && node ../packages/configurator/dist/cli/index.js dev",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "npm run build && changeset publish"
+    "release": "npm run build && changeset publish",
+    "prepare": "npm run build -w packages/wrapper && npm run build -w packages/configurator"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.1",

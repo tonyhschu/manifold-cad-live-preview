@@ -7,7 +7,6 @@ export interface ModelFile {
 
 export interface DevCommandOptions {
   port: string;
-  pipelinePort: string;
   verbose?: boolean;
   configuratorDevMode?: boolean;
 }

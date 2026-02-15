@@ -3,7 +3,6 @@ import path from 'path';
 import { createServer } from 'net';
 import type { DevCommandOptions } from '../types.js';
 import { detectConfiguratorDevelopment } from '../dev-mode-detector.js';
-// Removed: Pipeline server is no longer needed - template server handles everything
 import { createPipelineCompiler, buildPipeline } from '../../pipeline-compiler/index.js';
 import { createTemplateServer } from '../template-server.js';
 
@@ -92,7 +91,6 @@ function handleServerError(error: any, port: number, serverType: string): never 
 function validateCliArguments(options: DevCommandOptions): void {
   // Validate port numbers
   const uiPort = parseInt(options.port);
-  // Removed: pipelinePort validation no longer needed
 
   if (isNaN(uiPort) || uiPort < 1 || uiPort > 65535) {
     console.error(`\n❌ Invalid UI server port: ${options.port}`);
@@ -101,8 +99,6 @@ function validateCliArguments(options: DevCommandOptions): void {
     process.exit(1);
   }
 
-  // Removed: Pipeline port validation no longer needed
-
   // Validate port ranges (warn about privileged ports)
   if (uiPort < 1024) {
     console.warn(`\n⚠️  Warning: UI server port ${uiPort} is a privileged port (< 1024)`);
@@ -110,7 +106,6 @@ function validateCliArguments(options: DevCommandOptions): void {
     console.warn(`   Consider using a port >= 1024 (e.g., 4000)`);
   }
 
-  // Removed: Pipeline port warning no longer needed
 }
 
 /**
@@ -194,7 +189,6 @@ export async function devCommand(options: DevCommandOptions) {
       templateServer = await createTemplateServer({
         userProjectPath,
         port: uiPort,
-        pipelinePort: 0, // No longer used - keeping for interface compatibility
         pipelinePath: '/temp/pipeline.js',
         manifestPath: '/temp/manifest.json',
         configuratorDevMode,

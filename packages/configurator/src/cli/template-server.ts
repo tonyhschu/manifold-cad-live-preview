@@ -2,12 +2,27 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'vite';
-import chokidar from 'chokidar';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Removed custom file watcher - let Vite handle temp files naturally
+/**
+ * Resolve model-viewer.min.js from node_modules
+ * Searches up from the user project path to find the installed package
+ */
+function resolveModelViewerPath(userProjectPath: string): string | null {
+  let dir = userProjectPath;
+  while (true) {
+    const candidate = path.join(dir, 'node_modules/@google/model-viewer/dist/model-viewer.min.js');
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
 
 /**
  * Find the path to a package from a user project path
@@ -39,7 +54,6 @@ function findPackagePath(userProjectPath: string, packageName: string): string {
 export interface TemplateServerOptions {
   userProjectPath: string;
   port: number;
-  pipelinePort: number;
   pipelinePath: string;
   manifestPath: string;
   configuratorDevMode: boolean;
@@ -58,7 +72,6 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
   const {
     userProjectPath,
     port,
-    pipelinePort,
     pipelinePath,
     manifestPath,
     configuratorDevMode,
@@ -90,7 +103,6 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
       fs: {
         allow: ['..', '.'] // Allow serving files from parent directories
       }
-      // Note: Removed proxy configuration - temp files are now served directly from filesystem
     },
     publicDir: userProjectPath, // Serve static files from user project root (includes vendor/)
 
@@ -186,6 +198,18 @@ export async function createTemplateServer(options: TemplateServerOptions): Prom
               res.setHeader('Content-Type', 'application/javascript');
               res.end(logoContent);
               return;
+            }
+
+            if (pathname === '/vendor/model-viewer/model-viewer.min.js') {
+              // Serve model-viewer from node_modules instead of requiring a vendor/ copy
+              const modelViewerPath = resolveModelViewerPath(userProjectPath);
+              if (modelViewerPath) {
+                const content = fs.readFileSync(modelViewerPath);
+                res.setHeader('Content-Type', 'application/javascript');
+                res.end(content);
+                return;
+              }
+              // Fall through to Vite's static file serving (vendor/ fallback)
             }
 
             if (req.url === '/diagnostic') {

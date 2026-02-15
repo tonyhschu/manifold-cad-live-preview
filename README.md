@@ -381,6 +381,9 @@ manifold-studio/
 │       ├── src/                   # CLI tool source
 │       ├── templates/             # Project templates
 │       └── bin/                   # Compiled CLI executable
+├── reference-project/              # Example project (workspace member)
+│   ├── main.ts                    # Main model entry point
+│   └── components/                # Model components
 └── package.json                   # Workspace configuration
 ```
 
@@ -409,51 +412,41 @@ manifold-studio/
 
 ## 🔧 Development Workflow
 
-### V3 Architecture - CLI-Based Development
-
-The V3 architecture uses the **Manifold Studio CLI** to provide a unified development experience:
-
-#### Configurator Development
-
-The configurator package **cannot be developed standalone**. Use the CLI development environment:
+### Getting Started (from a fresh clone)
 
 ```bash
-# Navigate to test project
+git clone <repo-url>
+npm install      # Automatically builds wrapper + configurator via prepare hook
+npm test         # All tests should pass
+```
+
+That's it. The `prepare` script ensures all inter-package dependencies are built after install.
+
+### CLI-Based Development
+
+The **Manifold Studio CLI** provides a unified development experience:
+
+```bash
+# Navigate to reference project (a workspace member)
 cd reference-project
 
-# Start CLI (automatically detects development mode)
+# Start CLI (automatically detects development mode via workspace symlinks)
 npm run dev
 
 # Edit configurator source files
 # Changes in packages/configurator/src/ are reflected immediately via HMR
 ```
 
-#### CLI Development Benefits
-
+**How it works:**
 - **Single command**: `npm run dev` handles model discovery, pipeline generation, and server startup
-- **Automatic model discovery**: New .ts files are detected and integrated instantly
-- **No manual pipeline management**: CLI generates pipeline entries automatically
+- **Automatic dev mode detection**: Workspace symlinks are detected automatically — no `file:` links needed
 - **Cross-package HMR**: Hot module replacement works across package boundaries
-- **Immediate feedback**: Changes are visible instantly in the browser
-- **Simplified workflow**: No need to understand pipeline infrastructure
-
-#### Development vs Production
-
-- **Development**: CLI automatically detects development mode for source-based imports
-- **Production**: CLI uses published configurator package (when available)
-
-### Cross-Package Development
-
-For monorepo development when working on the framework itself:
-
-1. **Wrapper changes** → TypeScript watch rebuilds automatically (~1-2 seconds)
-2. **Configurator detects change** → Vite HMR updates the browser
-3. **Total time**: ~2-3 seconds for cross-package changes
+- **Model-viewer auto-resolved**: Served from `node_modules` — no manual vendor copy needed
 
 ### Development Commands
 
 ```bash
-# V3 CLI Development (Recommended)
+# CLI Development (Recommended)
 cd reference-project
 npm run dev                    # Start CLI (auto-detects configurator dev mode)
 
@@ -476,30 +469,13 @@ npm run test:configurator         # Test configurator package only
 npm run test:create-app           # Test create-app package only
 ```
 
-### Recommended Development Setup
+### Cross-Package Development
 
-**V3 CLI Approach (Preferred)**:
+For monorepo development when working on the framework itself:
 
-```bash
-# Single terminal - CLI handles everything
-cd reference-project
-npm run dev
-```
-
-**Monorepo Development Approach** (for framework development):
-
-```bash
-# Terminal 1: Wrapper watch mode
-npm run dev:wrapper
-
-# Terminal 2: Configurator dev server
-npm run dev:configurator
-
-# Or use the convenience command:
-npm run devAll
-```
-
-The V3 CLI approach provides the same functionality with a much simpler workflow.
+1. **Wrapper changes** → TypeScript watch rebuilds automatically (~1-2 seconds)
+2. **Configurator detects change** → Vite HMR updates the browser
+3. **Total time**: ~2-3 seconds for cross-package changes
 
 ### Testing Generated Projects
 

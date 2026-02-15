@@ -4,36 +4,29 @@ import path from 'path';
 /**
  * Detects if we're running in configurator development mode
  * This happens when:
- * 1. We're in a workspace with configurator source code
- * 2. The project has configurator as a local file dependency
+ * 1. We're in a workspace with configurator source code (monorepo root)
+ * 2. The configurator package is a symlink (npm workspace resolution)
  */
 export async function detectConfiguratorDevelopment(projectPath: string = process.cwd()): Promise<boolean> {
   try {
-    // Check if we're in a workspace with configurator source
+    // Check if we're in a workspace with configurator source (running from monorepo root)
     const configuratorSrc = path.resolve(projectPath, './packages/configurator/src');
-    const hasConfiguratorSource = fs.existsSync(configuratorSrc);
-    
-    if (hasConfiguratorSource) {
+    if (fs.existsSync(configuratorSrc)) {
       return true;
     }
-    
-    // Check if package.json has configurator as local dependency
-    const packageJsonPath = path.join(projectPath, 'package.json');
-    if (fs.existsSync(packageJsonPath)) {
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-      const devDeps = packageJson.devDependencies || {};
-      const deps = packageJson.dependencies || {};
-      
-      const configuratorDep = devDeps['@manifold-studio/configurator'] || deps['@manifold-studio/configurator'];
-      
-      if (configuratorDep && (configuratorDep.includes('file:') || configuratorDep.includes('link:'))) {
+
+    // Check if the configurator package is a symlink (workspace-linked = dev mode)
+    // npm workspaces always create symlinks for local packages in node_modules
+    const configuratorPath = path.resolve(projectPath, 'node_modules/@manifold-studio/configurator');
+    try {
+      const stat = fs.lstatSync(configuratorPath);
+      if (stat.isSymbolicLink()) {
         return true;
       }
-    }
-    
+    } catch {}
 
     return false;
-    
+
   } catch (error) {
     console.warn('⚠️  Error detecting development mode, assuming user project mode:', error);
     return false;
