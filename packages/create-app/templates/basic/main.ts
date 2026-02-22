@@ -1,101 +1,92 @@
-// Welcome to Manifold Studio!
-// This is your main model file - customize it to create your own 3D designs
-
-// V3 Parametric Model Configuration
-// This file is automatically discovered and compiled by the V3 pipeline
-
-// Access Manifold from global scope (set up by the configurator)
-declare const manifold: any;
+// Logo component - parametric pyramid using ofMesh
+import { Manifold, P, createConfig } from "@manifold-studio/wrapper";
 
 /**
- * Creates a parametric box with customizable dimensions and features
+ * Create a triangular pyramid at a specific corner position
+ * @param w - width dimension
+ * @param h - height dimension
+ * @param cornerX - X offset for the corner (-1 for left, +1 for right)
+ * @param cornerZ - Z offset for the corner (-1 for back, +1 for front)
  */
-function createParametricBox(params: {
-  width: number;
-  height: number;
-  depth: number;
-  wallThickness: number;
-  hasLid: boolean;
-  cornerRadius: number;
-}) {
-  const { width, height, depth, wallThickness, hasLid, cornerRadius } = params;
+function createCornerPyramid(w: number, h: number, cornerX: number, cornerZ: number) {
+  // Calculate the center position for this corner
+  const centerX = (cornerX * w) / 2;
+  const centerZ = (cornerZ * w) / 2;
 
-  // Create the outer box
-  let outerBox = manifold.cube([width, height, depth], true);
+  // Define the 4 vertices of the pyramid relative to this corner
+  const vertices = new Float32Array([
+    // Top vertex (at the corner of the cube)
+    centerX, h, centerZ,
+    // Bottom triangle vertices (forming triangle toward center)
+    centerX, 0, centerZ,                    // Corner vertex
+    0, 0, centerZ, // Toward center on X
+    centerX, 0, 0   // Toward center on Z
+  ]);
 
-  // Add corner rounding if requested
-  if (cornerRadius > 0) {
-    // Simple rounding approximation - you can enhance this
-    const roundingCylinder = manifold.cylinder(depth + 2, cornerRadius, cornerRadius)
-      .rotate([90, 0, 0]);
+  // Define the triangular faces - winding depends on corner orientation
+  // For consistent outward normals, we need to flip winding for certain corners
+  const needsFlip = (cornerX * cornerZ) < 0; // True for corners (-1,+1) and (+1,-1)
 
-    // Apply rounding to corners (simplified version)
-    outerBox = outerBox; // Placeholder for actual rounding logic
-  }
+  const triangles = needsFlip ?
+    // Flipped winding for corners 2 and 4
+    new Uint32Array([
+      // Bottom face
+      1, 3, 2,  // Corner -> Z-center -> X-center
 
-  // Create the inner cavity
-  const innerBox = manifold.cube([
-    width - wallThickness * 2,
-    height - wallThickness * 2,
-    depth - wallThickness
-  ], true).translate([0, 0, wallThickness / 2]);
+      // Side faces
+      0, 1, 2,  // Top -> Corner -> X-center
+      0, 2, 3,  // Top -> X-center -> Z-center
+      0, 3, 1   // Top -> Z-center -> Corner
+    ]) :
+    // Normal winding for corners 1 and 3
+    new Uint32Array([
+      // Bottom face
+      1, 2, 3,  // Corner -> X-center -> Z-center
 
-  // Subtract inner from outer to create walls
-  let box = manifold.difference(outerBox, innerBox);
+      // Side faces
+      0, 2, 1,  // Top -> X-center -> Corner
+      0, 3, 2,  // Top -> Z-center -> X-center
+      0, 1, 3   // Top -> Corner -> Z-center
+    ]);
 
-  // Add lid if requested
-  if (hasLid) {
-    const lid = manifold.cube([
-      width - wallThickness,
-      height - wallThickness,
-      wallThickness
-    ], true).translate([0, 0, depth / 2 + wallThickness / 2]);
+  // Create the mesh object
+  const mesh = {
+    vertProperties: vertices,
+    triVerts: triangles,
+    numProp: 3  // 3 properties per vertex (X, Y, Z)
+  };
 
-    box = manifold.union([box, lid]);
-  }
-
-  return box;
+  return Manifold.ofMesh(mesh);
 }
 
-// V3 Parametric Configuration
-// This is the new format that the V3 pipeline expects
-export default {
-  name: "Parametric Box",
-  description: "A customizable box with adjustable dimensions and features",
-  parameters: {
-    width: {
-      value: 20,
-      min: 10,
-      max: 100,
-      step: 1
-    },
-    height: {
-      value: 15,
-      min: 10,
-      max: 100,
-      step: 1
-    },
-    depth: {
-      value: 10,
-      min: 5,
-      max: 50,
-      step: 1
-    },
-    wallThickness: {
-      value: 2,
-      min: 1,
-      max: 5,
-      step: 0.5
-    },
-    hasLid: {
-      value: true
-    },
-    cornerRadius: {
-      value: 1,
-      min: 0,
-      max: 5,
-      step: 0.5
-    }
+const defaultWidth = 10;
+const defaultHeight = defaultWidth / 1.1666667;
+
+// Export parametric config as default for UI compatibility
+export default createConfig(
+  {
+    width: P.number(defaultWidth, 5, 50, 1),
+    height: P.number(defaultHeight, 5, 50, 1),
   },
-  generateModel: createParametricBox
-};
+  (params) => {
+    const { width: w, height: h } = params;
+
+    const cube = Manifold.cube([w, h, w], true)
+      .translate([0, h/2, 0]);
+
+    // Create 4 corner pyramids
+    const pyramid1 = createCornerPyramid(w, h, -1, -1); // Back-left
+    const pyramid2 = createCornerPyramid(w, h, +1, -1); // Back-right
+    const pyramid3 = createCornerPyramid(w, h, +1, +1); // Front-right
+    const pyramid4 = createCornerPyramid(w, h, -1, +1); // Front-left
+
+    const allPyramids = Manifold.union([pyramid1, pyramid2, pyramid3, pyramid4]);
+
+    // Subtract all pyramids from the cube
+    return cube.subtract(allPyramids);
+  },
+  {
+    name: "Main Logo",
+    description: "A parametric Manifold Studio Logo Shape with adjustable width and height"
+  }
+);

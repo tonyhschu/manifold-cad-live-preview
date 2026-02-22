@@ -103,6 +103,10 @@ async function initializeConfigurator(pipelinePath?: string) {
   const { initializeV3StateBridge } = await import('./state/v3-bridge');
   await initializeV3StateBridge();
 
+  // Initialize logo animation handler
+  const { initializeLogoAnimationHandler } = await import('./core/logo-animation-handler');
+  initializeLogoAnimationHandler();
+
   // Get DOM elements
   const modelViewerElement = document.getElementById("viewer") as any;
 
